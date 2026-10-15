@@ -30,12 +30,16 @@ export class CoreModule {
         {
           provide: DB_HANDLE,
           useFactory: () =>
-            createDb(env.DATABASE_URL, { prepare: env.DATABASE_PREPARE, max: env.DATABASE_POOL_MAX }),
+            createDb(env.DATABASE_URL, {
+              prepare: env.DATABASE_PREPARE,
+              max: env.DATABASE_POOL_MAX,
+            }),
         },
         { provide: DB, useFactory: (h: DbHandle) => h.db, inject: [DB_HANDLE] },
         {
           provide: REDIS,
-          useFactory: () => new Redis(env.REDIS_URL, { maxRetriesPerRequest: 3, lazyConnect: false }),
+          useFactory: () =>
+            new Redis(env.REDIS_URL, { maxRetriesPerRequest: 3, lazyConnect: false }),
         },
         Shutdown,
       ],

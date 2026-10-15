@@ -31,9 +31,15 @@ async function setupOrg() {
   const games = (await owner.get('/games')).body as { id: string; name: string }[];
   const val = games.find((g) => g.name === 'VALORANT')!.id;
   const cs2 = games.find((g) => g.name === 'Counter-Strike 2')!.id;
-  const teamA = (await owner.post('/teams', { name: 'Valorant Team A', departmentId: esports.id, gameId: val })).body as TeamDto;
-  const teamB = (await owner.post('/teams', { name: 'CS2 Team B', departmentId: esports.id, gameId: cs2 })).body as TeamDto;
-  const teamC = (await owner.post('/teams', { name: 'Academy Squad', departmentId: academy.id, gameId: val })).body as TeamDto;
+  const teamA = (
+    await owner.post('/teams', { name: 'Valorant Team A', departmentId: esports.id, gameId: val })
+  ).body as TeamDto;
+  const teamB = (
+    await owner.post('/teams', { name: 'CS2 Team B', departmentId: esports.id, gameId: cs2 })
+  ).body as TeamDto;
+  const teamC = (
+    await owner.post('/teams', { name: 'Academy Squad', departmentId: academy.id, gameId: val })
+  ).body as TeamDto;
   return { owner, esports, academy, teamA, teamB, teamC };
 }
 
@@ -86,13 +92,18 @@ describe('Definition of Done: custom role + team scope enforced by the backend',
 
   test('permission changes take effect on the very next request (no stale cache)', async () => {
     const { owner, teamA } = await setupOrg();
-    const role = (await owner.post<RoleDto>('/roles', { nameEn: 'Coach', permissions: ['teams.view'] })).body;
+    const role = (
+      await owner.post<RoleDto>('/roles', { nameEn: 'Coach', permissions: ['teams.view'] })
+    ).body;
     const { client: coach } = await inviteAndAccept(t, owner, 'coach@example.com', [
       { roleId: role.id, scopeType: 'team', scopeId: teamA.id },
     ]);
     expect((await coach.patch(`/teams/${teamA.id}`, { region: 'EU' })).status).toBe(403);
 
-    await owner.put(`/roles/${role.id}`, { nameEn: 'Coach', permissions: ['teams.view', 'teams.edit'] });
+    await owner.put(`/roles/${role.id}`, {
+      nameEn: 'Coach',
+      permissions: ['teams.view', 'teams.edit'],
+    });
     const ok = await coach.patch<TeamDto>(`/teams/${teamA.id}`, { region: 'EU' });
     expect(ok.status).toBe(200);
     expect(ok.body.region).toBe('EU');
@@ -123,28 +134,49 @@ describe('Definition of Done: custom role + team scope enforced by the backend',
 
   test('scoped create: may only create teams inside a covered department', async () => {
     const { owner, esports, academy } = await setupOrg();
-    const role = (await owner.post<RoleDto>('/roles', { nameEn: 'Dept lead', permissions: ['teams.view', 'teams.create'] })).body;
+    const role = (
+      await owner.post<RoleDto>('/roles', {
+        nameEn: 'Dept lead',
+        permissions: ['teams.view', 'teams.create'],
+      })
+    ).body;
     const { client: lead } = await inviteAndAccept(t, owner, 'lead@example.com', [
       { roleId: role.id, scopeType: 'department', scopeId: esports.id },
     ]);
-    expect((await lead.post('/teams', { name: 'Esports New', departmentId: esports.id })).status).toBe(201);
-    expect((await lead.post('/teams', { name: 'Academy New', departmentId: academy.id })).status).toBe(403);
+    expect(
+      (await lead.post('/teams', { name: 'Esports New', departmentId: esports.id })).status,
+    ).toBe(201);
+    expect(
+      (await lead.post('/teams', { name: 'Academy New', departmentId: academy.id })).status,
+    ).toBe(403);
     expect((await lead.post('/teams', { name: 'No Dept' })).status).toBe(403);
   });
 
   test('moving a team requires edit coverage of the destination department', async () => {
     const { owner, esports, academy, teamA } = await setupOrg();
-    const role = (await owner.post<RoleDto>('/roles', { nameEn: 'Editor', permissions: ['teams.view', 'teams.edit'] })).body;
+    const role = (
+      await owner.post<RoleDto>('/roles', {
+        nameEn: 'Editor',
+        permissions: ['teams.view', 'teams.edit'],
+      })
+    ).body;
     const { client: ed } = await inviteAndAccept(t, owner, 'ed@example.com', [
       { roleId: role.id, scopeType: 'department', scopeId: esports.id },
     ]);
     expect((await ed.patch(`/teams/${teamA.id}`, { departmentId: academy.id })).status).toBe(403);
-    expect((await ed.patch(`/teams/${teamA.id}`, { departmentId: esports.id, region: 'x' })).status).toBe(200);
+    expect(
+      (await ed.patch(`/teams/${teamA.id}`, { departmentId: esports.id, region: 'x' })).status,
+    ).toBe(200);
   });
 
   test('organization-level permissions in a scoped role apply as-is', async () => {
     const { owner, teamA } = await setupOrg();
-    const role = (await owner.post<RoleDto>('/roles', { nameEn: 'Scoped', permissions: ['teams.view', 'games.view'] })).body;
+    const role = (
+      await owner.post<RoleDto>('/roles', {
+        nameEn: 'Scoped',
+        permissions: ['teams.view', 'games.view'],
+      })
+    ).body;
     const { client: m } = await inviteAndAccept(t, owner, 'm@example.com', [
       { roleId: role.id, scopeType: 'team', scopeId: teamA.id },
     ]);
@@ -153,17 +185,24 @@ describe('Definition of Done: custom role + team scope enforced by the backend',
 
   test('union of several assignments', async () => {
     const { owner, teamA, teamC } = await setupOrg();
-    const role = (await owner.post<RoleDto>('/roles', { nameEn: 'Viewer', permissions: ['teams.view'] })).body;
+    const role = (
+      await owner.post<RoleDto>('/roles', { nameEn: 'Viewer', permissions: ['teams.view'] })
+    ).body;
     const { client: v } = await inviteAndAccept(t, owner, 'v@example.com', [
       { roleId: role.id, scopeType: 'team', scopeId: teamA.id },
       { roleId: role.id, scopeType: 'team', scopeId: teamC.id },
     ]);
-    expect((await v.get<TeamDto[]>('/teams')).body.map((x) => x.name).sort()).toEqual(['Academy Squad', 'Valorant Team A']);
+    expect((await v.get<TeamDto[]>('/teams')).body.map((x) => x.name).sort()).toEqual([
+      'Academy Squad',
+      'Valorant Team A',
+    ]);
   });
 
   test('deleting a team removes the assignments scoped to it', async () => {
     const { owner, teamA } = await setupOrg();
-    const role = (await owner.post<RoleDto>('/roles', { nameEn: 'Viewer', permissions: ['teams.view'] })).body;
+    const role = (
+      await owner.post<RoleDto>('/roles', { nameEn: 'Viewer', permissions: ['teams.view'] })
+    ).body;
     const { client: v } = await inviteAndAccept(t, owner, 'v2@example.com', [
       { roleId: role.id, scopeType: 'team', scopeId: teamA.id },
     ]);
@@ -175,20 +214,31 @@ describe('Definition of Done: custom role + team scope enforced by the backend',
 describe('roles are data, not code', () => {
   test('owner-only permissions cannot be granted to custom roles', async () => {
     const { owner } = await setupOrg();
-    const res = await owner.post('/roles', { nameEn: 'Escalator', permissions: ['teams.view', 'roles.manage'] });
+    const res = await owner.post('/roles', {
+      nameEn: 'Escalator',
+      permissions: ['teams.view', 'roles.manage'],
+    });
     expect(res.status).toBe(400);
-    const res2 = await owner.post('/roles', { nameEn: 'Escalator', permissions: ['members.invite'] });
+    const res2 = await owner.post('/roles', {
+      nameEn: 'Escalator',
+      permissions: ['members.invite'],
+    });
     expect(res2.status).toBe(400);
   });
 
   test('the Owner role is locked; default roles are editable and deletable', async () => {
     const { owner } = await setupOrg();
     const ownerRole = await roleIdByTemplate(owner, 'owner');
-    expect((await owner.put(`/roles/${ownerRole}`, { nameEn: 'Boss', permissions: [] })).body.error.code).toBe('system_role_locked');
+    expect(
+      (await owner.put(`/roles/${ownerRole}`, { nameEn: 'Boss', permissions: [] })).body.error.code,
+    ).toBe('system_role_locked');
     expect((await owner.del(`/roles/${ownerRole}`)).status).toBe(403);
 
     const ops = await roleIdByTemplate(owner, 'esports_operations');
-    expect((await owner.put(`/roles/${ops}`, { nameAr: 'العمليات', permissions: ['teams.view'] })).status).toBe(200);
+    expect(
+      (await owner.put(`/roles/${ops}`, { nameAr: 'العمليات', permissions: ['teams.view'] }))
+        .status,
+    ).toBe(200);
     expect((await owner.del(`/roles/${ops}`)).status).toBe(204);
   });
 
@@ -196,7 +246,11 @@ describe('roles are data, not code', () => {
     const { owner, esports } = await setupOrg();
     const mgrRole = await roleIdByTemplate(owner, 'esports_manager');
     const current = (await owner.get<RoleDto>(`/roles/${mgrRole}`)).body;
-    await owner.put(`/roles/${mgrRole}`, { nameEn: 'Something Else Entirely', nameAr: null, permissions: current.permissions });
+    await owner.put(`/roles/${mgrRole}`, {
+      nameEn: 'Something Else Entirely',
+      nameAr: null,
+      permissions: current.permissions,
+    });
     const { client: m } = await inviteAndAccept(t, owner, 'renamed@example.com', [
       { roleId: mgrRole, scopeType: 'department', scopeId: esports.id },
     ]);
@@ -205,8 +259,11 @@ describe('roles are data, not code', () => {
 
   test('a role in use cannot be deleted', async () => {
     const { owner, teamA } = await setupOrg();
-    const role = (await owner.post<RoleDto>('/roles', { nameEn: 'R', permissions: ['teams.view'] })).body;
-    await inviteAndAccept(t, owner, 'r@example.com', [{ roleId: role.id, scopeType: 'team', scopeId: teamA.id }]);
+    const role = (await owner.post<RoleDto>('/roles', { nameEn: 'R', permissions: ['teams.view'] }))
+      .body;
+    await inviteAndAccept(t, owner, 'r@example.com', [
+      { roleId: role.id, scopeType: 'team', scopeId: teamA.id },
+    ]);
     const res = await owner.del(`/roles/${role.id}`);
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('role_in_use');
@@ -227,7 +284,11 @@ describe('roles are data, not code', () => {
 describe('tenant isolation', () => {
   async function twoOrgs() {
     const a = await setupOrg();
-    const { client: ownerB } = await registerOwner(t, { slug: 'jeddah-eagles', email: 'b@example.com', name: 'Jeddah Eagles' });
+    const { client: ownerB } = await registerOwner(t, {
+      slug: 'jeddah-eagles',
+      email: 'b@example.com',
+      name: 'Jeddah Eagles',
+    });
     return { ...a, ownerB };
   }
 
@@ -261,13 +322,19 @@ describe('tenant isolation', () => {
   test("switching into an organization you don't belong to is refused", async () => {
     const { ownerB, owner } = await twoOrgs();
     const meA = (await owner.get('/auth/me')).body;
-    const res = await ownerB.post('/auth/switch-organization', { organizationId: meA.activeOrganization.id });
+    const res = await ownerB.post('/auth/switch-organization', {
+      organizationId: meA.activeOrganization.id,
+    });
     expect(res.status).toBe(404);
   });
 
   test('the database itself rejects cross-tenant references', async () => {
     const { teamA } = await twoOrgs();
-    const [orgB] = [...(await t.db.execute<{ id: string }>(sql`select id from app.organizations where slug = 'jeddah-eagles'`))];
+    const [orgB] = [
+      ...(await t.db.execute<{ id: string }>(
+        sql`select id from app.organizations where slug = 'jeddah-eagles'`,
+      )),
+    ];
     let error: unknown = null;
     try {
       // Bypasses all application checks: a team in org B pointing at org A's department.

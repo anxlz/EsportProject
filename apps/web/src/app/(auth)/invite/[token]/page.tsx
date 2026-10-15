@@ -23,7 +23,11 @@ export default function InvitePage() {
     queryFn: () => api<PublicInvitationDto>(`/public/invitations/${encodeURIComponent(token)}`),
     retry: false,
   });
-  const me = useQuery({ queryKey: ['me'], queryFn: () => api<MeResponse>('/auth/me'), retry: false });
+  const me = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api<MeResponse>('/auth/me'),
+    retry: false,
+  });
 
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
@@ -84,7 +88,9 @@ export default function InvitePage() {
             <Button
               variant="primary"
               disabled={busy}
-              onClick={() => run(() => apiPost<MeResponse>(`/invitations/accept/${encodeURIComponent(token)}`))}
+              onClick={() =>
+                run(() => apiPost<MeResponse>(`/invitations/accept/${encodeURIComponent(token)}`))
+              }
             >
               {busy ? t('joining') : t('acceptAsSignedIn', { organization: inv.organizationName })}
             </Button>
@@ -120,7 +126,10 @@ export default function InvitePage() {
               setShowErrors(true);
               if (!displayName.trim() || weak) return;
               void run(() =>
-                apiPost<MeResponse>(`/public/invitations/${encodeURIComponent(token)}/accept`, { displayName, password }),
+                apiPost<MeResponse>(`/public/invitations/${encodeURIComponent(token)}/accept`, {
+                  displayName,
+                  password,
+                }),
               );
             }}
           >

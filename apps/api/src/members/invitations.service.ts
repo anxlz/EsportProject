@@ -51,7 +51,10 @@ export class InvitationsService {
     private readonly auth: AuthService,
   ) {}
 
-  private toDto(row: InvitationRow, inviter: { id: string; displayName: string } | null): InvitationDto {
+  private toDto(
+    row: InvitationRow,
+    inviter: { id: string; displayName: string } | null,
+  ): InvitationDto {
     return {
       id: row.id,
       email: row.email,
@@ -73,7 +76,12 @@ export class InvitationsService {
       .select({ userId: organizationMembers.userId })
       .from(organizationMembers)
       .innerJoin(users, eq(users.id, organizationMembers.userId))
-      .where(and(eq(organizationMembers.organizationId, ctx.organizationId), sql`lower(${users.email}) = ${input.email}`));
+      .where(
+        and(
+          eq(organizationMembers.organizationId, ctx.organizationId),
+          sql`lower(${users.email}) = ${input.email}`,
+        ),
+      );
     if (alreadyMember) throw Errors.conflict('already_member', 'This person is already a member');
 
     const token = randomToken(32);
@@ -97,21 +105,34 @@ export class InvitationsService {
           organizationId: ctx.organizationId,
           email: input.email,
           tokenHash: sha256(token),
-          assignments: valid.map((a) => ({ roleId: a.roleId, scopeType: a.scopeType, scopeId: a.departmentId ?? a.teamId })),
+          assignments: valid.map((a) => ({
+            roleId: a.roleId,
+            scopeType: a.scopeType,
+            scopeId: a.departmentId ?? a.teamId,
+          })),
           makeOwner: !!input.makeOwner,
           invitedByUserId: ctx.user.id,
           expiresAt: new Date(Date.now() + INVITATION_TTL_DAYS * 24 * 3600 * 1000),
         })
         .returning();
-      await this.audit.fromCtx(ctx, 'invitation.created', { type: 'invitation', id: inv!.id }, {
-        email: input.email,
-        makeOwner: !!input.makeOwner,
-        assignments: inv!.assignments,
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'invitation.created',
+        { type: 'invitation', id: inv!.id },
+        {
+          email: input.email,
+          makeOwner: !!input.makeOwner,
+          assignments: inv!.assignments,
+        },
+        tx,
+      );
       return inv!;
     });
 
-    const [org] = await this.db.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, ctx.organizationId));
+    const [org] = await this.db
+      .select({ name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.id, ctx.organizationId));
     const inviteUrl = `${this.env.WEB_APP_URL}/invite/${token}`;
     const emailSent = await this.mail.sendInvitation(input.email, {
       organizationName: org?.name ?? '',
@@ -141,7 +162,10 @@ export class InvitationsService {
       )
       .orderBy(desc(invitations.createdAt));
     return rows.map(({ inv, inviterName }) =>
-      this.toDto(inv, inv.invitedByUserId ? { id: inv.invitedByUserId, displayName: inviterName ?? '' } : null),
+      this.toDto(
+        inv,
+        inv.invitedByUserId ? { id: inv.invitedByUserId, displayName: inviterName ?? '' } : null,
+      ),
     );
   }
 
@@ -159,7 +183,12 @@ export class InvitationsService {
       )
       .returning({ id: invitations.id, email: invitations.email });
     if (!updated.length) throw Errors.notFound('Invitation');
-    await this.audit.fromCtx(ctx, 'invitation.revoked', { type: 'invitation', id }, { email: updated[0]!.email });
+    await this.audit.fromCtx(
+      ctx,
+      'invitation.revoked',
+      { type: 'invitation', id },
+      { email: updated[0]!.email },
+    );
   }
 
   // --- Public (token-holder) side ---------------------------------------------------------
@@ -176,15 +205,26 @@ export class InvitationsService {
           gt(invitations.expiresAt, new Date()),
         ),
       );
-    if (!row) throw new AppError('invalid_or_expired_token', 404, 'This invitation is invalid or has expired');
+    if (!row)
+      throw new AppError(
+        'invalid_or_expired_token',
+        404,
+        'This invitation is invalid or has expired',
+      );
     return row;
   }
 
   async getPublic(token: string): Promise<PublicInvitationDto> {
     const row = await this.findValid(token);
-    const [org] = await this.db.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, row.organizationId));
+    const [org] = await this.db
+      .select({ name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.id, row.organizationId));
     const [inviter] = row.invitedByUserId
-      ? await this.db.select({ name: users.displayName }).from(users).where(eq(users.id, row.invitedByUserId))
+      ? await this.db
+          .select({ name: users.displayName })
+          .from(users)
+          .where(eq(users.id, row.invitedByUserId))
       : [];
     return {
       organizationName: org?.name ?? '',
@@ -203,13 +243,21 @@ export class InvitationsService {
   ): Promise<LoadedSession> {
     const row = await this.findValid(token);
     if (await this.auth.findUserByEmail(row.email)) {
-      throw Errors.conflict('login_required', 'An account with this email exists. Sign in to accept.');
+      throw Errors.conflict(
+        'login_required',
+        'An account with this email exists. Sign in to accept.',
+      );
     }
     const passwordHash = await this.passwords.hash(input.password);
     const userId = await this.db.transaction(async (tx) => {
       const [user] = await tx
         .insert(users)
-        .values({ email: row.email, passwordHash, displayName: input.displayName, passwordChangedAt: new Date() })
+        .values({
+          email: row.email,
+          passwordHash,
+          displayName: input.displayName,
+          passwordChangedAt: new Date(),
+        })
         .returning({ id: users.id });
       await this.join(tx, row, user!.id, meta);
       return user!.id;
@@ -221,27 +269,51 @@ export class InvitationsService {
   async acceptAsUser(ctx: AuthContext, token: string): Promise<void> {
     const row = await this.findValid(token);
     if (ctx.user.email.toLowerCase() !== row.email.toLowerCase()) {
-      throw new AppError('email_mismatch', 403, 'This invitation was sent to a different email address');
+      throw new AppError(
+        'email_mismatch',
+        403,
+        'This invitation was sent to a different email address',
+      );
     }
     await this.db.transaction(async (tx) => {
       const [existing] = await tx
         .select()
         .from(organizationMembers)
-        .where(and(eq(organizationMembers.organizationId, row.organizationId), eq(organizationMembers.userId, ctx.user.id)));
-      if (existing) throw Errors.conflict('already_member', 'You are already a member of this organization');
+        .where(
+          and(
+            eq(organizationMembers.organizationId, row.organizationId),
+            eq(organizationMembers.userId, ctx.user.id),
+          ),
+        );
+      if (existing)
+        throw Errors.conflict('already_member', 'You are already a member of this organization');
       await this.join(tx, row, ctx.user.id, ctx);
     });
     await this.afterJoin(row, ctx.user.id);
     await this.sessions.setActiveOrganization(ctx.session, row.organizationId);
-    await this.db.update(users).set({ lastActiveOrganizationId: row.organizationId }).where(eq(users.id, ctx.user.id));
+    await this.db
+      .update(users)
+      .set({ lastActiveOrganizationId: row.organizationId })
+      .where(eq(users.id, ctx.user.id));
   }
 
-  private async join(tx: DbOrTx, row: InvitationRow, userId: string, meta: ClientMeta): Promise<void> {
+  private async join(
+    tx: DbOrTx,
+    row: InvitationRow,
+    userId: string,
+    meta: ClientMeta,
+  ): Promise<void> {
     // Single-use: claim the invitation atomically.
     const claimed = await tx
       .update(invitations)
       .set({ acceptedAt: new Date(), acceptedByUserId: userId })
-      .where(and(eq(invitations.id, row.id), isNull(invitations.acceptedAt), isNull(invitations.revokedAt)))
+      .where(
+        and(
+          eq(invitations.id, row.id),
+          isNull(invitations.acceptedAt),
+          isNull(invitations.revokedAt),
+        ),
+      )
       .returning({ id: invitations.id });
     if (!claimed.length) throw new AppError('invalid_or_expired_token', 404);
 
@@ -259,7 +331,12 @@ export class InvitationsService {
     );
     if (valid.length) {
       await tx.insert(userRoleAssignments).values(
-        valid.map((a) => ({ ...a, organizationId: row.organizationId, userId, createdByUserId: row.invitedByUserId })),
+        valid.map((a) => ({
+          ...a,
+          organizationId: row.organizationId,
+          userId,
+          createdByUserId: row.invitedByUserId,
+        })),
       );
     }
     if (row.makeOwner) {
@@ -284,7 +361,11 @@ export class InvitationsService {
         action: 'invitation.accepted',
         targetType: 'invitation',
         targetId: row.id,
-        metadata: { makeOwner: row.makeOwner, assignments: valid.length, droppedAssignments: dropped },
+        metadata: {
+          makeOwner: row.makeOwner,
+          assignments: valid.length,
+          droppedAssignments: dropped,
+        },
         ip: meta.ip,
         userAgent: meta.userAgent,
       },
@@ -292,12 +373,20 @@ export class InvitationsService {
     );
 
     if (row.invitedByUserId) {
-      const [newUser] = await tx.select({ name: users.displayName }).from(users).where(eq(users.id, userId));
+      const [newUser] = await tx
+        .select({ name: users.displayName })
+        .from(users)
+        .where(eq(users.id, userId));
       // Only notify the inviter if they are still a member.
       const [inviterMember] = await tx
         .select({ status: organizationMembers.status })
         .from(organizationMembers)
-        .where(and(eq(organizationMembers.organizationId, row.organizationId), eq(organizationMembers.userId, row.invitedByUserId)));
+        .where(
+          and(
+            eq(organizationMembers.organizationId, row.organizationId),
+            eq(organizationMembers.userId, row.invitedByUserId),
+          ),
+        );
       if (inviterMember) {
         await this.notifications.notify(
           {

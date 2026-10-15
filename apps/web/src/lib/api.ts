@@ -15,7 +15,10 @@ export class ApiError extends Error {
  * Calls the API through this app's own origin (`/api/*` is rewritten to the NestJS service),
  * so the session cookie is sent automatically and stays first-party.
  */
-export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(
+  path: string,
+  init: { method?: string; body?: unknown } = {},
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
@@ -32,12 +35,18 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   const data = (await res.json().catch(() => null)) as unknown;
   if (!res.ok) {
     const err = (data as ApiErrorBody | null)?.error;
-    throw new ApiError(res.status, err?.code ?? 'internal_error', err?.message ?? res.statusText, err?.details);
+    throw new ApiError(
+      res.status,
+      err?.code ?? 'internal_error',
+      err?.message ?? res.statusText,
+      err?.details,
+    );
   }
   return data as T;
 }
 
-export const apiPost = <T>(path: string, body: unknown = {}) => api<T>(path, { method: 'POST', body });
+export const apiPost = <T>(path: string, body: unknown = {}) =>
+  api<T>(path, { method: 'POST', body });
 export const apiPut = <T>(path: string, body: unknown) => api<T>(path, { method: 'PUT', body });
 export const apiPatch = <T>(path: string, body: unknown) => api<T>(path, { method: 'PATCH', body });
 export const apiDelete = <T>(path: string) => api<T>(path, { method: 'DELETE' });

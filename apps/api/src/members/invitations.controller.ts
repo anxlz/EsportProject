@@ -36,7 +36,10 @@ export class InvitationsController {
 
   @Post('invitations')
   @RequirePermission('members.invite')
-  create(@TenantCtx() ctx: TenantContext, @ZodBody(createInvitationSchema) body: CreateInvitationInput) {
+  create(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(createInvitationSchema) body: CreateInvitationInput,
+  ) {
     return this.invitations.create(ctx, body);
   }
 

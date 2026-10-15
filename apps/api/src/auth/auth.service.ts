@@ -1,10 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type {
-  Locale,
-  LoginInput,
-  MeResponse,
-  RegisterOrganizationInput,
-} from '@esports/shared';
+import type { Locale, LoginInput, MeResponse, RegisterOrganizationInput } from '@esports/shared';
 import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type Redis from 'ioredis';
 import type { Access } from '../authz/access';
@@ -59,7 +54,10 @@ export class AuthService {
   // -------------------------------------------------------------------------------------------
 
   /** Self-service signup creates a NEW organization with the caller as its first Owner. */
-  async registerOrganization(input: RegisterOrganizationInput, meta: ClientMeta): Promise<LoadedSession> {
+  async registerOrganization(
+    input: RegisterOrganizationInput,
+    meta: ClientMeta,
+  ): Promise<LoadedSession> {
     if (!this.env.ORG_SIGNUP_ENABLED) {
       throw new AppError('signup_disabled', 403, 'Organization signup is disabled');
     }
@@ -86,7 +84,11 @@ export class AuthService {
         .returning({ id: users.id });
       const { organizationId } = await this.provisioning.createOrganization(
         tx,
-        { name: input.organizationName, slug: input.organizationSlug, defaultLocale: input.defaultLocale },
+        {
+          name: input.organizationName,
+          slug: input.organizationSlug,
+          defaultLocale: input.defaultLocale,
+        },
         user!.id,
       );
       await tx
@@ -138,7 +140,11 @@ export class AuthService {
       throw new AppError('account_suspended', 401, 'Your access is suspended');
     }
     const session = await this.sessions.create(userId, orgId, meta);
-    if (orgId) await this.db.update(users).set({ lastActiveOrganizationId: orgId }).where(eq(users.id, userId));
+    if (orgId)
+      await this.db
+        .update(users)
+        .set({ lastActiveOrganizationId: orgId })
+        .where(eq(users.id, userId));
     await this.audit.security('auth.login', meta, {
       userId,
       organizationId: orgId,
@@ -157,14 +163,20 @@ export class AuthService {
     preferredOrgId: string | null,
   ): Promise<string | null | 'suspended'> {
     const memberships = await this.db
-      .select({ organizationId: organizationMembers.organizationId, status: organizationMembers.status })
+      .select({
+        organizationId: organizationMembers.organizationId,
+        status: organizationMembers.status,
+      })
       .from(organizationMembers)
       .where(eq(organizationMembers.userId, userId))
       .orderBy(asc(organizationMembers.joinedAt));
     if (!memberships.length) return null;
     const active = memberships.filter((m) => m.status === 'active');
     if (!active.length) return (await this.isPlatformAdmin(userId)) ? null : 'suspended';
-    return active.find((m) => m.organizationId === preferredOrgId)?.organizationId ?? active[0]!.organizationId;
+    return (
+      active.find((m) => m.organizationId === preferredOrgId)?.organizationId ??
+      active[0]!.organizationId
+    );
   }
 
   async logout(ctx: AuthContext): Promise<void> {
@@ -177,7 +189,10 @@ export class AuthService {
     // Same response for "not a member" and "suspended": don't reveal other tenants' existence.
     if (resolved.status !== 'active') throw Errors.notFound('Organization');
     await this.sessions.setActiveOrganization(ctx.session, organizationId);
-    await this.db.update(users).set({ lastActiveOrganizationId: organizationId }).where(eq(users.id, ctx.user.id));
+    await this.db
+      .update(users)
+      .set({ lastActiveOrganizationId: organizationId })
+      .where(eq(users.id, ctx.user.id));
   }
 
   // -------------------------------------------------------------------------------------------
@@ -205,10 +220,18 @@ export class AuthService {
     let activeOrganization: MeResponse['activeOrganization'] = null;
     let access: Access | null = null;
     if (organizationId) {
-      const [org] = await this.db.select().from(organizations).where(eq(organizations.id, organizationId));
+      const [org] = await this.db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, organizationId));
       const resolved = await this.accessService.resolve(organizationId, userId);
       if (org && resolved.access) {
-        activeOrganization = { id: org.id, name: org.name, slug: org.slug, defaultLocale: org.defaultLocale };
+        activeOrganization = {
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+          defaultLocale: org.defaultLocale,
+        };
         access = resolved.access;
       }
     }
@@ -281,7 +304,8 @@ export class AuthService {
           gt(passwordResetTokens.expiresAt, now),
         ),
       );
-    if (!row) throw new AppError('invalid_or_expired_token', 400, 'This link is invalid or has expired');
+    if (!row)
+      throw new AppError('invalid_or_expired_token', 400, 'This link is invalid or has expired');
 
     const passwordHash = await this.passwords.hash(newPassword);
     await this.db.transaction(async (tx) => {
@@ -312,17 +336,35 @@ export class AuthService {
     }
     await this.db
       .update(users)
-      .set({ passwordHash: await this.passwords.hash(next), passwordChangedAt: new Date(), updatedAt: new Date() })
+      .set({
+        passwordHash: await this.passwords.hash(next),
+        passwordChangedAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, ctx.user.id));
-    const revoked = await this.sessions.destroyAllForUser(ctx.user.id, { exceptKey: ctx.session.key });
-    await this.audit.fromCtx(ctx, 'auth.password_changed', { type: 'user', id: ctx.user.id }, {
-      otherSessionsRevoked: revoked,
+    const revoked = await this.sessions.destroyAllForUser(ctx.user.id, {
+      exceptKey: ctx.session.key,
     });
+    await this.audit.fromCtx(
+      ctx,
+      'auth.password_changed',
+      { type: 'user', id: ctx.user.id },
+      {
+        otherSessionsRevoked: revoked,
+      },
+    );
   }
 
   async revokeOtherSessions(ctx: AuthContext): Promise<number> {
-    const revoked = await this.sessions.destroyAllForUser(ctx.user.id, { exceptKey: ctx.session.key });
-    await this.audit.fromCtx(ctx, 'auth.sessions_revoked', { type: 'user', id: ctx.user.id }, { revoked });
+    const revoked = await this.sessions.destroyAllForUser(ctx.user.id, {
+      exceptKey: ctx.session.key,
+    });
+    await this.audit.fromCtx(
+      ctx,
+      'auth.sessions_revoked',
+      { type: 'user', id: ctx.user.id },
+      { revoked },
+    );
     return revoked;
   }
 
@@ -335,13 +377,22 @@ export class AuthService {
    * cookie and must come back with the callback, binding the flow to the browser that started
    * it (prevents login-CSRF: an attacker cannot make a victim finish the attacker's flow).
    */
-  async discordStart(mode: 'login' | 'link', ctx: AuthContext | null): Promise<{ url: string; nonce: string }> {
-    if (!this.env.discordEnabled) throw new AppError('discord_not_configured', 503, 'Discord login is not configured');
+  async discordStart(
+    mode: 'login' | 'link',
+    ctx: AuthContext | null,
+  ): Promise<{ url: string; nonce: string }> {
+    if (!this.env.discordEnabled)
+      throw new AppError('discord_not_configured', 503, 'Discord login is not configured');
     if (mode === 'link' && !ctx) throw Errors.unauthenticated();
     const state = randomToken(24);
     const nonce = randomToken(24);
     const value: OAuthState = { mode, userId: ctx?.user.id, browserNonceHash: sha256(nonce) };
-    await this.redis.set(`oauth:discord:${state}`, JSON.stringify(value), 'EX', OAUTH_STATE_TTL_SECONDS);
+    await this.redis.set(
+      `oauth:discord:${state}`,
+      JSON.stringify(value),
+      'EX',
+      OAUTH_STATE_TTL_SECONDS,
+    );
     return { url: this.discord.authorizeUrl(state), nonce };
   }
 
@@ -353,10 +404,12 @@ export class AuthService {
     const fail = (code: string, base = '/login') => ({ redirect: `${base}?error=${code}` });
     if (!params.state) return fail('oauth_state_invalid');
     // Consume the state on ANY attempt, so an intercepted state value is good for one try only.
-    const raw = params.state.length <= 100 ? await this.redis.getdel(`oauth:discord:${params.state}`) : null;
+    const raw =
+      params.state.length <= 100 ? await this.redis.getdel(`oauth:discord:${params.state}`) : null;
     if (!raw || !params.code || !params.nonce) return fail('oauth_state_invalid');
     const state = JSON.parse(raw) as OAuthState;
-    if (!safeEqual(state.browserNonceHash, sha256(params.nonce))) return fail('oauth_state_invalid');
+    if (!safeEqual(state.browserNonceHash, sha256(params.nonce)))
+      return fail('oauth_state_invalid');
     const base = state.mode === 'link' ? '/dashboard/settings' : '/login';
 
     let profile;
@@ -369,7 +422,9 @@ export class AuthService {
     const [identity] = await this.db
       .select()
       .from(userIdentities)
-      .where(and(eq(userIdentities.provider, 'discord'), eq(userIdentities.providerUserId, profile.id)));
+      .where(
+        and(eq(userIdentities.provider, 'discord'), eq(userIdentities.providerUserId, profile.id)),
+      );
 
     if (state.mode === 'login') {
       // Deliberately no auto-link by email: an email match alone is not proof of account ownership.
@@ -377,7 +432,12 @@ export class AuthService {
       const [user] = await this.db.select().from(users).where(eq(users.id, identity.userId));
       if (!user) return fail('discord_not_linked');
       try {
-        const session = await this.startSession(user.id, user.lastActiveOrganizationId, meta, 'discord');
+        const session = await this.startSession(
+          user.id,
+          user.lastActiveOrganizationId,
+          meta,
+          'discord',
+        );
         return { redirect: '/dashboard', session };
       } catch (e) {
         return fail(e instanceof AppError ? e.code : 'internal_error');
@@ -402,7 +462,10 @@ export class AuthService {
       providerUserId: profile.id,
       providerUsername: profile.globalName ?? profile.username,
     });
-    await this.audit.security('auth.discord_linked', meta, { userId, metadata: { discordId: profile.id } });
+    await this.audit.security('auth.discord_linked', meta, {
+      userId,
+      metadata: { discordId: profile.id },
+    });
     return { redirect: `${base}?discord=linked` };
   }
 
@@ -437,7 +500,11 @@ export class AuthService {
   }
 
   /** Used by invitation acceptance, which creates the session itself. */
-  createSessionFor(userId: string, organizationId: string, meta: ClientMeta): Promise<LoadedSession> {
+  createSessionFor(
+    userId: string,
+    organizationId: string,
+    meta: ClientMeta,
+  ): Promise<LoadedSession> {
     return this.startSession(userId, organizationId, meta, 'invitation');
   }
 }

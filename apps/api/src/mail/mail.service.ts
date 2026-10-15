@@ -54,7 +54,9 @@ export class MailService {
       } else {
         await this.db.insert(devOutbox).values(message);
         if (this.env.NODE_ENV === 'development') {
-          this.logger.log(`[outbox] to=${message.to} subject="${message.subject}"\n${message.text}`);
+          this.logger.log(
+            `[outbox] to=${message.to} subject="${message.subject}"\n${message.text}`,
+          );
         }
       }
       return true;
@@ -64,7 +66,10 @@ export class MailService {
     }
   }
 
-  sendInvitation(to: string, p: { organizationName: string; inviterName: string | null; url: string; expiresAt: Date }) {
+  sendInvitation(
+    to: string,
+    p: { organizationName: string; inviterName: string | null; url: string; expiresAt: Date },
+  ) {
     const inviter = p.inviterName ?? '';
     const expires = p.expiresAt.toISOString().slice(0, 10);
     return this.send({

@@ -68,14 +68,16 @@ export const OptionalCtx = createParamDecorator(
     ctx.switchToHttp().getRequest<RequestWithContext>().ctx ?? null,
 );
 
-export const TenantCtx = createParamDecorator((_: unknown, ctx: ExecutionContext): TenantContext => {
-  const req = ctx.switchToHttp().getRequest<RequestWithContext>();
-  if (!req.ctx) throw Errors.unauthenticated();
-  if (!req.ctx.organizationId || !req.ctx.access) {
-    throw new AppError('no_active_organization', 403, 'No active organization');
-  }
-  return req.ctx as TenantContext;
-});
+export const TenantCtx = createParamDecorator(
+  (_: unknown, ctx: ExecutionContext): TenantContext => {
+    const req = ctx.switchToHttp().getRequest<RequestWithContext>();
+    if (!req.ctx) throw Errors.unauthenticated();
+    if (!req.ctx.organizationId || !req.ctx.access) {
+      throw new AppError('no_active_organization', 403, 'No active organization');
+    }
+    return req.ctx as TenantContext;
+  },
+);
 
 export const Meta = createParamDecorator((_: unknown, ctx: ExecutionContext): ClientMeta =>
   clientMeta(ctx.switchToHttp().getRequest<Request>()),

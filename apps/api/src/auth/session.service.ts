@@ -121,7 +121,10 @@ export class SessionService {
     return { id, key, data };
   }
 
-  async setActiveOrganization(session: LoadedSession, organizationId: string | null): Promise<void> {
+  async setActiveOrganization(
+    session: LoadedSession,
+    organizationId: string | null,
+  ): Promise<void> {
     session.data.activeOrganizationId = organizationId;
     await this.redis.set(session.key, JSON.stringify(session.data), 'EX', this.idleTtlSeconds);
   }

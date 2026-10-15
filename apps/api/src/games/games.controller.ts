@@ -46,8 +46,11 @@ export class GamesController {
     const [clash] = await this.db
       .select({ id: games.id })
       .from(games)
-      .where(and(eq(games.organizationId, organizationId), sql`lower(${games.name}) = lower(${name})`));
-    if (clash && clash.id !== exceptId) throw Errors.conflict('conflict', 'A game with this name exists');
+      .where(
+        and(eq(games.organizationId, organizationId), sql`lower(${games.name}) = lower(${name})`),
+      );
+    if (clash && clash.id !== exceptId)
+      throw Errors.conflict('conflict', 'A game with this name exists');
   }
 
   @Get()
@@ -58,7 +61,10 @@ export class GamesController {
 
   @Post()
   @RequirePermission('games.manage')
-  async create(@TenantCtx() ctx: TenantContext, @ZodBody(gameInputSchema) body: z.infer<typeof gameInputSchema>) {
+  async create(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(gameInputSchema) body: z.infer<typeof gameInputSchema>,
+  ) {
     await this.assertNameFree(ctx.organizationId, body.name);
     const id = await this.db.transaction(async (tx) => {
       const [top] = await tx
@@ -75,7 +81,13 @@ export class GamesController {
           sortOrder: (top?.m ?? 0) + 1,
         })
         .returning({ id: games.id });
-      await this.audit.fromCtx(ctx, 'game.created', { type: 'game', id: g!.id }, { name: body.name }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'game.created',
+        { type: 'game', id: g!.id },
+        { name: body.name },
+        tx,
+      );
       return g!.id;
     });
     return this.getOne(ctx.organizationId, id);
@@ -95,7 +107,13 @@ export class GamesController {
         .update(games)
         .set({ ...body, updatedAt: new Date() })
         .where(and(eq(games.id, id), eq(games.organizationId, ctx.organizationId)));
-      await this.audit.fromCtx(ctx, 'game.updated', { type: 'game', id }, { before, changes: body }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'game.updated',
+        { type: 'game', id },
+        { before, changes: body },
+        tx,
+      );
     });
     return this.getOne(ctx.organizationId, id);
   }
@@ -105,9 +123,12 @@ export class GamesController {
   @RequirePermission('games.manage')
   async remove(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string) {
     const g = await this.getOne(ctx.organizationId, id);
-    if (g.teamCount > 0) throw Errors.conflict('game_in_use', 'Teams use this game; deactivate it instead');
+    if (g.teamCount > 0)
+      throw Errors.conflict('game_in_use', 'Teams use this game; deactivate it instead');
     await this.db.transaction(async (tx) => {
-      await tx.delete(games).where(and(eq(games.id, id), eq(games.organizationId, ctx.organizationId)));
+      await tx
+        .delete(games)
+        .where(and(eq(games.id, id), eq(games.organizationId, ctx.organizationId)));
       await this.audit.fromCtx(ctx, 'game.deleted', { type: 'game', id }, { name: g.name }, tx);
     });
   }

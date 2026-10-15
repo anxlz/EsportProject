@@ -69,7 +69,10 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
-    const policy = this.reflector.get<RateLimitPolicy | undefined>(RATE_LIMIT_KEY, ctx.getHandler());
+    const policy = this.reflector.get<RateLimitPolicy | undefined>(
+      RATE_LIMIT_KEY,
+      ctx.getHandler(),
+    );
     if (!policy) return true;
     const req = ctx.switchToHttp().getRequest<Request>();
     const res = ctx.switchToHttp().getResponse<Response>();

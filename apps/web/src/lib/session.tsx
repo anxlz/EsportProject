@@ -48,7 +48,10 @@ export function useCovers() {
       const s = scope(perm);
       if (!s) return false;
       if (s.all) return true;
-      return s.teamIds.includes(team.id) || (team.departmentId !== null && s.departmentIds.includes(team.departmentId));
+      return (
+        s.teamIds.includes(team.id) ||
+        (team.departmentId !== null && s.departmentIds.includes(team.departmentId))
+      );
     },
     department(perm: PermissionKey, departmentId: string | null): boolean {
       const s = scope(perm);

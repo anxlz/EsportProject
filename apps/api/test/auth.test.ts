@@ -2,7 +2,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:tes
 import type { MeResponse } from '@esports/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { auditLogs, passwordResetTokens } from '../src/db/schema';
-import { extractUrl, latestEmail, PASSWORD, registerOwner, startApp, type TestApp } from './harness';
+import {
+  extractUrl,
+  latestEmail,
+  PASSWORD,
+  registerOwner,
+  startApp,
+  type TestApp,
+} from './harness';
 
 let t: TestApp;
 beforeAll(async () => {
@@ -24,18 +31,30 @@ describe('organization signup', () => {
     await registerOwner(t);
     const c = t.client();
     const dupSlug = await c.post('/auth/register', {
-      organizationName: 'Other Org', organizationSlug: 'riyadh-falcons', defaultLocale: 'en',
-      displayName: 'X', email: 'new@example.com', password: PASSWORD,
+      organizationName: 'Other Org',
+      organizationSlug: 'riyadh-falcons',
+      defaultLocale: 'en',
+      displayName: 'X',
+      email: 'new@example.com',
+      password: PASSWORD,
     });
     expect(dupSlug.body.error.code).toBe('slug_taken');
     const dupEmail = await c.post('/auth/register', {
-      organizationName: 'Other Org', organizationSlug: 'other-org', defaultLocale: 'en',
-      displayName: 'X', email: 'OWNER@example.com', password: PASSWORD,
+      organizationName: 'Other Org',
+      organizationSlug: 'other-org',
+      defaultLocale: 'en',
+      displayName: 'X',
+      email: 'OWNER@example.com',
+      password: PASSWORD,
     });
     expect(dupEmail.body.error.code).toBe('email_taken');
     const weak = await c.post('/auth/register', {
-      organizationName: 'Other Org', organizationSlug: 'third-org', defaultLocale: 'en',
-      displayName: 'X', email: 'w@example.com', password: 'short',
+      organizationName: 'Other Org',
+      organizationSlug: 'third-org',
+      defaultLocale: 'en',
+      displayName: 'X',
+      email: 'w@example.com',
+      password: 'short',
     });
     expect(weak.status).toBe(400);
   });
@@ -44,8 +63,12 @@ describe('organization signup', () => {
     const t2 = await startApp({ env: { ORG_SIGNUP_ENABLED: 'false' } });
     try {
       const res = await t2.client().post('/auth/register', {
-        organizationName: 'Other Org', organizationSlug: 'xx-org', defaultLocale: 'en',
-        displayName: 'X', email: 'x@example.com', password: PASSWORD,
+        organizationName: 'Other Org',
+        organizationSlug: 'xx-org',
+        defaultLocale: 'en',
+        displayName: 'X',
+        email: 'x@example.com',
+        password: PASSWORD,
       });
       expect(res.body.error.code).toBe('signup_disabled');
     } finally {
@@ -58,12 +81,21 @@ describe('login / logout / sessions', () => {
   test('wrong password and unknown email give the same error, and are logged', async () => {
     await registerOwner(t);
     const c = t.client();
-    const wrong = await c.post('/auth/login', { email: 'owner@example.com', password: 'nope-nope-nope' });
-    const unknown = await c.post('/auth/login', { email: 'ghost@example.com', password: 'nope-nope-nope' });
+    const wrong = await c.post('/auth/login', {
+      email: 'owner@example.com',
+      password: 'nope-nope-nope',
+    });
+    const unknown = await c.post('/auth/login', {
+      email: 'ghost@example.com',
+      password: 'nope-nope-nope',
+    });
     expect(wrong.status).toBe(401);
     expect(unknown.status).toBe(401);
     expect(wrong.body.error).toEqual(unknown.body.error);
-    const failures = await t.db.select().from(auditLogs).where(eq(auditLogs.action, 'auth.login_failed'));
+    const failures = await t.db
+      .select()
+      .from(auditLogs)
+      .where(eq(auditLogs.action, 'auth.login_failed'));
     expect(failures.length).toBe(2);
   });
 
@@ -112,7 +144,10 @@ describe('rate limiting', () => {
     const c = t.client();
     const statuses: number[] = [];
     for (let i = 0; i < 12; i++) {
-      statuses.push((await c.post('/auth/login', { email: 'owner@example.com', password: 'wrong-password-x' })).status);
+      statuses.push(
+        (await c.post('/auth/login', { email: 'owner@example.com', password: 'wrong-password-x' }))
+          .status,
+      );
     }
     expect(statuses.slice(0, 10).every((s) => s === 401)).toBe(true);
     expect(statuses[10]).toBe(429);
@@ -136,20 +171,32 @@ describe('password recovery', () => {
   test('full reset flow: email link, single use, revokes all sessions', async () => {
     const { client } = await registerOwner(t);
     const anon = t.client();
-    expect((await anon.post('/auth/password/forgot', { email: 'owner@example.com' })).status).toBe(204);
+    expect((await anon.post('/auth/password/forgot', { email: 'owner@example.com' })).status).toBe(
+      204,
+    );
     const mail = await latestEmail(t, 'owner@example.com');
     const url = extractUrl(mail!.text, '/reset-password');
     const token = new URL(url).searchParams.get('token')!;
 
     const newPassword = 'a brand new passphrase';
-    expect((await anon.post('/auth/password/reset', { token, password: newPassword })).status).toBe(204);
+    expect((await anon.post('/auth/password/reset', { token, password: newPassword })).status).toBe(
+      204,
+    );
     // Existing sessions were revoked.
     expect((await client.get('/auth/me')).status).toBe(401);
     // Old password no longer works, new one does.
-    expect((await anon.post('/auth/login', { email: 'owner@example.com', password: PASSWORD })).status).toBe(401);
-    expect((await anon.post('/auth/login', { email: 'owner@example.com', password: newPassword })).status).toBe(200);
+    expect(
+      (await anon.post('/auth/login', { email: 'owner@example.com', password: PASSWORD })).status,
+    ).toBe(401);
+    expect(
+      (await anon.post('/auth/login', { email: 'owner@example.com', password: newPassword }))
+        .status,
+    ).toBe(200);
     // Token is single-use.
-    const again = await anon.post('/auth/password/reset', { token, password: 'yet another passphrase' });
+    const again = await anon.post('/auth/password/reset', {
+      token,
+      password: 'yet another passphrase',
+    });
     expect(again.body.error.code).toBe('invalid_or_expired_token');
   });
 
@@ -163,21 +210,36 @@ describe('password recovery', () => {
     await registerOwner(t);
     const anon = t.client();
     await anon.post('/auth/password/forgot', { email: 'owner@example.com' });
-    const first = new URL(extractUrl((await latestEmail(t, 'owner@example.com'))!.text, '/reset-password')).searchParams.get('token')!;
+    const first = new URL(
+      extractUrl((await latestEmail(t, 'owner@example.com'))!.text, '/reset-password'),
+    ).searchParams.get('token')!;
     await Bun.sleep(5);
     await anon.post('/auth/password/forgot', { email: 'owner@example.com' });
-    const second = new URL(extractUrl((await latestEmail(t, 'owner@example.com'))!.text, '/reset-password')).searchParams.get('token')!;
+    const second = new URL(
+      extractUrl((await latestEmail(t, 'owner@example.com'))!.text, '/reset-password'),
+    ).searchParams.get('token')!;
     expect(first).not.toBe(second);
-    expect((await anon.post('/auth/password/reset', { token: first, password: 'some new password!' })).status).toBe(400);
+    expect(
+      (await anon.post('/auth/password/reset', { token: first, password: 'some new password!' }))
+        .status,
+    ).toBe(400);
 
-    await t.db.update(passwordResetTokens).set({ expiresAt: sql`now() - interval '1 minute'` }).where(and(sql`true`));
-    expect((await anon.post('/auth/password/reset', { token: second, password: 'some new password!' })).status).toBe(400);
+    await t.db
+      .update(passwordResetTokens)
+      .set({ expiresAt: sql`now() - interval '1 minute'` })
+      .where(and(sql`true`));
+    expect(
+      (await anon.post('/auth/password/reset', { token: second, password: 'some new password!' }))
+        .status,
+    ).toBe(400);
   });
 
   test('reset tokens are stored hashed, never in plain text', async () => {
     await registerOwner(t);
     await t.client().post('/auth/password/forgot', { email: 'owner@example.com' });
-    const token = new URL(extractUrl((await latestEmail(t, 'owner@example.com'))!.text, '/reset-password')).searchParams.get('token')!;
+    const token = new URL(
+      extractUrl((await latestEmail(t, 'owner@example.com'))!.text, '/reset-password'),
+    ).searchParams.get('token')!;
     const rows = await t.db.select().from(passwordResetTokens);
     expect(rows.length).toBe(1);
     expect(rows[0]!.tokenHash).not.toBe(token);
@@ -190,9 +252,15 @@ describe('change password', () => {
     const { client } = await registerOwner(t);
     const other = t.client();
     await other.post('/auth/login', { email: 'owner@example.com', password: PASSWORD });
-    const bad = await client.post('/me/password', { currentPassword: 'wrong', newPassword: 'new password 1234' });
+    const bad = await client.post('/me/password', {
+      currentPassword: 'wrong',
+      newPassword: 'new password 1234',
+    });
     expect(bad.status).toBe(400);
-    const ok = await client.post('/me/password', { currentPassword: PASSWORD, newPassword: 'new password 1234' });
+    const ok = await client.post('/me/password', {
+      currentPassword: PASSWORD,
+      newPassword: 'new password 1234',
+    });
     expect(ok.status).toBe(204);
     expect((await other.get('/auth/me')).status).toBe(401);
     expect((await client.get('/auth/me')).status).toBe(200);

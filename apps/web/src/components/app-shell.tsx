@@ -37,19 +37,53 @@ interface NavItem {
 
 function useNav(me: MeResponse): NavItem[] {
   const t = useTranslations('nav');
-  const has = (keys?: PermissionKey[]) => !keys || keys.some((k) => me.permissions.some((p) => p.key === k));
+  const has = (keys?: PermissionKey[]) =>
+    !keys || keys.some((k) => me.permissions.some((p) => p.key === k));
   const items: NavItem[] = [
     { href: '/dashboard', label: t('overview'), icon: LayoutDashboard, needsOrg: true },
-    { href: '/dashboard/teams', label: t('teams'), icon: Trophy, anyOf: ['teams.view', 'departments.view'], needsOrg: true },
-    { href: '/dashboard/games', label: t('games'), icon: Gamepad2, anyOf: ['games.view'], needsOrg: true },
-    { href: '/dashboard/members', label: t('members'), icon: Users, anyOf: ['members.view'], needsOrg: true },
-    { href: '/dashboard/roles', label: t('roles'), icon: ShieldCheck, anyOf: ['roles.view'], needsOrg: true },
-    { href: '/dashboard/audit', label: t('audit'), icon: ScrollText, anyOf: ['audit.view'], needsOrg: true },
+    {
+      href: '/dashboard/teams',
+      label: t('teams'),
+      icon: Trophy,
+      anyOf: ['teams.view', 'departments.view'],
+      needsOrg: true,
+    },
+    {
+      href: '/dashboard/games',
+      label: t('games'),
+      icon: Gamepad2,
+      anyOf: ['games.view'],
+      needsOrg: true,
+    },
+    {
+      href: '/dashboard/members',
+      label: t('members'),
+      icon: Users,
+      anyOf: ['members.view'],
+      needsOrg: true,
+    },
+    {
+      href: '/dashboard/roles',
+      label: t('roles'),
+      icon: ShieldCheck,
+      anyOf: ['roles.view'],
+      needsOrg: true,
+    },
+    {
+      href: '/dashboard/audit',
+      label: t('audit'),
+      icon: ScrollText,
+      anyOf: ['audit.view'],
+      needsOrg: true,
+    },
     { href: '/dashboard/settings', label: t('settings'), icon: Settings },
     { href: '/platform', label: t('platform'), icon: Building2, platformOnly: true },
   ];
   return items.filter(
-    (i) => (!i.platformOnly || me.isPlatformAdmin) && (!i.needsOrg || me.activeOrganization) && has(i.anyOf),
+    (i) =>
+      (!i.platformOnly || me.isPlatformAdmin) &&
+      (!i.needsOrg || me.activeOrganization) &&
+      has(i.anyOf),
   );
 }
 
@@ -67,7 +101,9 @@ function OrgSwitcher({ me }: { me: MeResponse }) {
         className="h-9 w-full rounded-md border border-line-strong bg-panel px-2 text-sm font-medium"
         value={me.activeOrganization.id}
         onChange={async (e) => {
-          await apiPost<MeResponse>('/auth/switch-organization', { organizationId: e.target.value });
+          await apiPost<MeResponse>('/auth/switch-organization', {
+            organizationId: e.target.value,
+          });
           window.location.assign('/dashboard');
         }}
       >
@@ -89,7 +125,9 @@ function Sidebar({ me, onNavigate }: { me: MeResponse; onNavigate?: () => void }
   const qc = useQueryClient();
 
   const isActive = (href: string) =>
-    href === '/dashboard' ? pathname === '/dashboard' : pathname === href || pathname.startsWith(`${href}/`);
+    href === '/dashboard'
+      ? pathname === '/dashboard'
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <div className="flex h-full flex-col">
@@ -176,7 +214,10 @@ function ShellFrame({ me, children }: { me: MeResponse; children: ReactNode }) {
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded focus:bg-panel focus:px-3 focus:py-2">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded focus:bg-panel focus:px-3 focus:py-2"
+      >
         {tc('skipToContent')}
       </a>
       <aside className="sticky top-0 hidden h-dvh border-e border-line bg-panel lg:block">
@@ -185,7 +226,12 @@ function ShellFrame({ me, children }: { me: MeResponse; children: ReactNode }) {
 
       {drawer && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <button type="button" aria-label={tc('close')} className="absolute inset-0 bg-black/40" onClick={() => setDrawer(false)} />
+          <button
+            type="button"
+            aria-label={tc('close')}
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setDrawer(false)}
+          />
           <div className="absolute inset-y-0 start-0 w-72 max-w-[85%] bg-panel shadow-xl">
             <button
               type="button"

@@ -8,7 +8,10 @@ import { LOCALE_COOKIE, resolveLocale } from './locale';
  */
 export default getRequestConfig(async () => {
   const store = await cookies();
-  const locale = resolveLocale(store.get(LOCALE_COOKIE)?.value, (await headers()).get('accept-language'));
+  const locale = resolveLocale(
+    store.get(LOCALE_COOKIE)?.value,
+    (await headers()).get('accept-language'),
+  );
   return {
     locale,
     messages: (await import(`../messages/${locale}.json`)).default,

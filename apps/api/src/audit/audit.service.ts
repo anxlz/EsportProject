@@ -71,7 +71,11 @@ export class AuditService {
   security(
     action: string,
     meta: ClientMeta,
-    fields: { userId?: string | null; organizationId?: string | null; metadata?: Record<string, unknown> } = {},
+    fields: {
+      userId?: string | null;
+      organizationId?: string | null;
+      metadata?: Record<string, unknown>;
+    } = {},
   ): Promise<void> {
     return this.log({
       organizationId: fields.organizationId ?? null,
@@ -88,7 +92,13 @@ export class AuditService {
 
   async list(
     organizationId: string | null,
-    q: { action?: string; actorUserId?: string; targetType?: string; before?: string; limit: number },
+    q: {
+      action?: string;
+      actorUserId?: string;
+      targetType?: string;
+      before?: string;
+      limit: number;
+    },
   ): Promise<AuditLogDto[]> {
     const conds: SQL[] = [];
     if (organizationId) conds.push(eq(auditLogs.organizationId, organizationId));

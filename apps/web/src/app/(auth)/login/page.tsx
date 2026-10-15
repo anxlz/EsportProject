@@ -18,12 +18,18 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const config = useQuery({ queryKey: ['auth-config'], queryFn: () => api<AuthConfigDto>('/auth/config') });
+  const config = useQuery({
+    queryKey: ['auth-config'],
+    queryFn: () => api<AuthConfigDto>('/auth/config'),
+  });
 
   const redirectError = params.get('error');
   // Only same-site relative paths, never "//host" (open-redirect guard).
   const nextParam = params.get('next');
-  const next = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/dashboard';
+  const next =
+    nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+      ? nextParam
+      : '/dashboard';
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -47,12 +53,30 @@ function LoginForm() {
           <ErrorBanner error={new ApiError(400, redirectError as never, redirectError)} />
         )}
         <ErrorBanner error={error} />
-        <TextField label={t('email')} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="ltr-text" />
-        <TextField label={t('password')} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        <TextField
+          label={t('email')}
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="ltr-text"
+        />
+        <TextField
+          label={t('password')}
+          type="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
         <Button type="submit" variant="primary" disabled={busy || !email || !password}>
           {busy ? t('signingIn') : t('signIn')}
         </Button>
-        <Link href="/forgot-password" className="text-sm text-turf underline-offset-4 hover:underline">
+        <Link
+          href="/forgot-password"
+          className="text-sm text-turf underline-offset-4 hover:underline"
+        >
           {t('forgotPassword')}
         </Link>
       </form>
@@ -72,7 +96,10 @@ function LoginForm() {
       {config.data?.signupEnabled && (
         <p className="mt-8 text-sm text-muted">
           {t('noAccount')}{' '}
-          <Link href="/register" className="font-medium text-turf underline-offset-4 hover:underline">
+          <Link
+            href="/register"
+            className="font-medium text-turf underline-offset-4 hover:underline"
+          >
             {t('createOrganization')}
           </Link>
         </p>

@@ -127,7 +127,9 @@ export class Client {
       const idx = pair!.indexOf('=');
       const name = pair!.slice(0, idx).trim();
       const value = pair!.slice(idx + 1).trim();
-      const expired = attrs.some((a) => /expires=thu, 01 jan 1970/i.test(a.trim()) || /max-age=0/i.test(a.trim()));
+      const expired = attrs.some(
+        (a) => /expires=thu, 01 jan 1970/i.test(a.trim()) || /max-age=0/i.test(a.trim()),
+      );
       if (expired || value === '') this.cookies.delete(name);
       else this.cookies.set(name, value);
     }
@@ -195,7 +197,9 @@ export async function latestEmail(t: TestApp, to: string) {
 }
 
 export function extractUrl(text: string, pathPrefix: string): string {
-  const match = text.match(new RegExp(`${WEB_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${pathPrefix}[^\\s]+`));
+  const match = text.match(
+    new RegExp(`${WEB_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${pathPrefix}[^\\s]+`),
+  );
   if (!match) throw new Error(`No ${pathPrefix} link in email`);
   return match[0];
 }
@@ -222,7 +226,9 @@ export async function inviteAndAccept(
 
 export async function roleIdByTemplate(owner: Client, templateKey: string): Promise<string> {
   const roles = await owner.get('/roles');
-  const role = (roles.body as { id: string; templateKey: string | null }[]).find((r) => r.templateKey === templateKey);
+  const role = (roles.body as { id: string; templateKey: string | null }[]).find(
+    (r) => r.templateKey === templateKey,
+  );
   if (!role) throw new Error(`no role ${templateKey}`);
   return role.id;
 }

@@ -51,7 +51,12 @@ export class ProvisioningService {
     }
 
     await tx.insert(games).values(
-      DEFAULT_GAMES.map((g, i) => ({ organizationId, name: g.name, shortName: g.shortName, sortOrder: i })),
+      DEFAULT_GAMES.map((g, i) => ({
+        organizationId,
+        name: g.name,
+        shortName: g.shortName,
+        sortOrder: i,
+      })),
     );
 
     await tx.insert(organizationMembers).values({ organizationId, userId: ownerUserId });

@@ -28,7 +28,12 @@ export class DepartmentsController {
       .select({ d: departments, teamCount: count(teams.id) })
       .from(departments)
       .leftJoin(teams, eq(teams.departmentId, departments.id))
-      .where(and(eq(departments.organizationId, organizationId), id ? eq(departments.id, id) : undefined))
+      .where(
+        and(
+          eq(departments.organizationId, organizationId),
+          id ? eq(departments.id, id) : undefined,
+        ),
+      )
       .groupBy(departments.id)
       .orderBy(asc(departments.name));
     return rows.map(({ d, teamCount }) => ({
@@ -50,8 +55,14 @@ export class DepartmentsController {
     const [clash] = await this.db
       .select({ id: departments.id })
       .from(departments)
-      .where(and(eq(departments.organizationId, organizationId), sql`lower(${departments.name}) = lower(${name})`));
-    if (clash && clash.id !== exceptId) throw Errors.conflict('conflict', 'A department with this name exists');
+      .where(
+        and(
+          eq(departments.organizationId, organizationId),
+          sql`lower(${departments.name}) = lower(${name})`,
+        ),
+      );
+    if (clash && clash.id !== exceptId)
+      throw Errors.conflict('conflict', 'A department with this name exists');
   }
 
   @Get()
@@ -62,14 +73,27 @@ export class DepartmentsController {
 
   @Post()
   @RequirePermission('departments.create')
-  async create(@TenantCtx() ctx: TenantContext, @ZodBody(departmentInputSchema) body: DepartmentInput) {
+  async create(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(departmentInputSchema) body: DepartmentInput,
+  ) {
     await this.assertNameFree(ctx.organizationId, body.name);
     const id = await this.db.transaction(async (tx) => {
       const [d] = await tx
         .insert(departments)
-        .values({ organizationId: ctx.organizationId, name: body.name, description: body.description ?? null })
+        .values({
+          organizationId: ctx.organizationId,
+          name: body.name,
+          description: body.description ?? null,
+        })
         .returning({ id: departments.id });
-      await this.audit.fromCtx(ctx, 'department.created', { type: 'department', id: d!.id }, { name: body.name }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'department.created',
+        { type: 'department', id: d!.id },
+        { name: body.name },
+        tx,
+      );
       return d!.id;
     });
     return this.getOne(ctx.organizationId, id);
@@ -89,10 +113,16 @@ export class DepartmentsController {
         .update(departments)
         .set({ name: body.name, description: body.description ?? null, updatedAt: new Date() })
         .where(and(eq(departments.id, id), eq(departments.organizationId, ctx.organizationId)));
-      await this.audit.fromCtx(ctx, 'department.updated', { type: 'department', id }, {
-        before: { name: before.name },
-        after: { name: body.name },
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'department.updated',
+        { type: 'department', id },
+        {
+          before: { name: before.name },
+          after: { name: body.name },
+        },
+        tx,
+      );
     });
     return this.getOne(ctx.organizationId, id);
   }
@@ -102,11 +132,20 @@ export class DepartmentsController {
   @RequirePermission('departments.delete')
   async remove(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string) {
     const d = await this.getOne(ctx.organizationId, id);
-    if (d.teamCount > 0) throw Errors.conflict('department_not_empty', 'Move or delete its teams first');
+    if (d.teamCount > 0)
+      throw Errors.conflict('department_not_empty', 'Move or delete its teams first');
     await this.db.transaction(async (tx) => {
       // Department-scoped role assignments cascade away with it (FK on delete cascade).
-      await tx.delete(departments).where(and(eq(departments.id, id), eq(departments.organizationId, ctx.organizationId)));
-      await this.audit.fromCtx(ctx, 'department.deleted', { type: 'department', id }, { name: d.name }, tx);
+      await tx
+        .delete(departments)
+        .where(and(eq(departments.id, id), eq(departments.organizationId, ctx.organizationId)));
+      await this.audit.fromCtx(
+        ctx,
+        'department.deleted',
+        { type: 'department', id },
+        { name: d.name },
+        tx,
+      );
     });
     await this.access.invalidate(ctx.organizationId);
   }

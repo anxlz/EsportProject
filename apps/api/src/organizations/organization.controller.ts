@@ -49,10 +49,16 @@ export class OrganizationController {
         .update(organizations)
         .set({ ...body, updatedAt: new Date() })
         .where(eq(organizations.id, ctx.organizationId));
-      await this.audit.fromCtx(ctx, 'organization.updated', { type: 'organization', id: ctx.organizationId }, {
-        before: { name: before.name, defaultLocale: before.defaultLocale },
-        after: body,
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'organization.updated',
+        { type: 'organization', id: ctx.organizationId },
+        {
+          before: { name: before.name, defaultLocale: before.defaultLocale },
+          after: body,
+        },
+        tx,
+      );
     });
     return this.load(ctx.organizationId);
   }

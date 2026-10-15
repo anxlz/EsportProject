@@ -35,7 +35,15 @@ function PermissionKind({ k }: { k: PermissionKey }) {
   return <Badge>{t('kindOrg')}</Badge>;
 }
 
-function RoleDialog({ role, readOnly, onClose }: { role: RoleDto | null; readOnly: boolean; onClose: () => void }) {
+function RoleDialog({
+  role,
+  readOnly,
+  onClose,
+}: {
+  role: RoleDto | null;
+  readOnly: boolean;
+  onClose: () => void;
+}) {
   const t = useTranslations('roles');
   const tc = useTranslations('common');
   const tp = useTranslations('permissions');
@@ -63,7 +71,11 @@ function RoleDialog({ role, readOnly, onClose }: { role: RoleDto | null; readOnl
       };
       return role ? apiPut(`/roles/${role.id}`, body) : apiPost('/roles', body);
     },
-    { invalidate: [['roles'], ['me']], success: role ? t('saved') : t('created'), onSuccess: onClose },
+    {
+      invalidate: [['roles'], ['me']],
+      success: role ? t('saved') : t('created'),
+      onSuccess: onClose,
+    },
   );
   const nameMissing = !form.nameEn.trim() && !form.nameAr.trim();
   const toggle = (k: PermissionKey, on: boolean) =>
@@ -73,7 +85,8 @@ function RoleDialog({ role, readOnly, onClose }: { role: RoleDto | null; readOnl
       else n.delete(k);
       return n;
     });
-  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
     <Dialog
@@ -105,10 +118,39 @@ function RoleDialog({ role, readOnly, onClose }: { role: RoleDto | null; readOnl
       <div className="flex flex-col gap-5">
         <ErrorBanner error={save.error} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <TextField label={t('nameEn')} value={form.nameEn} onChange={set('nameEn')} disabled={disabled} dir="ltr" error={showErrors && nameMissing ? t('nameRequired') : null} />
-          <TextField label={t('nameAr')} value={form.nameAr} onChange={set('nameAr')} disabled={disabled} dir="rtl" lang="ar" />
-          <TextField label={t('descriptionEn')} optional value={form.descriptionEn} onChange={set('descriptionEn')} disabled={disabled} dir="ltr" />
-          <TextField label={t('descriptionAr')} optional value={form.descriptionAr} onChange={set('descriptionAr')} disabled={disabled} dir="rtl" lang="ar" />
+          <TextField
+            label={t('nameEn')}
+            value={form.nameEn}
+            onChange={set('nameEn')}
+            disabled={disabled}
+            dir="ltr"
+            error={showErrors && nameMissing ? t('nameRequired') : null}
+          />
+          <TextField
+            label={t('nameAr')}
+            value={form.nameAr}
+            onChange={set('nameAr')}
+            disabled={disabled}
+            dir="rtl"
+            lang="ar"
+          />
+          <TextField
+            label={t('descriptionEn')}
+            optional
+            value={form.descriptionEn}
+            onChange={set('descriptionEn')}
+            disabled={disabled}
+            dir="ltr"
+          />
+          <TextField
+            label={t('descriptionAr')}
+            optional
+            value={form.descriptionAr}
+            onChange={set('descriptionAr')}
+            disabled={disabled}
+            dir="rtl"
+            lang="ar"
+          />
         </div>
 
         <fieldset>
@@ -123,10 +165,20 @@ function RoleDialog({ role, readOnly, onClose }: { role: RoleDto | null; readOnl
                     <p className="font-medium">{td(domain)}</p>
                     {!disabled && grantable.length > 1 && (
                       <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => setPerms((s) => new Set([...s, ...grantable]))}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setPerms((s) => new Set([...s, ...grantable]))}
+                        >
                           {t('selectAll')}
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setPerms((s) => new Set([...s].filter((k) => !keys.includes(k))))}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            setPerms((s) => new Set([...s].filter((k) => !keys.includes(k))))
+                          }
+                        >
                           {t('clearAll')}
                         </Button>
                       </div>
@@ -149,7 +201,9 @@ function RoleDialog({ role, readOnly, onClose }: { role: RoleDto | null; readOnl
                               aria-describedby={ownerOnly ? `${id}-hint` : undefined}
                             />
                             <span className="flex flex-col">
-                              <span className={ownerOnly && !locked ? 'text-muted' : ''}>{tp(k)}</span>
+                              <span className={ownerOnly && !locked ? 'text-muted' : ''}>
+                                {tp(k)}
+                              </span>
                               {ownerOnly && !locked && (
                                 <span id={`${id}-hint`} className="text-[0.8125rem] text-muted">
                                   {t('ownerOnlyHint')}
@@ -207,9 +261,15 @@ export default function RolesPage() {
         ) : (
           <ul className="divide-y divide-line">
             {(roles.data ?? []).map((r) => {
-              const description = locale === 'ar' ? (r.descriptionAr ?? r.descriptionEn) : (r.descriptionEn ?? r.descriptionAr);
+              const description =
+                locale === 'ar'
+                  ? (r.descriptionAr ?? r.descriptionEn)
+                  : (r.descriptionEn ?? r.descriptionAr);
               return (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                <li
+                  key={r.id}
+                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
+                >
                   <div className="min-w-0 max-w-xl">
                     <p className="flex items-center gap-2 font-medium">
                       {roleName(r, locale)}
@@ -222,7 +282,9 @@ export default function RolesPage() {
                     </p>
                     {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
                     <p className="mt-1 text-[0.8125rem] text-muted">
-                      {r.grantsAll ? t('allPermissions') : t('permissionCount', { count: r.permissions.length })}
+                      {r.grantsAll
+                        ? t('allPermissions')
+                        : t('permissionCount', { count: r.permissions.length })}
                       {'. '}
                       {t('assigned', { count: r.assignmentCount })}
                     </p>
@@ -232,7 +294,12 @@ export default function RolesPage() {
                       {manage && !r.isSystem ? tc('edit') : t('viewRole')}
                     </Button>
                     {manage && !r.isSystem && (
-                      <Button size="sm" variant="ghost" className="text-brick" onClick={() => setDeleting(r)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-brick"
+                        onClick={() => setDeleting(r)}
+                      >
                         {tc('delete')}
                       </Button>
                     )}
@@ -243,7 +310,13 @@ export default function RolesPage() {
           </ul>
         )}
       </Section>
-      {open && <RoleDialog role={open === 'new' ? null : open} readOnly={!manage} onClose={() => setOpen(null)} />}
+      {open && (
+        <RoleDialog
+          role={open === 'new' ? null : open}
+          readOnly={!manage}
+          onClose={() => setOpen(null)}
+        />
+      )}
       <ConfirmDialog
         open={!!deleting}
         title={deleting ? roleName(deleting, locale) : ''}

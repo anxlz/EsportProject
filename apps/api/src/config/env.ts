@@ -68,7 +68,11 @@ const envSchema = z
         message: 'MAIL_TRANSPORT=smtp requires SMTP_HOST and MAIL_FROM.',
       });
     }
-    const discordVars = [env.DISCORD_CLIENT_ID, env.DISCORD_CLIENT_SECRET, env.DISCORD_REDIRECT_URI];
+    const discordVars = [
+      env.DISCORD_CLIENT_ID,
+      env.DISCORD_CLIENT_SECRET,
+      env.DISCORD_REDIRECT_URI,
+    ];
     if (discordVars.some(Boolean) && !discordVars.every(Boolean)) {
       ctx.addIssue({
         code: 'custom',
@@ -104,10 +108,18 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   return {
     ...env,
     cookieSecure:
-      env.COOKIE_SECURE !== undefined ? env.COOKIE_SECURE === 'true' : env.NODE_ENV === 'production',
+      env.COOKIE_SECURE !== undefined
+        ? env.COOKIE_SECURE === 'true'
+        : env.NODE_ENV === 'production',
     apiDocsEnabled:
-      env.ENABLE_API_DOCS !== undefined ? env.ENABLE_API_DOCS === 'true' : env.NODE_ENV !== 'production',
-    discordEnabled: !!(env.DISCORD_CLIENT_ID && env.DISCORD_CLIENT_SECRET && env.DISCORD_REDIRECT_URI),
+      env.ENABLE_API_DOCS !== undefined
+        ? env.ENABLE_API_DOCS === 'true'
+        : env.NODE_ENV !== 'production',
+    discordEnabled: !!(
+      env.DISCORD_CLIENT_ID &&
+      env.DISCORD_CLIENT_SECRET &&
+      env.DISCORD_REDIRECT_URI
+    ),
     allowedOrigins: [...new Set([webOrigin, ...extra])],
   };
 }

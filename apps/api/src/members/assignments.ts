@@ -27,7 +27,9 @@ export async function normalizeAssignments(
   opts: { skipInvalid?: boolean } = {},
 ): Promise<{ valid: NormalizedAssignment[]; dropped: RoleAssignmentInput[] }> {
   const roleIds = [...new Set(inputs.map((a) => a.roleId))];
-  const deptIds = [...new Set(inputs.filter((a) => a.scopeType === 'department').map((a) => a.scopeId!))];
+  const deptIds = [
+    ...new Set(inputs.filter((a) => a.scopeType === 'department').map((a) => a.scopeId!)),
+  ];
   const teamIds = [...new Set(inputs.filter((a) => a.scopeType === 'team').map((a) => a.scopeId!))];
 
   const roleRows = roleIds.length
@@ -40,7 +42,9 @@ export async function normalizeAssignments(
     ? await tx
         .select({ id: departments.id })
         .from(departments)
-        .where(and(eq(departments.organizationId, organizationId), inArray(departments.id, deptIds)))
+        .where(
+          and(eq(departments.organizationId, organizationId), inArray(departments.id, deptIds)),
+        )
     : [];
   const teamRows = teamIds.length
     ? await tx

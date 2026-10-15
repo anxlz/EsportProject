@@ -17,5 +17,12 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun run --filter '*' test",
     "docs:permissions": "bun run --cwd apps/api docs:permissions"
+  },
+  "devDependencies": {
+    "eslint": "^10",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript-eslint": "^8.71.2"
   }
 }

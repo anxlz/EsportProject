@@ -39,21 +39,37 @@ describe('invitations', () => {
     const token = link.split('/invite/')[1]!;
 
     const preview = await t.client().get(`/public/invitations/${token}`);
-    expect(preview.body).toMatchObject({ organizationName: 'Riyadh Falcons', accountExists: false, inviterName: 'Fahad Owner' });
+    expect(preview.body).toMatchObject({
+      organizationName: 'Riyadh Falcons',
+      accountExists: false,
+      inviterName: 'Fahad Owner',
+    });
 
     const joiner = t.client();
-    const acc = await joiner.post<MeResponse>(`/public/invitations/${token}/accept`, { displayName: 'Ops Person', password: PASSWORD });
+    const acc = await joiner.post<MeResponse>(`/public/invitations/${token}/accept`, {
+      displayName: 'Ops Person',
+      password: PASSWORD,
+    });
     expect(acc.status).toBe(200);
     expect(acc.body.activeOrganization?.name).toBe('Riyadh Falcons');
-    expect(acc.body.permissions.map((p) => p.key).sort()).toEqual(['departments.view', 'games.view', 'teams.view']);
+    expect(acc.body.permissions.map((p) => p.key).sort()).toEqual([
+      'departments.view',
+      'games.view',
+      'teams.view',
+    ]);
 
     // Single use.
-    const again = await t.client().post(`/public/invitations/${token}/accept`, { displayName: 'Again', password: PASSWORD });
+    const again = await t
+      .client()
+      .post(`/public/invitations/${token}/accept`, { displayName: 'Again', password: PASSWORD });
     expect(again.status).toBe(404);
 
     // Inviter notified via the shared notification service.
     const notes = await owner.get<NotificationDto[]>('/notifications');
-    expect(notes.body[0]).toMatchObject({ type: 'member.joined', data: { memberName: 'Ops Person' } });
+    expect(notes.body[0]).toMatchObject({
+      type: 'member.joined',
+      data: { memberName: 'Ops Person' },
+    });
     expect((await owner.get('/notifications/unread-count')).body.count).toBe(1);
     await owner.post(`/notifications/${notes.body[0]!.id}/read`);
     expect((await owner.get('/notifications/unread-count')).body.count).toBe(0);
@@ -68,8 +84,17 @@ describe('invitations', () => {
 
     const inv2 = await owner.post('/invitations', { email: 'b@example.com', assignments: [] });
     const token2 = inv2.body.inviteUrl.split('/invite/')[1];
-    await t.db.update(invitations).set({ expiresAt: sql`now() - interval '1 second'` }).where(eq(invitations.id, inv2.body.invitation.id));
-    expect((await t.client().post(`/public/invitations/${token2}/accept`, { displayName: 'B', password: PASSWORD })).status).toBe(404);
+    await t.db
+      .update(invitations)
+      .set({ expiresAt: sql`now() - interval '1 second'` })
+      .where(eq(invitations.id, inv2.body.invitation.id));
+    expect(
+      (
+        await t
+          .client()
+          .post(`/public/invitations/${token2}/accept`, { displayName: 'B', password: PASSWORD })
+      ).status,
+    ).toBe(404);
   });
 
   test('re-inviting the same email replaces the earlier invitation', async () => {
@@ -83,16 +108,28 @@ describe('invitations', () => {
 
   test('existing accounts must sign in, and only the invited email can accept', async () => {
     const { client: ownerA } = await registerOwner(t);
-    const { client: ownerB } = await registerOwner(t, { slug: 'jeddah-eagles', email: 'b@example.com', name: 'Jeddah Eagles' });
+    const { client: ownerB } = await registerOwner(t, {
+      slug: 'jeddah-eagles',
+      email: 'b@example.com',
+      name: 'Jeddah Eagles',
+    });
     const inv = await ownerA.post('/invitations', { email: 'b@example.com', assignments: [] });
     const token = inv.body.inviteUrl.split('/invite/')[1];
 
     expect((await t.client().get(`/public/invitations/${token}`)).body.accountExists).toBe(true);
-    const asNew = await t.client().post(`/public/invitations/${token}/accept`, { displayName: 'B', password: PASSWORD });
+    const asNew = await t
+      .client()
+      .post(`/public/invitations/${token}/accept`, { displayName: 'B', password: PASSWORD });
     expect(asNew.body.error.code).toBe('login_required');
 
-    const { client: stranger } = await registerOwner(t, { slug: 'third-org', email: 'c@example.com', name: 'Third Org' });
-    expect((await stranger.post(`/invitations/accept/${token}`)).body.error.code).toBe('email_mismatch');
+    const { client: stranger } = await registerOwner(t, {
+      slug: 'third-org',
+      email: 'c@example.com',
+      name: 'Third Org',
+    });
+    expect((await stranger.post(`/invitations/accept/${token}`)).body.error.code).toBe(
+      'email_mismatch',
+    );
 
     const ok = await ownerB.post<MeResponse>(`/invitations/accept/${token}`);
     expect(ok.status).toBe(200);
@@ -100,7 +137,9 @@ describe('invitations', () => {
     expect(ok.body.activeOrganization?.name).toBe('Riyadh Falcons');
     // Switch back to own org.
     const own = ok.body.memberships.find((m) => m.name === 'Jeddah Eagles')!;
-    const sw = await ownerB.post<MeResponse>('/auth/switch-organization', { organizationId: own.organizationId });
+    const sw = await ownerB.post<MeResponse>('/auth/switch-organization', {
+      organizationId: own.organizationId,
+    });
     expect(sw.body.isOwner).toBe(true);
   });
 
@@ -116,19 +155,25 @@ describe('suspension', () => {
   test('revokes live sessions instantly and blocks future logins', async () => {
     const { client: owner } = await registerOwner(t);
     const ops = await roleIdByTemplate(owner, 'esports_operations');
-    const { client: member, me } = await inviteAndAccept(t, owner, 'm@example.com', [{ roleId: ops, scopeType: 'organization' }]);
+    const { client: member, me } = await inviteAndAccept(t, owner, 'm@example.com', [
+      { roleId: ops, scopeType: 'organization' },
+    ]);
     const secondDevice = t.client();
     await secondDevice.post('/auth/login', { email: 'm@example.com', password: PASSWORD });
     expect((await member.get('/teams')).status).toBe(200);
 
-    const res = await owner.post<MemberDto>(`/members/${me.user.id}/suspend`, { reason: 'Contract ended' });
+    const res = await owner.post<MemberDto>(`/members/${me.user.id}/suspend`, {
+      reason: 'Contract ended',
+    });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('suspended');
 
     // Both devices are out on their very next request.
     expect((await member.get('/teams')).status).toBe(401);
     expect((await secondDevice.get('/auth/me')).status).toBe(401);
-    const login = await t.client().post('/auth/login', { email: 'm@example.com', password: PASSWORD });
+    const login = await t
+      .client()
+      .post('/auth/login', { email: 'm@example.com', password: PASSWORD });
     expect(login.body.error.code).toBe('account_suspended');
 
     const actions = (await t.db.select().from(auditLogs)).map((a) => a.action);
@@ -138,23 +183,33 @@ describe('suspension', () => {
 
     // Reactivation restores access.
     await owner.post(`/members/${me.user.id}/reactivate`);
-    expect((await t.client().post('/auth/login', { email: 'm@example.com', password: PASSWORD })).status).toBe(200);
+    expect(
+      (await t.client().post('/auth/login', { email: 'm@example.com', password: PASSWORD })).status,
+    ).toBe(200);
   });
 
   test('suspension is per organization: other memberships keep working', async () => {
     const { client: ownerA } = await registerOwner(t);
-    const { client: ownerB, me: meB } = await registerOwner(t, { slug: 'jeddah-eagles', email: 'b@example.com', name: 'Jeddah Eagles' });
+    const { client: ownerB, me: meB } = await registerOwner(t, {
+      slug: 'jeddah-eagles',
+      email: 'b@example.com',
+      name: 'Jeddah Eagles',
+    });
     const inv = await ownerA.post('/invitations', { email: 'b@example.com', assignments: [] });
     await ownerB.post(`/invitations/accept/${inv.body.inviteUrl.split('/invite/')[1]}`);
     await ownerA.post(`/members/${meB.user.id}/suspend`, {});
-    const login = await t.client().post<MeResponse>('/auth/login', { email: 'b@example.com', password: PASSWORD });
+    const login = await t
+      .client()
+      .post<MeResponse>('/auth/login', { email: 'b@example.com', password: PASSWORD });
     expect(login.status).toBe(200);
     expect(login.body.activeOrganization?.name).toBe('Jeddah Eagles');
   });
 
   test('cannot suspend yourself, or the last active Owner', async () => {
     const { client: owner, me } = await registerOwner(t);
-    expect((await owner.post(`/members/${me.user.id}/suspend`, {})).body.error.code).toBe('cannot_target_self');
+    expect((await owner.post(`/members/${me.user.id}/suspend`, {})).body.error.code).toBe(
+      'cannot_target_self',
+    );
 
     const { client: second, me: secondMe } = await inviteAndAccept(t, owner, 'o2@example.com', []);
     await owner.post(`/members/${secondMe.user.id}/ownership`);
@@ -168,7 +223,9 @@ describe('suspension', () => {
   test('non-owners cannot suspend anyone (members.manage is owner-only)', async () => {
     const { client: owner, me } = await registerOwner(t);
     const head = await roleIdByTemplate(owner, 'head_of_esports');
-    const { client: h } = await inviteAndAccept(t, owner, 'head@example.com', [{ roleId: head, scopeType: 'organization' }]);
+    const { client: h } = await inviteAndAccept(t, owner, 'head@example.com', [
+      { roleId: head, scopeType: 'organization' },
+    ]);
     expect((await h.post(`/members/${me.user.id}/suspend`, {})).status).toBe(403);
   });
 });
@@ -193,11 +250,17 @@ describe('ownership', () => {
 
   test('an invitation can make someone an Owner on acceptance', async () => {
     const { client: owner } = await registerOwner(t);
-    const inv = await owner.post('/invitations', { email: 'co@example.com', assignments: [], makeOwner: true });
-    const acc = await t.client().post<MeResponse>(`/public/invitations/${inv.body.inviteUrl.split('/invite/')[1]}/accept`, {
-      displayName: 'Co Owner',
-      password: PASSWORD,
+    const inv = await owner.post('/invitations', {
+      email: 'co@example.com',
+      assignments: [],
+      makeOwner: true,
     });
+    const acc = await t
+      .client()
+      .post<MeResponse>(`/public/invitations/${inv.body.inviteUrl.split('/invite/')[1]}/accept`, {
+        displayName: 'Co Owner',
+        password: PASSWORD,
+      });
     expect(acc.body.isOwner).toBe(true);
   });
 });
@@ -214,15 +277,26 @@ describe('role assignment management', () => {
       assignments: [{ roleId: mgr, scopeType: 'department', scopeId: dept.id }],
     });
     expect(res.status).toBe(200);
-    expect(res.body.assignments[0]).toMatchObject({ scopeType: 'department', scopeName: 'Esports', roleNameEn: 'Esports Manager' });
+    expect(res.body.assignments[0]).toMatchObject({
+      scopeType: 'department',
+      scopeName: 'Esports',
+      roleNameEn: 'Esports Manager',
+    });
     expect((await m.get('/teams')).status).toBe(200);
-    expect((await m.get<NotificationDto[]>('/notifications')).body[0]!.type).toBe('member.roles_changed');
-    const [log] = await t.db.select().from(auditLogs).where(eq(auditLogs.action, 'member.assignments_changed'));
+    expect((await m.get<NotificationDto[]>('/notifications')).body[0]!.type).toBe(
+      'member.roles_changed',
+    );
+    const [log] = await t.db
+      .select()
+      .from(auditLogs)
+      .where(eq(auditLogs.action, 'member.assignments_changed'));
     expect((log!.metadata as { after: unknown[] }).after.length).toBe(1);
 
     // Assigning the Owner role this way is refused.
     const ownerRole = await roleIdByTemplate(owner, 'owner');
-    const bad = await owner.put(`/members/${me.user.id}/assignments`, { assignments: [{ roleId: ownerRole, scopeType: 'organization' }] });
+    const bad = await owner.put(`/members/${me.user.id}/assignments`, {
+      assignments: [{ roleId: ownerRole, scopeType: 'organization' }],
+    });
     expect(bad.status).toBe(400);
   });
 

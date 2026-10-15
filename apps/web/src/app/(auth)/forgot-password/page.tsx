@@ -40,7 +40,14 @@ export default function ForgotPasswordPage() {
           <p className="mt-1.5 mb-7 text-muted">{t('forgotLead')}</p>
           <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
             <ErrorBanner error={error} />
-            <TextField label={t('email')} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="ltr-text" />
+            <TextField
+              label={t('email')}
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="ltr-text"
+            />
             <Button type="submit" variant="primary" disabled={busy || !email}>
               {t('sendResetLink')}
             </Button>

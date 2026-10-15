@@ -35,8 +35,20 @@ afterAll(() => t.close());
 beforeEach(async () => {
   await t.reset();
   fake.profiles.clear();
-  fake.profiles.set('code-fahad', { id: '111', username: 'fahad', globalName: 'Fahad', email: 'owner@example.com', verified: true });
-  fake.profiles.set('code-other', { id: '222', username: 'other', globalName: null, email: 'x@example.com', verified: true });
+  fake.profiles.set('code-fahad', {
+    id: '111',
+    username: 'fahad',
+    globalName: 'Fahad',
+    email: 'owner@example.com',
+    verified: true,
+  });
+  fake.profiles.set('code-other', {
+    id: '222',
+    username: 'other',
+    globalName: null,
+    email: 'x@example.com',
+    verified: true,
+  });
 });
 
 async function runFlow(client: Client, mode: 'login' | 'link', code: string) {
@@ -65,7 +77,10 @@ describe('Discord OAuth', () => {
     const { client: owner } = await registerOwner(t);
     const linked = await runFlow(owner, 'link', 'code-fahad');
     expect(linked.location).toBe(`${WEB_ORIGIN}/dashboard/settings?discord=linked`);
-    expect((await owner.get<MeResponse>('/auth/me')).body.user).toMatchObject({ discordLinked: true, discordUsername: 'Fahad' });
+    expect((await owner.get<MeResponse>('/auth/me')).body.user).toMatchObject({
+      discordLinked: true,
+      discordUsername: 'Fahad',
+    });
 
     const fresh = t.client();
     const { location } = await runFlow(fresh, 'login', 'code-fahad');
@@ -75,7 +90,11 @@ describe('Discord OAuth', () => {
 
   test('a Discord account can only be linked to one user', async () => {
     const { client: a } = await registerOwner(t);
-    const { client: b } = await registerOwner(t, { slug: 'jeddah-eagles', email: 'b@example.com', name: 'Jeddah Eagles' });
+    const { client: b } = await registerOwner(t, {
+      slug: 'jeddah-eagles',
+      email: 'b@example.com',
+      name: 'Jeddah Eagles',
+    });
     await runFlow(a, 'link', 'code-fahad');
     const { location } = await runFlow(b, 'link', 'code-fahad');
     expect(location).toContain('error=discord_already_linked');

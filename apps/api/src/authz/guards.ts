@@ -111,7 +111,11 @@ export class AuthGuard implements CanActivate {
       if (resolved.status === 'suspended') {
         // Belt and braces: suspension already revokes these sessions, but never trust that alone.
         await this.sessions.destroy(session);
-        throw new AppError('account_suspended', 401, 'Your access to this organization is suspended');
+        throw new AppError(
+          'account_suspended',
+          401,
+          'Your access to this organization is suspended',
+        );
       }
       if (resolved.status === 'none') {
         await this.sessions.setActiveOrganization(session, null);

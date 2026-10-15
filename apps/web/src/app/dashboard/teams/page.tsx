@@ -26,7 +26,13 @@ import { api, apiDelete, apiPatch, apiPost } from '@/lib/api';
 import { useAction } from '@/lib/mutation';
 import { useCan, useCovers } from '@/lib/session';
 
-type TeamForm = { name: string; departmentId: string; gameId: string; region: string; status: 'active' | 'inactive' };
+type TeamForm = {
+  name: string;
+  departmentId: string;
+  gameId: string;
+  region: string;
+  status: 'active' | 'inactive';
+};
 
 function TeamDialog({
   team,
@@ -60,13 +66,20 @@ function TeamDialog({
       };
       return team ? apiPatch(`/teams/${team.id}`, body) : apiPost('/teams', body);
     },
-    { invalidate: [['teams'], ['departments'], ['games']], success: team ? t('saved') : t('created'), onSuccess: onClose },
+    {
+      invalidate: [['teams'], ['departments'], ['games']],
+      success: team ? t('saved') : t('created'),
+      onSuccess: onClose,
+    },
   );
   const perm = team ? 'teams.edit' : 'teams.create';
   // Only offer destinations the user may place a team in (the API re-checks).
-  const deptOptions = departments.filter((d) => covers.department(perm, d.id) || d.id === team?.departmentId);
+  const deptOptions = departments.filter(
+    (d) => covers.department(perm, d.id) || d.id === team?.departmentId,
+  );
   const canNoDept = covers.department(perm, null) || (team !== null && team.departmentId === null);
-  const set = (k: keyof TeamForm) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k: keyof TeamForm) => (e: { target: { value: string } }) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
     <Dialog
@@ -76,7 +89,11 @@ function TeamDialog({
       footer={
         <>
           <Button onClick={onClose}>{tc('cancel')}</Button>
-          <Button variant="primary" disabled={save.isPending || !form.name.trim()} onClick={() => save.mutate(form)}>
+          <Button
+            variant="primary"
+            disabled={save.isPending || !form.name.trim()}
+            onClick={() => save.mutate(form)}
+          >
             {save.isPending ? tc('saving') : team ? tc('saveChanges') : tc('create')}
           </Button>
         </>
@@ -85,7 +102,11 @@ function TeamDialog({
       <div className="flex flex-col gap-4">
         <ErrorBanner error={save.error} />
         <TextField label={tc('name')} value={form.name} onChange={set('name')} autoFocus />
-        <SelectField label={t('department')} value={form.departmentId} onChange={set('departmentId')}>
+        <SelectField
+          label={t('department')}
+          value={form.departmentId}
+          onChange={set('departmentId')}
+        >
           {canNoDept && <option value="">{t('noDepartment')}</option>}
           {deptOptions.map((d) => (
             <option key={d.id} value={d.id}>
@@ -115,7 +136,13 @@ function TeamDialog({
   );
 }
 
-function DepartmentDialog({ department, onClose }: { department: DepartmentDto | null; onClose: () => void }) {
+function DepartmentDialog({
+  department,
+  onClose,
+}: {
+  department: DepartmentDto | null;
+  onClose: () => void;
+}) {
   const t = useTranslations('departments');
   const tc = useTranslations('common');
   const [name, setName] = useState(department?.name ?? '');
@@ -123,9 +150,15 @@ function DepartmentDialog({ department, onClose }: { department: DepartmentDto |
   const save = useAction(
     () => {
       const body = { name, description: description || null };
-      return department ? apiPatch(`/departments/${department.id}`, body) : apiPost('/departments', body);
+      return department
+        ? apiPatch(`/departments/${department.id}`, body)
+        : apiPost('/departments', body);
     },
-    { invalidate: [['departments'], ['teams']], success: department ? t('saved') : t('created'), onSuccess: onClose },
+    {
+      invalidate: [['departments'], ['teams']],
+      success: department ? t('saved') : t('created'),
+      onSuccess: onClose,
+    },
   );
   return (
     <Dialog
@@ -135,7 +168,11 @@ function DepartmentDialog({ department, onClose }: { department: DepartmentDto |
       footer={
         <>
           <Button onClick={onClose}>{tc('cancel')}</Button>
-          <Button variant="primary" disabled={save.isPending || !name.trim()} onClick={() => save.mutate(undefined)}>
+          <Button
+            variant="primary"
+            disabled={save.isPending || !name.trim()}
+            onClick={() => save.mutate(undefined)}
+          >
             {save.isPending ? tc('saving') : department ? tc('saveChanges') : tc('create')}
           </Button>
         </>
@@ -143,8 +180,18 @@ function DepartmentDialog({ department, onClose }: { department: DepartmentDto |
     >
       <div className="flex flex-col gap-4">
         <ErrorBanner error={save.error} />
-        <TextField label={tc('name')} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <TextArea label={t('description')} optional value={description} onChange={(e) => setDescription(e.target.value)} />
+        <TextField
+          label={tc('name')}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <TextArea
+          label={t('description')}
+          optional
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
       </div>
     </Dialog>
   );
@@ -157,13 +204,21 @@ export default function TeamsPage() {
   const can = useCan();
   const covers = useCovers();
 
-  const teams = useQuery({ queryKey: ['teams'], queryFn: () => api<TeamDto[]>('/teams'), enabled: can('teams.view') });
+  const teams = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => api<TeamDto[]>('/teams'),
+    enabled: can('teams.view'),
+  });
   const departments = useQuery({
     queryKey: ['departments'],
     queryFn: () => api<DepartmentDto[]>('/departments'),
     enabled: can('departments.view'),
   });
-  const games = useQuery({ queryKey: ['games'], queryFn: () => api<GameDto[]>('/games'), enabled: can('games.view') });
+  const games = useQuery({
+    queryKey: ['games'],
+    queryFn: () => api<GameDto[]>('/games'),
+    enabled: can('games.view'),
+  });
 
   const [filter, setFilter] = useState('');
   const [editingTeam, setEditingTeam] = useState<TeamDto | null | 'new'>(null);
@@ -182,7 +237,9 @@ export default function TeamsPage() {
     onSuccess: () => setDeletingDept(null),
   });
 
-  const visibleTeams = (teams.data ?? []).filter((x) => !filter || (filter === 'none' ? !x.departmentId : x.departmentId === filter));
+  const visibleTeams = (teams.data ?? []).filter(
+    (x) => !filter || (filter === 'none' ? !x.departmentId : x.departmentId === filter),
+  );
 
   return (
     <>
@@ -273,8 +330,14 @@ export default function TeamsPage() {
                     {visibleTeams.map((team) => (
                       <tr key={team.id}>
                         <td className={`${tdClass} font-medium whitespace-nowrap`}>{team.name}</td>
-                        <td className={`${tdClass} whitespace-nowrap`}>{team.gameName ?? <span className="text-muted">{t('noGame')}</span>}</td>
-                        <td className={tdClass}>{team.departmentName ?? <span className="text-muted">{t('noDepartment')}</span>}</td>
+                        <td className={`${tdClass} whitespace-nowrap`}>
+                          {team.gameName ?? <span className="text-muted">{t('noGame')}</span>}
+                        </td>
+                        <td className={tdClass}>
+                          {team.departmentName ?? (
+                            <span className="text-muted">{t('noDepartment')}</span>
+                          )}
+                        </td>
                         <td className={tdClass}>{team.region ?? ''}</td>
                         <td className={tdClass}>
                           <Badge tone={team.status === 'active' ? 'turf' : 'neutral'}>
@@ -283,12 +346,22 @@ export default function TeamsPage() {
                         </td>
                         <td className={`${tdClass} text-end whitespace-nowrap`}>
                           {covers.team('teams.edit', team) && (
-                            <Button size="sm" variant="ghost" onClick={() => setEditingTeam(team)} aria-label={`${tc('edit')} ${team.name}`}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingTeam(team)}
+                              aria-label={`${tc('edit')} ${team.name}`}
+                            >
                               <Pencil className="size-4" aria-hidden="true" />
                             </Button>
                           )}
                           {covers.team('teams.delete', team) && (
-                            <Button size="sm" variant="ghost" onClick={() => setDeletingTeam(team)} aria-label={`${tc('delete')} ${team.name}`}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setDeletingTeam(team)}
+                              aria-label={`${tc('delete')} ${team.name}`}
+                            >
                               <Trash2 className="size-4" aria-hidden="true" />
                             </Button>
                           )}
@@ -322,7 +395,10 @@ export default function TeamsPage() {
             ) : (
               <ul className="divide-y divide-line">
                 {departments.data.map((d) => (
-                  <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                  <li
+                    key={d.id}
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                  >
                     <div>
                       <p className="font-medium">{d.name}</p>
                       <p className="text-sm text-muted">
@@ -332,12 +408,22 @@ export default function TeamsPage() {
                     </div>
                     <div className="flex gap-1">
                       {can('departments.edit') && (
-                        <Button size="sm" variant="ghost" onClick={() => setEditingDept(d)} aria-label={`${tc('edit')} ${d.name}`}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingDept(d)}
+                          aria-label={`${tc('edit')} ${d.name}`}
+                        >
                           <Pencil className="size-4" aria-hidden="true" />
                         </Button>
                       )}
                       {can('departments.delete') && (
-                        <Button size="sm" variant="ghost" onClick={() => setDeletingDept(d)} aria-label={`${tc('delete')} ${d.name}`}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeletingDept(d)}
+                          aria-label={`${tc('delete')} ${d.name}`}
+                        >
                           <Trash2 className="size-4" aria-hidden="true" />
                         </Button>
                       )}
@@ -358,7 +444,12 @@ export default function TeamsPage() {
           onClose={() => setEditingTeam(null)}
         />
       )}
-      {editingDept && <DepartmentDialog department={editingDept === 'new' ? null : editingDept} onClose={() => setEditingDept(null)} />}
+      {editingDept && (
+        <DepartmentDialog
+          department={editingDept === 'new' ? null : editingDept}
+          onClose={() => setEditingDept(null)}
+        />
+      )}
       <ConfirmDialog
         open={!!deletingTeam}
         title={t('deleteTeam')}

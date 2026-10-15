@@ -2,7 +2,10 @@ export type Locale = 'ar' | 'en';
 
 export const LOCALE_COOKIE = 'NEXT_LOCALE';
 
-export function resolveLocale(cookieValue: string | undefined, acceptLanguage: string | null): Locale {
+export function resolveLocale(
+  cookieValue: string | undefined,
+  acceptLanguage: string | null,
+): Locale {
   if (cookieValue === 'ar' || cookieValue === 'en') return cookieValue;
   const first = (acceptLanguage ?? '').split(',')[0]?.trim().toLowerCase() ?? '';
   return first.startsWith('ar') ? 'ar' : 'en';

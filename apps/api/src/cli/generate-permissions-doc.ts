@@ -12,7 +12,9 @@ import {
 } from '@esports/shared';
 import { fileURLToPath } from 'node:url';
 
-export const PERMISSIONS_DOC_PATH = fileURLToPath(new URL('../../../../docs/PERMISSIONS.md', import.meta.url));
+export const PERMISSIONS_DOC_PATH = fileURLToPath(
+  new URL('../../../../docs/PERMISSIONS.md', import.meta.url),
+);
 
 export function renderPermissionsDoc(): string {
   const roles = DEFAULT_ROLE_TEMPLATES;

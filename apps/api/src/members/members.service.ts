@@ -47,7 +47,9 @@ export class MembersService {
         suspendedReason: m.suspendedReason,
         joinedAt: m.joinedAt.toISOString(),
         isOwner: mine.some((a) => a.grantsAll),
-        assignments: mine.filter((a) => !a.grantsAll).map(({ userId: _u, grantsAll: _g, ...dto }) => dto),
+        assignments: mine
+          .filter((a) => !a.grantsAll)
+          .map(({ userId: _u, grantsAll: _g, ...dto }) => dto),
       };
     });
   }
@@ -105,7 +107,11 @@ export class MembersService {
     return row.id;
   }
 
-  private async activeOwnerIds(tx: DbOrTx, organizationId: string, ownerRoleId: string): Promise<string[]> {
+  private async activeOwnerIds(
+    tx: DbOrTx,
+    organizationId: string,
+    ownerRoleId: string,
+  ): Promise<string[]> {
     const rows = await tx
       .select({ userId: userRoleAssignments.userId })
       .from(userRoleAssignments)
@@ -130,13 +136,22 @@ export class MembersService {
     const [m] = await tx
       .select()
       .from(organizationMembers)
-      .where(and(eq(organizationMembers.organizationId, organizationId), eq(organizationMembers.userId, userId)));
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.userId, userId),
+        ),
+      );
     if (!m) throw Errors.notFound('Member');
     return m;
   }
 
   /** Replaces the member's (non-Owner) role assignments. Ownership is managed separately. */
-  async setAssignments(ctx: TenantContext, userId: string, inputs: RoleAssignmentInput[]): Promise<MemberDto> {
+  async setAssignments(
+    ctx: TenantContext,
+    userId: string,
+    inputs: RoleAssignmentInput[],
+  ): Promise<MemberDto> {
     const before = await this.get(ctx.organizationId, userId);
     await this.db.transaction(async (tx) => {
       await this.requireMember(tx, ctx.organizationId, userId);
@@ -160,16 +175,40 @@ export class MembersService {
       }
       if (valid.length) {
         await tx.insert(userRoleAssignments).values(
-          valid.map((a) => ({ ...a, organizationId: ctx.organizationId, userId, createdByUserId: ctx.user.id })),
+          valid.map((a) => ({
+            ...a,
+            organizationId: ctx.organizationId,
+            userId,
+            createdByUserId: ctx.user.id,
+          })),
         );
       }
-      await this.audit.fromCtx(ctx, 'member.assignments_changed', { type: 'user', id: userId }, {
-        before: before.assignments.map(({ roleId, scopeType, scopeId }) => ({ roleId, scopeType, scopeId })),
-        after: valid.map((a) => ({ roleId: a.roleId, scopeType: a.scopeType, scopeId: a.departmentId ?? a.teamId })),
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'member.assignments_changed',
+        { type: 'user', id: userId },
+        {
+          before: before.assignments.map(({ roleId, scopeType, scopeId }) => ({
+            roleId,
+            scopeType,
+            scopeId,
+          })),
+          after: valid.map((a) => ({
+            roleId: a.roleId,
+            scopeType: a.scopeType,
+            scopeId: a.departmentId ?? a.teamId,
+          })),
+        },
+        tx,
+      );
       if (userId !== ctx.user.id) {
         await this.notifications.notify(
-          { organizationId: ctx.organizationId, recipientUserIds: [userId], type: 'member.roles_changed', data: { byName: ctx.user.displayName } },
+          {
+            organizationId: ctx.organizationId,
+            recipientUserIds: [userId],
+            type: 'member.roles_changed',
+            data: { byName: ctx.user.displayName },
+          },
           tx,
         );
       }
@@ -178,8 +217,13 @@ export class MembersService {
     return this.get(ctx.organizationId, userId);
   }
 
-  async suspend(ctx: TenantContext, userId: string, reason: string | undefined): Promise<MemberDto> {
-    if (userId === ctx.user.id) throw Errors.badRequest('cannot_target_self', 'You cannot suspend yourself');
+  async suspend(
+    ctx: TenantContext,
+    userId: string,
+    reason: string | undefined,
+  ): Promise<MemberDto> {
+    if (userId === ctx.user.id)
+      throw Errors.badRequest('cannot_target_self', 'You cannot suspend yourself');
     await this.db.transaction(async (tx) => {
       const ownerRoleId = await this.lockOwnerRole(tx, ctx.organizationId);
       const member = await this.requireMember(tx, ctx.organizationId, userId);
@@ -190,15 +234,38 @@ export class MembersService {
       }
       await tx
         .update(organizationMembers)
-        .set({ status: 'suspended', suspendedAt: new Date(), suspendedByUserId: ctx.user.id, suspendedReason: reason ?? null })
-        .where(and(eq(organizationMembers.organizationId, ctx.organizationId), eq(organizationMembers.userId, userId)));
-      await this.audit.fromCtx(ctx, 'member.suspended', { type: 'user', id: userId }, { reason: reason ?? null }, tx);
+        .set({
+          status: 'suspended',
+          suspendedAt: new Date(),
+          suspendedByUserId: ctx.user.id,
+          suspendedReason: reason ?? null,
+        })
+        .where(
+          and(
+            eq(organizationMembers.organizationId, ctx.organizationId),
+            eq(organizationMembers.userId, userId),
+          ),
+        );
+      await this.audit.fromCtx(
+        ctx,
+        'member.suspended',
+        { type: 'user', id: userId },
+        { reason: reason ?? null },
+        tx,
+      );
     });
     // After commit: invalidate cached permissions, then kill live sessions in this org.
     await this.access.invalidate(ctx.organizationId);
-    const revoked = await this.sessions.destroyAllForUser(userId, { organizationId: ctx.organizationId });
+    const revoked = await this.sessions.destroyAllForUser(userId, {
+      organizationId: ctx.organizationId,
+    });
     if (revoked) {
-      await this.audit.fromCtx(ctx, 'member.sessions_revoked', { type: 'user', id: userId }, { revoked });
+      await this.audit.fromCtx(
+        ctx,
+        'member.sessions_revoked',
+        { type: 'user', id: userId },
+        { revoked },
+      );
     }
     return this.get(ctx.organizationId, userId);
   }
@@ -209,11 +276,26 @@ export class MembersService {
       if (member.status === 'active') return;
       await tx
         .update(organizationMembers)
-        .set({ status: 'active', suspendedAt: null, suspendedByUserId: null, suspendedReason: null })
-        .where(and(eq(organizationMembers.organizationId, ctx.organizationId), eq(organizationMembers.userId, userId)));
+        .set({
+          status: 'active',
+          suspendedAt: null,
+          suspendedByUserId: null,
+          suspendedReason: null,
+        })
+        .where(
+          and(
+            eq(organizationMembers.organizationId, ctx.organizationId),
+            eq(organizationMembers.userId, userId),
+          ),
+        );
       await this.audit.fromCtx(ctx, 'member.reactivated', { type: 'user', id: userId }, {}, tx);
       await this.notifications.notify(
-        { organizationId: ctx.organizationId, recipientUserIds: [userId], type: 'member.reactivated', data: { byName: ctx.user.displayName } },
+        {
+          organizationId: ctx.organizationId,
+          recipientUserIds: [userId],
+          type: 'member.reactivated',
+          data: { byName: ctx.user.displayName },
+        },
         tx,
       );
     });
@@ -225,7 +307,8 @@ export class MembersService {
     await this.db.transaction(async (tx) => {
       const ownerRoleId = await this.lockOwnerRole(tx, ctx.organizationId);
       const member = await this.requireMember(tx, ctx.organizationId, userId);
-      if (member.status !== 'active') throw Errors.badRequest('validation_failed', 'Reactivate the member first');
+      if (member.status !== 'active')
+        throw Errors.badRequest('validation_failed', 'Reactivate the member first');
       const owners = await this.activeOwnerIds(tx, ctx.organizationId, ownerRoleId);
       if (owners.includes(userId)) return;
       await tx.insert(userRoleAssignments).values({
@@ -235,9 +318,20 @@ export class MembersService {
         scopeType: 'organization',
         createdByUserId: ctx.user.id,
       });
-      await this.audit.fromCtx(ctx, 'member.ownership_granted', { type: 'user', id: userId }, {}, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'member.ownership_granted',
+        { type: 'user', id: userId },
+        {},
+        tx,
+      );
       await this.notifications.notify(
-        { organizationId: ctx.organizationId, recipientUserIds: [userId], type: 'member.ownership_granted', data: { byName: ctx.user.displayName } },
+        {
+          organizationId: ctx.organizationId,
+          recipientUserIds: [userId],
+          type: 'member.ownership_granted',
+          data: { byName: ctx.user.displayName },
+        },
         tx,
       );
     });
@@ -265,10 +359,21 @@ export class MembersService {
         throw Errors.conflict('last_owner', 'The organization must keep at least one active Owner');
       }
       await tx.delete(userRoleAssignments).where(eq(userRoleAssignments.id, held.id));
-      await this.audit.fromCtx(ctx, 'member.ownership_revoked', { type: 'user', id: userId }, {}, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'member.ownership_revoked',
+        { type: 'user', id: userId },
+        {},
+        tx,
+      );
       if (userId !== ctx.user.id) {
         await this.notifications.notify(
-          { organizationId: ctx.organizationId, recipientUserIds: [userId], type: 'member.ownership_revoked', data: { byName: ctx.user.displayName } },
+          {
+            organizationId: ctx.organizationId,
+            recipientUserIds: [userId],
+            type: 'member.ownership_revoked',
+            data: { byName: ctx.user.displayName },
+          },
           tx,
         );
       }
@@ -277,4 +382,3 @@ export class MembersService {
     return this.get(ctx.organizationId, userId);
   }
 }
-

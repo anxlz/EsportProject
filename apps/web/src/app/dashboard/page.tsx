@@ -32,9 +32,21 @@ export default function OverviewPage() {
   const tp = useTranslations('permissions');
   const td = useTranslations('permissionDomains');
 
-  const teams = useQuery({ queryKey: ['teams'], queryFn: () => api<TeamDto[]>('/teams'), enabled: can('teams.view') });
-  const members = useQuery({ queryKey: ['members'], queryFn: () => api<MemberDto[]>('/members'), enabled: can('members.view') });
-  const invites = useQuery({ queryKey: ['invitations'], queryFn: () => api<InvitationDto[]>('/invitations'), enabled: can('members.view') });
+  const teams = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => api<TeamDto[]>('/teams'),
+    enabled: can('teams.view'),
+  });
+  const members = useQuery({
+    queryKey: ['members'],
+    queryFn: () => api<MemberDto[]>('/members'),
+    enabled: can('members.view'),
+  });
+  const invites = useQuery({
+    queryKey: ['invitations'],
+    queryFn: () => api<InvitationDto[]>('/invitations'),
+    enabled: can('members.view'),
+  });
 
   if (!me.activeOrganization) return null;
 
@@ -42,19 +54,40 @@ export default function OverviewPage() {
     if (scope.all) return null;
     const parts: string[] = [];
     if (scope.teamIds.length) parts.push(t('scopeTeams', { count: scope.teamIds.length }));
-    if (scope.departmentIds.length) parts.push(t('scopeDepartments', { count: scope.departmentIds.length }));
-    return t('limitedTo', { scope: parts.length === 2 ? t('and', { a: parts[0]!, b: parts[1]! }) : (parts[0] ?? '') });
+    if (scope.departmentIds.length)
+      parts.push(t('scopeDepartments', { count: scope.departmentIds.length }));
+    return t('limitedTo', {
+      scope: parts.length === 2 ? t('and', { a: parts[0]!, b: parts[1]! }) : (parts[0] ?? ''),
+    });
   };
 
   const stats = [
-    can('teams.view') && teams.data && { value: String(teams.data.length), label: t('teamsVisible', { count: teams.data.length }), href: '/dashboard/teams' },
-    can('members.view') && members.data && { value: String(members.data.length), label: t('members', { count: members.data.length }), href: '/dashboard/members' },
-    can('members.view') && invites.data && { value: String(invites.data.length), label: t('pendingInvites', { count: invites.data.length }), href: '/dashboard/members' },
+    can('teams.view') &&
+      teams.data && {
+        value: String(teams.data.length),
+        label: t('teamsVisible', { count: teams.data.length }),
+        href: '/dashboard/teams',
+      },
+    can('members.view') &&
+      members.data && {
+        value: String(members.data.length),
+        label: t('members', { count: members.data.length }),
+        href: '/dashboard/members',
+      },
+    can('members.view') &&
+      invites.data && {
+        value: String(invites.data.length),
+        label: t('pendingInvites', { count: invites.data.length }),
+        href: '/dashboard/members',
+      },
   ].filter(Boolean) as { value: string; label: string; href: string }[];
 
   return (
     <>
-      <PageHeader title={t('greeting', { name: me.user.displayName })} lead={me.activeOrganization.name} />
+      <PageHeader
+        title={t('greeting', { name: me.user.displayName })}
+        lead={me.activeOrganization.name}
+      />
 
       {stats.length > 0 && (
         <div className="mb-8 grid divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
@@ -87,7 +120,12 @@ export default function OverviewPage() {
                         return (
                           <li key={p.key}>
                             {tp(p.key)}
-                            {limit && <span className="text-muted">{locale === 'ar' ? '، ' : ', '}{limit}</span>}
+                            {limit && (
+                              <span className="text-muted">
+                                {locale === 'ar' ? '، ' : ', '}
+                                {limit}
+                              </span>
+                            )}
                           </li>
                         );
                       })}

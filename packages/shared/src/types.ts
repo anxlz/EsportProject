@@ -41,9 +41,7 @@ export interface ApiErrorBody {
   error: { code: ErrorCode; message: string; details?: unknown };
 }
 
-export type ScopeGrant =
-  | { all: true }
-  | { all: false; departmentIds: string[]; teamIds: string[] };
+export type ScopeGrant = { all: true } | { all: false; departmentIds: string[]; teamIds: string[] };
 
 export interface MeResponse {
   user: {

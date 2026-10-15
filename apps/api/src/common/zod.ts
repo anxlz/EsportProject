@@ -26,7 +26,11 @@ export class ZodPipe<T extends z.ZodType> implements PipeTransform {
     const result = this.schema.safeParse(value ?? {});
     if (!result.success) {
       throw Errors.validation(
-        result.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message, code: i.code })),
+        result.error.issues.map((i) => ({
+          path: i.path.join('.'),
+          message: i.message,
+          code: i.code,
+        })),
       );
     }
     return result.data;
@@ -35,7 +39,10 @@ export class ZodPipe<T extends z.ZodType> implements PipeTransform {
 
 function toOpenApi(schema: z.ZodType): Record<string, unknown> {
   try {
-    return z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }) as Record<string, unknown>;
+    return z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }) as Record<
+      string,
+      unknown
+    >;
   } catch {
     return { type: 'object' };
   }

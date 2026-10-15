@@ -6,9 +6,11 @@ const intlLocale = (locale: string) => (locale === 'ar' ? 'ar-u-ca-gregory-nu-la
 
 export function formatDate(iso: string | null | undefined, locale: string): string {
   if (!iso) return '';
-  return new Intl.DateTimeFormat(intlLocale(locale), { day: 'numeric', month: 'short', year: 'numeric' }).format(
-    new Date(iso),
-  );
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(iso));
 }
 
 export function formatDateTime(iso: string | null | undefined, locale: string): string {
@@ -23,7 +25,10 @@ export function formatDateTime(iso: string | null | undefined, locale: string): 
 }
 
 /** Picks the role name in the reader's language, falling back to the other one. */
-export function roleName(r: { nameEn: string | null; nameAr: string | null }, locale: string): string {
+export function roleName(
+  r: { nameEn: string | null; nameAr: string | null },
+  locale: string,
+): string {
   return (locale === 'ar' ? (r.nameAr ?? r.nameEn) : (r.nameEn ?? r.nameAr)) ?? '';
 }
 

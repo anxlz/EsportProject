@@ -35,15 +35,26 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState('');
   const [makeOwner, setMakeOwner] = useState(false);
   const [drafts, setDrafts] = useState<AssignmentDraft[]>([]);
-  const [created, setCreated] = useState<{ inviteUrl: string; emailSent: boolean; email: string } | null>(null);
+  const [created, setCreated] = useState<{
+    inviteUrl: string;
+    emailSent: boolean;
+    email: string;
+  } | null>(null);
   const send = useAction(
     () =>
-      apiPost<{ inviteUrl: string; emailSent: boolean; invitation: InvitationDto }>('/invitations', {
-        email,
-        assignments: toInput(drafts),
-        makeOwner,
-      }),
-    { invalidate: [['invitations']], onSuccess: (r) => setCreated({ inviteUrl: r.inviteUrl, emailSent: r.emailSent, email: r.invitation.email }) },
+      apiPost<{ inviteUrl: string; emailSent: boolean; invitation: InvitationDto }>(
+        '/invitations',
+        {
+          email,
+          assignments: toInput(drafts),
+          makeOwner,
+        },
+      ),
+    {
+      invalidate: [['invitations']],
+      onSuccess: (r) =>
+        setCreated({ inviteUrl: r.inviteUrl, emailSent: r.emailSent, email: r.invitation.email }),
+    },
   );
 
   if (created) {
@@ -59,7 +70,9 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
         }
       >
         <div className="flex flex-col gap-4">
-          <p className="text-muted">{created.emailSent ? t('emailSent', { email: created.email }) : t('emailNotSent')}</p>
+          <p className="text-muted">
+            {created.emailSent ? t('emailSent', { email: created.email }) : t('emailNotSent')}
+          </p>
           <CopyField label={t('linkLabel')} value={created.inviteUrl} />
         </div>
       </Dialog>
@@ -76,7 +89,11 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
       footer={
         <>
           <Button onClick={onClose}>{tc('cancel')}</Button>
-          <Button variant="primary" disabled={send.isPending || !email.includes('@')} onClick={() => send.mutate(undefined)}>
+          <Button
+            variant="primary"
+            disabled={send.isPending || !email.includes('@')}
+            onClick={() => send.mutate(undefined)}
+          >
             {send.isPending ? t('sending') : t('send')}
           </Button>
         </>
@@ -84,10 +101,22 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
     >
       <div className="flex flex-col gap-5">
         <ErrorBanner error={send.error} />
-        <TextField label={t('email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="ltr-text" autoFocus />
+        <TextField
+          label={t('email')}
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="ltr-text"
+          autoFocus
+        />
         <AssignmentEditor value={drafts} onChange={setDrafts} />
         {can('org.ownership.manage') && (
-          <Checkbox label={t('makeOwner')} hint={t('makeOwnerHint')} checked={makeOwner} onChange={(e) => setMakeOwner(e.target.checked)} />
+          <Checkbox
+            label={t('makeOwner')}
+            hint={t('makeOwnerHint')}
+            checked={makeOwner}
+            onChange={(e) => setMakeOwner(e.target.checked)}
+          />
         )}
       </div>
     </Dialog>
@@ -98,13 +127,20 @@ function AccessDialog({ member, onClose }: { member: MemberDto; onClose: () => v
   const t = useTranslations('members');
   const tc = useTranslations('common');
   const [drafts, setDrafts] = useState<AssignmentDraft[]>(
-    member.assignments.map((a) => ({ roleId: a.roleId, scopeType: a.scopeType, scopeId: a.scopeId ?? '' })),
+    member.assignments.map((a) => ({
+      roleId: a.roleId,
+      scopeType: a.scopeType,
+      scopeId: a.scopeId ?? '',
+    })),
   );
-  const save = useAction(() => apiPut(`/members/${member.userId}/assignments`, { assignments: toInput(drafts) }), {
-    invalidate: [['members'], ['roles'], ['me']],
-    success: t('accessSaved'),
-    onSuccess: onClose,
-  });
+  const save = useAction(
+    () => apiPut(`/members/${member.userId}/assignments`, { assignments: toInput(drafts) }),
+    {
+      invalidate: [['members'], ['roles'], ['me']],
+      success: t('accessSaved'),
+      onSuccess: onClose,
+    },
+  );
   return (
     <Dialog
       open
@@ -115,7 +151,11 @@ function AccessDialog({ member, onClose }: { member: MemberDto; onClose: () => v
       footer={
         <>
           <Button onClick={onClose}>{tc('cancel')}</Button>
-          <Button variant="primary" disabled={save.isPending} onClick={() => save.mutate(undefined)}>
+          <Button
+            variant="primary"
+            disabled={save.isPending}
+            onClick={() => save.mutate(undefined)}
+          >
             {save.isPending ? tc('saving') : tc('saveChanges')}
           </Button>
         </>
@@ -129,7 +169,10 @@ function AccessDialog({ member, onClose }: { member: MemberDto; onClose: () => v
   );
 }
 
-type PendingAction = { kind: 'suspend' | 'reactivate' | 'grantOwner' | 'revokeOwner'; member: MemberDto };
+type PendingAction = {
+  kind: 'suspend' | 'reactivate' | 'grantOwner' | 'revokeOwner';
+  member: MemberDto;
+};
 
 export default function MembersPage() {
   const t = useTranslations('members');
@@ -139,7 +182,10 @@ export default function MembersPage() {
   const me = useMe();
   const can = useCan();
   const members = useQuery({ queryKey: ['members'], queryFn: () => api<MemberDto[]>('/members') });
-  const invitations = useQuery({ queryKey: ['invitations'], queryFn: () => api<InvitationDto[]>('/invitations') });
+  const invitations = useQuery({
+    queryKey: ['invitations'],
+    queryFn: () => api<InvitationDto[]>('/invitations'),
+  });
 
   const [inviting, setInviting] = useState(false);
   const [editing, setEditing] = useState<MemberDto | null>(null);
@@ -178,7 +224,10 @@ export default function MembersPage() {
       },
     },
   );
-  const revoke = useAction((id: string) => apiDelete(`/invitations/${id}`), { invalidate: [['invitations']], success: t('revoked') });
+  const revoke = useAction((id: string) => apiDelete(`/invitations/${id}`), {
+    invalidate: [['invitations']],
+    success: t('revoked'),
+  });
 
   const canManage = can('members.manage');
   const canOwnership = can('org.ownership.manage');
@@ -187,13 +236,28 @@ export default function MembersPage() {
     const name = p.member.displayName;
     switch (p.kind) {
       case 'suspend':
-        return { title: t('suspendTitle', { name }), body: t('suspendLead'), label: t('suspend'), danger: true };
+        return {
+          title: t('suspendTitle', { name }),
+          body: t('suspendLead'),
+          label: t('suspend'),
+          danger: true,
+        };
       case 'reactivate':
         return { title: t('reactivate'), body: name, label: t('reactivate'), danger: false };
       case 'grantOwner':
-        return { title: t('makeOwner'), body: t('makeOwnerConfirm', { name }), label: t('makeOwner'), danger: false };
+        return {
+          title: t('makeOwner'),
+          body: t('makeOwnerConfirm', { name }),
+          label: t('makeOwner'),
+          danger: false,
+        };
       case 'revokeOwner':
-        return { title: t('removeOwner'), body: t('removeOwnerConfirm', { name }), label: t('removeOwner'), danger: true };
+        return {
+          title: t('removeOwner'),
+          body: t('removeOwnerConfirm', { name }),
+          label: t('removeOwner'),
+          danger: true,
+        };
     }
   };
   const confirm = pending ? confirmText(pending) : null;
@@ -245,7 +309,11 @@ export default function MembersPage() {
                         <td className={tdClass}>
                           <p className="font-medium">
                             {m.displayName}
-                            {self && <span className="ms-2 text-sm font-normal text-muted">({tc('you')})</span>}
+                            {self && (
+                              <span className="ms-2 text-sm font-normal text-muted">
+                                ({tc('you')})
+                              </span>
+                            )}
                           </p>
                           <p className="ltr-text text-sm text-muted">{m.email}</p>
                         </td>
@@ -259,7 +327,9 @@ export default function MembersPage() {
                                 {a.scopeType === 'organization' ? ts('organization') : a.scopeName}
                               </Badge>
                             ))}
-                            {!m.isOwner && m.assignments.length === 0 && <span className="text-sm text-muted">{t('noRoles')}</span>}
+                            {!m.isOwner && m.assignments.length === 0 && (
+                              <span className="text-sm text-muted">{t('noRoles')}</span>
+                            )}
                           </div>
                         </td>
                         <td className={tdClass}>
@@ -268,11 +338,17 @@ export default function MembersPage() {
                           ) : (
                             <div className="flex flex-col gap-1">
                               <Badge tone="brick">{tc('suspended')}</Badge>
-                              {m.suspendedReason && <span className="text-[0.8125rem] text-muted">{m.suspendedReason}</span>}
+                              {m.suspendedReason && (
+                                <span className="text-[0.8125rem] text-muted">
+                                  {m.suspendedReason}
+                                </span>
+                              )}
                             </div>
                           )}
                         </td>
-                        <td className={`${tdClass} whitespace-nowrap`}>{formatDate(m.joinedAt, locale)}</td>
+                        <td className={`${tdClass} whitespace-nowrap`}>
+                          {formatDate(m.joinedAt, locale)}
+                        </td>
                         {(canManage || canOwnership) && (
                           <td className={`${tdClass} text-end`}>
                             <div className="flex flex-wrap justify-end gap-1">
@@ -282,22 +358,39 @@ export default function MembersPage() {
                                 </Button>
                               )}
                               {canOwnership && m.status === 'active' && !m.isOwner && (
-                                <Button size="sm" variant="ghost" onClick={() => setPending({ kind: 'grantOwner', member: m })}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setPending({ kind: 'grantOwner', member: m })}
+                                >
                                   {t('makeOwner')}
                                 </Button>
                               )}
                               {canOwnership && m.isOwner && (
-                                <Button size="sm" variant="ghost" onClick={() => setPending({ kind: 'revokeOwner', member: m })}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setPending({ kind: 'revokeOwner', member: m })}
+                                >
                                   {t('removeOwner')}
                                 </Button>
                               )}
                               {canManage && !self && m.status === 'active' && (
-                                <Button size="sm" variant="ghost" className="text-brick" onClick={() => setPending({ kind: 'suspend', member: m })}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-brick"
+                                  onClick={() => setPending({ kind: 'suspend', member: m })}
+                                >
                                   {t('suspend')}
                                 </Button>
                               )}
                               {canManage && m.status === 'suspended' && (
-                                <Button size="sm" variant="ghost" onClick={() => setPending({ kind: 'reactivate', member: m })}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setPending({ kind: 'reactivate', member: m })}
+                                >
                                   {t('reactivate')}
                                 </Button>
                               )}
@@ -321,7 +414,10 @@ export default function MembersPage() {
           ) : (
             <ul className="divide-y divide-line">
               {invitations.data.map((inv) => (
-                <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                <li
+                  key={inv.id}
+                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                >
                   <div>
                     <p className="ltr-text font-medium">{inv.email}</p>
                     <p className="text-sm text-muted">
@@ -333,7 +429,12 @@ export default function MembersPage() {
                   <div className="flex items-center gap-2">
                     {inv.makeOwner && <Badge tone="turf">{t('owner')}</Badge>}
                     {can('members.invite') && (
-                      <Button size="sm" variant="ghost" onClick={() => revoke.mutate(inv.id)} disabled={revoke.isPending}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => revoke.mutate(inv.id)}
+                        disabled={revoke.isPending}
+                      >
                         {t('revoke')}
                       </Button>
                     )}
@@ -364,7 +465,12 @@ export default function MembersPage() {
           }}
         >
           {pending.kind === 'suspend' && (
-            <TextField label={t('suspendReason')} optional value={reason} onChange={(e) => setReason(e.target.value)} />
+            <TextField
+              label={t('suspendReason')}
+              optional
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
           )}
         </ConfirmDialog>
       )}

@@ -60,7 +60,10 @@ export class PlatformController {
 
   @Get('organizations/:id/members')
   async listMembers(@Ctx() ctx: AuthContext, @Param('id', UuidPipe) id: string) {
-    const [org] = await this.db.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, id));
+    const [org] = await this.db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.id, id));
     if (!org) throw Errors.notFound('Organization');
     await this.audit.log({
       organizationId: id,
@@ -81,7 +84,10 @@ export class PlatformController {
     @Param('id', UuidPipe) id: string,
     @ZodQuery(auditLogQuerySchema) q: z.infer<typeof auditLogQuerySchema>,
   ) {
-    const [org] = await this.db.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, id));
+    const [org] = await this.db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.id, id));
     if (!org) throw Errors.notFound('Organization');
     await this.audit.log({
       organizationId: id,
@@ -96,4 +102,3 @@ export class PlatformController {
     return this.audit.list(id, q);
   }
 }
-

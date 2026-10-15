@@ -26,10 +26,16 @@ try {
       .innerJoin(users, eq(users.id, platformAdmins.userId));
     console.table(rows);
   } else if ((command === 'grant' || command === 'revoke') && email) {
-    const [user] = await db.select().from(users).where(sql`lower(${users.email}) = ${email.toLowerCase()}`);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email.toLowerCase()}`);
     if (!user) throw new Error(`No user with email ${email}. They must have an account first.`);
     if (command === 'grant') {
-      await db.insert(platformAdmins).values({ userId: user.id, note: 'granted via CLI' }).onConflictDoNothing();
+      await db
+        .insert(platformAdmins)
+        .values({ userId: user.id, note: 'granted via CLI' })
+        .onConflictDoNothing();
     } else {
       await db.delete(platformAdmins).where(eq(platformAdmins.userId, user.id));
     }

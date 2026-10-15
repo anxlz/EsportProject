@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { createTranslator } from 'next-intl';
-import { ERROR_CODES, NOTIFICATION_TYPES, PERMISSION_DOMAINS, PERMISSION_KEYS } from '@esports/shared';
+import {
+  ERROR_CODES,
+  NOTIFICATION_TYPES,
+  PERMISSION_DOMAINS,
+  PERMISSION_KEYS,
+} from '@esports/shared';
 import ar from './ar.json';
 import en from './en.json';
 
@@ -18,8 +23,7 @@ function leaves(tree: Tree, prefix = ''): Map<string, string> {
 
 const enLeaves = leaves(en as Tree);
 const arLeaves = leaves(ar as Tree);
-const placeholders = (s: string) =>
-  [...s.matchAll(/\{(\w+)(?:,|\})/g)].map((m) => m[1]).sort();
+const placeholders = (s: string) => [...s.matchAll(/\{(\w+)(?:,|\})/g)].map((m) => m[1]).sort();
 
 describe('message catalogs', () => {
   test('Arabic and English have exactly the same keys', () => {
@@ -28,12 +32,16 @@ describe('message catalogs', () => {
 
   test('every message uses the same placeholders in both languages', () => {
     for (const [key, enText] of enLeaves) {
-      expect({ key, vars: placeholders(arLeaves.get(key) ?? '') }).toEqual({ key, vars: placeholders(enText) });
+      expect({ key, vars: placeholders(arLeaves.get(key) ?? '') }).toEqual({
+        key,
+        vars: placeholders(enText),
+      });
     }
   });
 
   test('no empty messages', () => {
-    for (const [key, v] of [...enLeaves, ...arLeaves]) expect({ key, empty: v.trim() === '' }).toEqual({ key, empty: false });
+    for (const [key, v] of [...enLeaves, ...arLeaves])
+      expect({ key, empty: v.trim() === '' }).toEqual({ key, empty: false });
   });
 
   test('every API error code, permission, domain and notification type has a translation', () => {
@@ -46,10 +54,20 @@ describe('message catalogs', () => {
 
 describe('keys resolve through next-intl (dots in keys are nesting, not literal)', () => {
   const auditActions = [
-    'organization.created', 'role.created', 'role.updated', 'member.suspended', 'member.ownership_granted',
-    'invitation.accepted', 'team.exported', 'auth.login_failed', 'platform.members_viewed',
+    'organization.created',
+    'role.created',
+    'role.updated',
+    'member.suspended',
+    'member.ownership_granted',
+    'invitation.accepted',
+    'team.exported',
+    'auth.login_failed',
+    'platform.members_viewed',
   ];
-  for (const [locale, messages] of [['en', en], ['ar', ar]] as const) {
+  for (const [locale, messages] of [
+    ['en', en],
+    ['ar', ar],
+  ] as const) {
     test(`${locale}: every label renders as text, never as its own key`, () => {
       const t = createTranslator({ locale, messages: messages as never });
       const resolved = (key: string, values?: Record<string, string>) => {
@@ -58,7 +76,8 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
       };
       for (const key of PERMISSION_KEYS) resolved(`permissions.${key}`);
       for (const code of ERROR_CODES) resolved(`errors.${code}`);
-      for (const n of NOTIFICATION_TYPES) resolved(`notifications.types.${n}`, { memberName: 'X', byName: 'Y' });
+      for (const n of NOTIFICATION_TYPES)
+        resolved(`notifications.types.${n}`, { memberName: 'X', byName: 'Y' });
       for (const a of auditActions) resolved(`audit.actions.${a}`);
     });
   }

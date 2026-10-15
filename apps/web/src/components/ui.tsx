@@ -103,7 +103,12 @@ export function TextField({
   optional,
   className,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string | null; optional?: boolean }) {
+}: InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+  hint?: string;
+  error?: string | null;
+  optional?: boolean;
+}) {
   const id = useId();
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} optional={optional}>
@@ -123,7 +128,11 @@ export function TextArea({
   hint,
   optional,
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; hint?: string; optional?: boolean }) {
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label: string;
+  hint?: string;
+  optional?: boolean;
+}) {
   const id = useId();
   return (
     <FieldShell id={id} label={label} hint={hint} optional={optional}>
@@ -162,7 +171,12 @@ export function Checkbox({
   const id = useId();
   return (
     <div className="flex items-start gap-3">
-      <input id={id} type="checkbox" {...props} className="mt-1 size-4 shrink-0 accent-[var(--turf)]" />
+      <input
+        id={id}
+        type="checkbox"
+        {...props}
+        className="mt-1 size-4 shrink-0 accent-[var(--turf)]"
+      />
       <label htmlFor={id} className="flex flex-col">
         <span className="text-ink">{label}</span>
         {hint && <span className="text-[0.8125rem] text-muted">{hint}</span>}
@@ -190,7 +204,10 @@ export function ErrorBanner({ error }: { error: unknown }) {
   const text = useErrorText();
   if (!error) return null;
   return (
-    <div role="alert" className="rounded-md border border-brick/30 bg-brick-soft px-4 py-3 text-sm text-ink">
+    <div
+      role="alert"
+      className="rounded-md border border-brick/30 bg-brick-soft px-4 py-3 text-sm text-ink"
+    >
       {text(error)}
     </div>
   );
@@ -200,7 +217,15 @@ export function ErrorBanner({ error }: { error: unknown }) {
 // Layout pieces
 // ------------------------------------------------------------------------------------------
 
-export function PageHeader({ title, lead, actions }: { title: string; lead?: string; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  lead,
+  actions,
+}: {
+  title: string;
+  lead?: string;
+  actions?: ReactNode;
+}) {
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
@@ -212,7 +237,17 @@ export function PageHeader({ title, lead, actions }: { title: string; lead?: str
   );
 }
 
-export function Section({ title, lead, actions, children }: { title: string; lead?: string; actions?: ReactNode; children: ReactNode }) {
+export function Section({
+  title,
+  lead,
+  actions,
+  children,
+}: {
+  title: string;
+  lead?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <section className="min-w-0 rounded-lg border border-line bg-panel">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
@@ -227,7 +262,15 @@ export function Section({ title, lead, actions, children }: { title: string; lea
   );
 }
 
-export function EmptyState({ title, lead, action }: { title: string; lead?: string; action?: ReactNode }) {
+export function EmptyState({
+  title,
+  lead,
+  action,
+}: {
+  title: string;
+  lead?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-start gap-2 px-5 py-10">
       <p className="font-medium text-ink">{title}</p>
@@ -237,7 +280,13 @@ export function EmptyState({ title, lead, action }: { title: string; lead?: stri
   );
 }
 
-export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'turf' | 'amber' | 'brick'; children: ReactNode }) {
+export function Badge({
+  tone = 'neutral',
+  children,
+}: {
+  tone?: 'neutral' | 'turf' | 'amber' | 'brick';
+  children: ReactNode;
+}) {
   const tones = {
     neutral: 'bg-panel-2 text-muted border-line',
     turf: 'bg-turf-soft text-turf border-transparent',
@@ -245,7 +294,12 @@ export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'turf
     brick: 'bg-brick-soft text-brick border-transparent',
   } as const;
   return (
-    <span className={cx('inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium', tones[tone])}>
+    <span
+      className={cx(
+        'inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium',
+        tones[tone],
+      )}
+    >
       {children}
     </span>
   );
@@ -261,7 +315,8 @@ export function Spinner({ label }: { label?: string }) {
 }
 
 export const tableClass = 'w-full border-collapse text-start text-[0.9375rem]';
-export const thClass = 'border-b border-line bg-panel-2 px-5 py-2.5 text-start text-[0.8125rem] font-medium text-muted';
+export const thClass =
+  'border-b border-line bg-panel-2 px-5 py-2.5 text-start text-[0.8125rem] font-medium text-muted';
 export const tdClass = 'border-b border-line px-5 py-3 align-top';
 
 // ------------------------------------------------------------------------------------------
@@ -316,7 +371,11 @@ export function Dialog({
             {lead && <p className="mt-1 text-sm text-muted">{lead}</p>}
           </div>
           <div className="overflow-y-auto px-6 py-5">{children}</div>
-          {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line px-6 py-4">{footer}</div>}
+          {footer && (
+            <div className="flex flex-wrap justify-end gap-2 border-t border-line px-6 py-4">
+              {footer}
+            </div>
+          )}
         </div>
       )}
     </dialog>
@@ -386,7 +445,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div aria-live="polite" className="pointer-events-none fixed bottom-4 start-4 z-50 flex flex-col gap-2">
+      <div
+        aria-live="polite"
+        className="pointer-events-none fixed bottom-4 start-4 z-50 flex flex-col gap-2"
+      >
         {items.map((x) => (
           <div key={x.id} className="rounded-md bg-ink px-4 py-2.5 text-sm text-bg shadow-lg">
             {x.message}
@@ -409,7 +471,13 @@ export function CopyField({ label, value }: { label: string; value: string }) {
         {label}
       </label>
       <div className="flex gap-2">
-        <input id={id} readOnly value={value} className={cx(inputClass, 'ltr-text font-normal')} onFocus={(e) => e.target.select()} />
+        <input
+          id={id}
+          readOnly
+          value={value}
+          className={cx(inputClass, 'ltr-text font-normal')}
+          onFocus={(e) => e.target.select()}
+        />
         <Button
           onClick={async () => {
             await navigator.clipboard.writeText(value);

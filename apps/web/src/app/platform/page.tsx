@@ -4,7 +4,17 @@ import type { MemberDto, PlatformOrganizationDto } from '@esports/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { Badge, Button, ErrorBanner, PageHeader, Section, Spinner, tableClass, tdClass, thClass } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  ErrorBanner,
+  PageHeader,
+  Section,
+  Spinner,
+  tableClass,
+  tdClass,
+  thClass,
+} from '@/components/ui';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useMe } from '@/lib/session';
@@ -19,7 +29,10 @@ function OrgMembers({ org, onBack }: { org: PlatformOrganizationDto; onBack: () 
   });
   return (
     <>
-      <PageHeader title={t('membersOf', { name: org.name })} actions={<Button onClick={onBack}>{t('back')}</Button>} />
+      <PageHeader
+        title={t('membersOf', { name: org.name })}
+        actions={<Button onClick={onBack}>{t('back')}</Button>}
+      />
       <Section title={tm('title')}>
         {members.error && (
           <div className="p-5">
@@ -31,14 +44,19 @@ function OrgMembers({ org, onBack }: { org: PlatformOrganizationDto; onBack: () 
         ) : (
           <ul className="divide-y divide-line">
             {(members.data ?? []).map((m) => (
-              <li key={m.userId} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+              <li
+                key={m.userId}
+                className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
+              >
                 <div>
                   <p className="font-medium">{m.displayName}</p>
                   <p className="ltr-text text-sm text-muted">{m.email}</p>
                 </div>
                 <div className="flex gap-1.5">
                   {m.isOwner && <Badge tone="turf">{tm('owner')}</Badge>}
-                  <Badge tone={m.status === 'active' ? 'neutral' : 'brick'}>{m.status === 'active' ? tc('active') : tc('suspended')}</Badge>
+                  <Badge tone={m.status === 'active' ? 'neutral' : 'brick'}>
+                    {m.status === 'active' ? tc('active') : tc('suspended')}
+                  </Badge>
                 </div>
               </li>
             ))}
@@ -60,7 +78,8 @@ export default function PlatformPage() {
     enabled: me.isPlatformAdmin,
   });
 
-  if (!me.isPlatformAdmin) return <ErrorBanner error={new ApiError(403, 'forbidden', 'forbidden')} />;
+  if (!me.isPlatformAdmin)
+    return <ErrorBanner error={new ApiError(403, 'forbidden', 'forbidden')} />;
   if (selected) return <OrgMembers org={selected} onBack={() => setSelected(null)} />;
 
   return (
@@ -93,7 +112,9 @@ export default function PlatformPage() {
                       {o.activeMemberCount} / {o.memberCount}
                     </td>
                     <td className={`${tdClass} ltr-text text-sm`}>{o.ownerEmails.join(', ')}</td>
-                    <td className={`${tdClass} whitespace-nowrap`}>{formatDate(o.createdAt, locale)}</td>
+                    <td className={`${tdClass} whitespace-nowrap`}>
+                      {formatDate(o.createdAt, locale)}
+                    </td>
                     <td className={`${tdClass} text-end`}>
                       <Button size="sm" variant="ghost" onClick={() => setSelected(o)}>
                         {t('viewMembers')}

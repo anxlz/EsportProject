@@ -27,7 +27,8 @@ export const Errors = {
   unauthenticated: () => new AppError('unauthenticated', HttpStatus.UNAUTHORIZED),
   forbidden: (message = 'You do not have permission to do this') =>
     new AppError('forbidden', HttpStatus.FORBIDDEN, message),
-  notFound: (what = 'Resource') => new AppError('not_found', HttpStatus.NOT_FOUND, `${what} not found`),
+  notFound: (what = 'Resource') =>
+    new AppError('not_found', HttpStatus.NOT_FOUND, `${what} not found`),
   conflict: (code: ErrorCode, message?: string) => new AppError(code, HttpStatus.CONFLICT, message),
   badRequest: (code: ErrorCode, message?: string) =>
     new AppError(code, HttpStatus.BAD_REQUEST, message),
@@ -42,7 +43,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const res = host.switchToHttp().getResponse<Response>();
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let body: ApiErrorBody = { error: { code: 'internal_error', message: 'Internal server error' } };
+    let body: ApiErrorBody = {
+      error: { code: 'internal_error', message: 'Internal server error' },
+    };
 
     if (exception instanceof AppError) {
       status = exception.getStatus();
@@ -76,5 +79,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 }
 
 function isPgError(e: unknown): e is { code: string } {
-  return typeof e === 'object' && e !== null && 'code' in e && typeof (e as { code: unknown }).code === 'string' && 'severity' in e;
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    'code' in e &&
+    typeof (e as { code: unknown }).code === 'string' &&
+    'severity' in e
+  );
 }

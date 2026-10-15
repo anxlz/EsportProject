@@ -12,7 +12,13 @@ import { cx } from './ui';
  * Switches the interface language. When signed in, the choice is also saved to the profile so it
  * follows the user to other devices.
  */
-export function LanguageSwitcher({ signedIn = false, tone = 'default' }: { signedIn?: boolean; tone?: 'default' | 'onTurf' }) {
+export function LanguageSwitcher({
+  signedIn = false,
+  tone = 'default',
+}: {
+  signedIn?: boolean;
+  tone?: 'default' | 'onTurf';
+}) {
   const locale = useLocale();
   const t = useTranslations('common');
   const router = useRouter();

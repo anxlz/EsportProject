@@ -12,7 +12,10 @@ import { useAction } from '@/lib/mutation';
 export default function NotificationsPage() {
   const t = useTranslations('notifications');
   const locale = useLocale();
-  const list = useQuery({ queryKey: ['notifications', 'list'], queryFn: () => api<NotificationDto[]>('/notifications?limit=100') });
+  const list = useQuery({
+    queryKey: ['notifications', 'list'],
+    queryFn: () => api<NotificationDto[]>('/notifications?limit=100'),
+  });
   const invalidate = [['notifications']];
   const readAll = useAction(() => apiPost('/notifications/read-all'), { invalidate });
   const readOne = useAction((id: string) => apiPost(`/notifications/${id}/read`), { invalidate });
@@ -48,20 +51,32 @@ export default function NotificationsPage() {
         ) : (
           <ul className="divide-y divide-line">
             {list.data.map((n) => (
-              <li key={n.id} className={cx('flex items-start gap-3 px-5 py-3', !n.readAt && 'bg-amber-soft/40')}>
+              <li
+                key={n.id}
+                className={cx('flex items-start gap-3 px-5 py-3', !n.readAt && 'bg-amber-soft/40')}
+              >
                 <span
                   aria-hidden="true"
-                  className={cx('mt-2 size-2 shrink-0 rounded-full', n.readAt ? 'bg-transparent' : 'bg-amber')}
+                  className={cx(
+                    'mt-2 size-2 shrink-0 rounded-full',
+                    n.readAt ? 'bg-transparent' : 'bg-amber',
+                  )}
                 />
                 <div className="min-w-0 flex-1">
                   {n.link ? (
-                    <Link href={n.link} onClick={() => !n.readAt && readOne.mutate(n.id)} className="hover:underline">
+                    <Link
+                      href={n.link}
+                      onClick={() => !n.readAt && readOne.mutate(n.id)}
+                      className="hover:underline"
+                    >
                       {text(n)}
                     </Link>
                   ) : (
                     <p>{text(n)}</p>
                   )}
-                  <p className="text-[0.8125rem] text-muted">{formatDateTime(n.createdAt, locale)}</p>
+                  <p className="text-[0.8125rem] text-muted">
+                    {formatDateTime(n.createdAt, locale)}
+                  </p>
                 </div>
                 {!n.readAt && (
                   <Button size="sm" variant="ghost" onClick={() => readOne.mutate(n.id)}>

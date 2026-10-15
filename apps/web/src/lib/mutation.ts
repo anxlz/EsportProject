@@ -9,7 +9,11 @@ import { useToast } from '@/components/ui';
  */
 export function useAction<TVars, TResult = unknown>(
   fn: (vars: TVars) => Promise<TResult>,
-  opts: { invalidate: string[][]; success?: string | ((r: TResult) => string); onSuccess?: (r: TResult) => void },
+  opts: {
+    invalidate: string[][];
+    success?: string | ((r: TResult) => string);
+    onSuccess?: (r: TResult) => void;
+  },
 ) {
   const qc = useQueryClient();
   const toast = useToast();
@@ -17,7 +21,8 @@ export function useAction<TVars, TResult = unknown>(
     mutationFn: fn,
     onSuccess: async (result) => {
       await Promise.all(opts.invalidate.map((queryKey) => qc.invalidateQueries({ queryKey })));
-      if (opts.success) toast(typeof opts.success === 'function' ? opts.success(result) : opts.success);
+      if (opts.success)
+        toast(typeof opts.success === 'function' ? opts.success(result) : opts.success);
       opts.onSuccess?.(result);
     },
   });

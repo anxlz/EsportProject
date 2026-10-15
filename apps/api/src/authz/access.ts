@@ -11,7 +11,8 @@
  */
 import { PERMISSIONS, type PermissionKey, type ScopeGrant } from '@esports/shared';
 
-export type Scope = { all: true } | { all: false; departmentIds: Set<string>; teamIds: Set<string> };
+export type Scope =
+  { all: true } | { all: false; departmentIds: Set<string>; teamIds: Set<string> };
 
 export interface TeamRef {
   id: string;
@@ -43,7 +44,10 @@ export class Access {
     const s = this.grants.get(perm);
     if (!s) return false;
     if (s.all) return true;
-    return s.teamIds.has(team.id) || (team.departmentId !== null && s.departmentIds.has(team.departmentId));
+    return (
+      s.teamIds.has(team.id) ||
+      (team.departmentId !== null && s.departmentIds.has(team.departmentId))
+    );
   }
 
   /**
@@ -80,7 +84,11 @@ export class Access {
         key,
         scope.all
           ? { all: true }
-          : { all: false, departmentIds: new Set(scope.departmentIds), teamIds: new Set(scope.teamIds) },
+          : {
+              all: false,
+              departmentIds: new Set(scope.departmentIds),
+              teamIds: new Set(scope.teamIds),
+            },
       );
     }
     return new Access(organizationId, userId, grants, isOwner);
@@ -97,7 +105,10 @@ export interface AssignmentRow {
 }
 
 /** Pure function: fold assignments into grants. Unit-tested directly. */
-export function buildGrants(rows: AssignmentRow[]): { grants: Map<PermissionKey, Scope>; isOwner: boolean } {
+export function buildGrants(rows: AssignmentRow[]): {
+  grants: Map<PermissionKey, Scope>;
+  isOwner: boolean;
+} {
   const grants = new Map<PermissionKey, Scope>();
   let isOwner = false;
 
@@ -123,7 +134,8 @@ export function buildGrants(rows: AssignmentRow[]): { grants: Map<PermissionKey,
         existing && !existing.all
           ? existing
           : { all: false, departmentIds: new Set<string>(), teamIds: new Set<string>() };
-      if (row.scopeType === 'department' && row.departmentId) scope.departmentIds.add(row.departmentId);
+      if (row.scopeType === 'department' && row.departmentId)
+        scope.departmentIds.add(row.departmentId);
       if (row.scopeType === 'team' && row.teamId) scope.teamIds.add(row.teamId);
       grants.set(key, scope);
     }

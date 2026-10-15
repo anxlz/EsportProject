@@ -37,7 +37,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<unknown>(null);
 
   const invalid = invalidFields(registerOrganizationSchema, values);
-  const err = (field: string, message: string) => (showErrors && invalid.has(field) ? message : null);
+  const err = (field: string, message: string) =>
+    showErrors && invalid.has(field) ? message : null;
   const set = (k: keyof typeof values) => (e: { target: { value: string } }) =>
     setValues((v) => {
       const next = { ...v, [k]: e.target.value };
@@ -65,7 +66,12 @@ export default function RegisterPage() {
       <p className="mt-1.5 mb-7 text-muted">{t('registerLead')}</p>
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <ErrorBanner error={error} />
-        <TextField label={t('organizationName')} value={values.organizationName} onChange={set('organizationName')} error={err('organizationName', tc('required'))} />
+        <TextField
+          label={t('organizationName')}
+          value={values.organizationName}
+          onChange={set('organizationName')}
+          error={err('organizationName', tc('required'))}
+        />
         <TextField
           label={t('organizationSlug')}
           hint={t('organizationSlugHint')}
@@ -77,12 +83,30 @@ export default function RegisterPage() {
           className="ltr-text"
           error={err('organizationSlug', t('organizationSlugHint'))}
         />
-        <SelectField label={t('defaultLocale')} value={values.defaultLocale} onChange={set('defaultLocale')}>
+        <SelectField
+          label={t('defaultLocale')}
+          value={values.defaultLocale}
+          onChange={set('defaultLocale')}
+        >
           <option value="ar">{tc('arabic')}</option>
           <option value="en">{tc('english')}</option>
         </SelectField>
-        <TextField label={t('displayName')} autoComplete="name" value={values.displayName} onChange={set('displayName')} error={err('displayName', tc('required'))} />
-        <TextField label={t('email')} type="email" autoComplete="email" value={values.email} onChange={set('email')} className="ltr-text" error={err('email', tc('invalidEmail'))} />
+        <TextField
+          label={t('displayName')}
+          autoComplete="name"
+          value={values.displayName}
+          onChange={set('displayName')}
+          error={err('displayName', tc('required'))}
+        />
+        <TextField
+          label={t('email')}
+          type="email"
+          autoComplete="email"
+          value={values.email}
+          onChange={set('email')}
+          className="ltr-text"
+          error={err('email', tc('invalidEmail'))}
+        />
         <TextField
           label={t('password')}
           type="password"

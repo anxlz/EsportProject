@@ -1,4 +1,15 @@
-import { Controller, Delete, Get, HttpCode, Inject, Patch, Post, Query, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
   type AuthConfigDto,

@@ -52,7 +52,9 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <span className="font-semibold text-ink lg:invisible">{t('name')}</span>
           <LanguageSwitcher />
         </div>
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">{children}</div>
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+          {children}
+        </div>
       </main>
       <aside className="relative hidden overflow-hidden bg-[#0f5c4a] text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="relative z-10 max-w-sm">

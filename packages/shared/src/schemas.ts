@@ -11,11 +11,7 @@ export const localeSchema = z.enum(LOCALES);
 
 const trimmed = (min: number, max: number) => z.string().trim().min(min).max(max);
 
-export const emailSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .pipe(z.email().max(254));
+export const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 
 /** NIST 800-63B style: length over composition rules. */
 export const passwordSchema = z.string().min(10).max(128);
@@ -81,10 +77,7 @@ export const roleAssignmentInputSchema = z
     /** Department or team id. Must be null/absent when scopeType is 'organization'. */
     scopeId: uuidSchema.nullable().optional(),
   })
-  .refine(
-    (a) => (a.scopeType === 'organization' ? !a.scopeId : !!a.scopeId),
-    'scope_id_mismatch',
-  );
+  .refine((a) => (a.scopeType === 'organization' ? !a.scopeId : !!a.scopeId), 'scope_id_mismatch');
 export type RoleAssignmentInput = z.infer<typeof roleAssignmentInputSchema>;
 
 export const setAssignmentsSchema = z.object({
