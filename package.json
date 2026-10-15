@@ -1,0 +1,21 @@
+{
+  "name": "esports-platform",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "bun run --cwd apps/api dev",
+    "dev:web": "bun run --cwd apps/web dev",
+    "db:migrate": "bun run --cwd apps/api db:migrate",
+    "db:generate": "bun run --cwd apps/api db:generate",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "docs:permissions": "bun run --cwd apps/api docs:permissions"
+  }
+}

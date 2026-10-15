@@ -1,0 +1,3 @@
+[test]
+# Integration tests share one Postgres + Redis; run files one at a time.
+timeout = 30000

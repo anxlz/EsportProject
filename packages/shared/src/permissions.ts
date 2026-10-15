@@ -1,0 +1,195 @@
+/**
+ * Permission catalog — the single source of truth for every permission key in the platform.
+ *
+ * Rules (see DECISIONS.md "Authorization model"):
+ * - Backend code checks permission KEYS, never role names.
+ * - `scopable: true` means a role assignment's team/department scope narrows which records the
+ *   permission covers. `scopable: false` permissions are organization-level: they apply as-is
+ *   whenever the role is assigned, regardless of the assignment's scope.
+ * - `ownerOnly: true` permissions can never be granted to a custom role. Only roles flagged
+ *   `grantsAll` (the locked Owner system role) hold them. This prevents privilege escalation,
+ *   e.g. a non-owner who can edit roles granting themselves everything.
+ *
+ * The catalog grows phase by phase: a key is only added once the resource it protects exists,
+ * so the role editor never shows toggles that do nothing.
+ */
+
+export const PERMISSION_DOMAINS = [
+  'organization',
+  'members',
+  'roles',
+  'departments',
+  'teams',
+  'games',
+  'audit',
+] as const;
+
+export type PermissionDomain = (typeof PERMISSION_DOMAINS)[number];
+
+export interface PermissionDefinition {
+  domain: PermissionDomain;
+  scopable: boolean;
+  ownerOnly: boolean;
+}
+
+const def = (
+  domain: PermissionDomain,
+  opts: { scopable?: boolean; ownerOnly?: boolean } = {},
+): PermissionDefinition => ({
+  domain,
+  scopable: opts.scopable ?? false,
+  ownerOnly: opts.ownerOnly ?? false,
+});
+
+export const PERMISSIONS = {
+  // Organization settings
+  'org.settings.view': def('organization'),
+  'org.settings.edit': def('organization'),
+  /** Approval stamp, legal and tax information (fields arrive in Phase 3). */
+  'org.settings.edit_sensitive': def('organization', { ownerOnly: true }),
+  /** Designate or remove Owners. */
+  'org.ownership.manage': def('organization', { ownerOnly: true }),
+
+  // Members
+  'members.view': def('members'),
+  'members.invite': def('members', { ownerOnly: true }),
+  /** Change a member's role assignments, suspend and reactivate members. */
+  'members.manage': def('members', { ownerOnly: true }),
+
+  // Roles
+  'roles.view': def('roles'),
+  'roles.manage': def('roles', { ownerOnly: true }),
+
+  // Departments (organization structure, not scopable)
+  'departments.view': def('departments'),
+  'departments.create': def('departments'),
+  'departments.edit': def('departments'),
+  'departments.delete': def('departments'),
+
+  // Teams (scopable by team or department)
+  'teams.view': def('teams', { scopable: true }),
+  'teams.create': def('teams', { scopable: true }),
+  'teams.edit': def('teams', { scopable: true }),
+  'teams.delete': def('teams', { scopable: true }),
+  'teams.export': def('teams', { scopable: true }),
+
+  // Games (configurable entity)
+  'games.view': def('games'),
+  'games.manage': def('games'),
+
+  // Audit log
+  'audit.view': def('audit'),
+} as const satisfies Record<string, PermissionDefinition>;
+
+export type PermissionKey = keyof typeof PERMISSIONS;
+
+export const PERMISSION_KEYS = Object.keys(PERMISSIONS) as PermissionKey[];
+
+export function isPermissionKey(value: string): value is PermissionKey {
+  return Object.prototype.hasOwnProperty.call(PERMISSIONS, value);
+}
+
+export function getPermission(key: PermissionKey): PermissionDefinition {
+  return PERMISSIONS[key];
+}
+
+/** Permissions that may appear on a custom (non-Owner) role. */
+export const GRANTABLE_PERMISSION_KEYS = PERMISSION_KEYS.filter((k) => !PERMISSIONS[k].ownerOnly);
+
+export type ScopeType = 'organization' | 'department' | 'team';
+
+/**
+ * Default role templates seeded into every new organization. Names are data (editable); the
+ * `templateKey` only records where a role came from. Nothing in the backend branches on it.
+ */
+export interface DefaultRoleTemplate {
+  templateKey: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  grantsAll: boolean;
+  permissions: PermissionKey[];
+}
+
+export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
+  {
+    templateKey: 'owner',
+    nameEn: 'Owner',
+    nameAr: 'المالك',
+    descriptionEn: 'Full control of the organization. Cannot be edited or deleted.',
+    descriptionAr: 'تحكم كامل في المنظمة. لا يمكن تعديله أو حذفه.',
+    grantsAll: true,
+    permissions: [],
+  },
+  {
+    templateKey: 'head_of_esports',
+    nameEn: 'Head of Esports',
+    nameAr: 'رئيس الرياضات الإلكترونية',
+    descriptionEn: 'Oversees all esports departments, teams and games.',
+    descriptionAr: 'يشرف على جميع أقسام وفرق وألعاب الرياضات الإلكترونية.',
+    grantsAll: false,
+    permissions: [
+      'org.settings.view',
+      'members.view',
+      'roles.view',
+      'departments.view',
+      'departments.create',
+      'departments.edit',
+      'departments.delete',
+      'teams.view',
+      'teams.create',
+      'teams.edit',
+      'teams.delete',
+      'teams.export',
+      'games.view',
+      'games.manage',
+      'audit.view',
+    ],
+  },
+  {
+    templateKey: 'esports_manager',
+    nameEn: 'Esports Manager',
+    nameAr: 'مدير الرياضات الإلكترونية',
+    descriptionEn: 'Manages the teams assigned to them.',
+    descriptionAr: 'يدير الفرق المسندة إليه.',
+    grantsAll: false,
+    permissions: [
+      'members.view',
+      'departments.view',
+      'teams.view',
+      'teams.edit',
+      'teams.export',
+      'games.view',
+    ],
+  },
+  {
+    templateKey: 'esports_operations',
+    nameEn: 'Esports Operations',
+    nameAr: 'عمليات الرياضات الإلكترونية',
+    descriptionEn: 'Day-to-day operational view of teams.',
+    descriptionAr: 'عرض تشغيلي يومي للفرق.',
+    grantsAll: false,
+    permissions: ['departments.view', 'teams.view', 'games.view'],
+  },
+];
+
+/** Games seeded into every new organization. Fully editable afterwards. */
+export const DEFAULT_GAMES: { name: string; shortName: string }[] = [
+  { name: 'VALORANT', shortName: 'VAL' },
+  { name: 'Counter-Strike 2', shortName: 'CS2' },
+  { name: 'League of Legends', shortName: 'LoL' },
+  { name: 'Dota 2', shortName: 'Dota 2' },
+  { name: 'Rocket League', shortName: 'RL' },
+  { name: 'EA SPORTS FC', shortName: 'FC' },
+  { name: 'PUBG Mobile', shortName: 'PUBGM' },
+  { name: 'Fortnite', shortName: 'FN' },
+  { name: 'Call of Duty', shortName: 'CoD' },
+  { name: 'Overwatch 2', shortName: 'OW2' },
+  { name: 'Apex Legends', shortName: 'Apex' },
+  { name: 'Rainbow Six Siege', shortName: 'R6' },
+  { name: 'Street Fighter 6', shortName: 'SF6' },
+  { name: 'Tekken 8', shortName: 'T8' },
+  { name: 'Free Fire', shortName: 'FF' },
+  { name: 'Mobile Legends: Bang Bang', shortName: 'MLBB' },
+];
