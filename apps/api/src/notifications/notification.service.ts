@@ -51,7 +51,7 @@ export class NotificationService {
   async notifyPermissionHolders(
     input: Omit<NotifyInput, 'recipientUserIds'> & {
       permission: PermissionKey;
-      team?: TeamRef;
+      team?: TeamRef | 'organization';
       excludeUserIds?: string[];
     },
   ): Promise<number> {

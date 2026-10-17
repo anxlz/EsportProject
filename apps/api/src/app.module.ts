@@ -14,6 +14,7 @@ import { RateLimitGuard, RateLimitService } from './common/rate-limit';
 import type { Env } from './config/env';
 import { CoreModule } from './core/core.module';
 import { DepartmentsController } from './departments/departments.controller';
+import { FinanceModule } from './finance/finance.module';
 import { GamesController } from './games/games.controller';
 import { HealthController } from './health.controller';
 import { MailService } from './mail/mail.service';
@@ -107,6 +108,7 @@ export class AppModule {
         OrganizationStructureModule,
         ActivityModule,
         PlatformModule,
+        FinanceModule,
       ],
       providers: [
         // Guard order matters: CSRF origin check → rate limit → session/permission enforcement.

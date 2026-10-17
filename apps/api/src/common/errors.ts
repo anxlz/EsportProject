@@ -35,6 +35,7 @@ export const Errors = {
 };
 
 const PG_UNIQUE_VIOLATION = '23505';
+const PG_FK_VIOLATION = '23503';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -46,6 +47,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let body: ApiErrorBody = {
       error: { code: 'internal_error', message: 'Internal server error' },
     };
+    // Drizzle wraps driver errors; the Postgres error (with its SQLSTATE) is on `cause`.
+    const pg = isPgError(exception)
+      ? exception
+      : isPgError((exception as { cause?: unknown } | null)?.cause)
+        ? (exception as { cause: { code: string; detail?: string } }).cause
+        : null;
 
     if (exception instanceof AppError) {
       status = exception.getStatus();
@@ -67,10 +74,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
                   ? 'validation_failed'
                   : 'internal_error';
       body = { error: { code, message: exception.message } };
-    } else if (isPgError(exception) && exception.code === PG_UNIQUE_VIOLATION) {
+    } else if (pg?.code === PG_UNIQUE_VIOLATION) {
       // Safety net: services pre-check uniqueness, but a race can still hit the constraint.
       status = HttpStatus.CONFLICT;
       body = { error: { code: 'conflict', message: 'Already exists' } };
+    } else if (pg?.code === PG_FK_VIOLATION) {
+      const detail = String((pg as { detail?: unknown }).detail ?? '');
+      if (detail.includes('still referenced')) {
+        // A record still referenced elsewhere (e.g. a team with expenses) cannot be deleted.
+        status = HttpStatus.CONFLICT;
+        body = { error: { code: 'in_use', message: 'This record is still in use' } };
+      } else {
+        // Services validate references first; reaching this means a bad id slipped through.
+        status = HttpStatus.BAD_REQUEST;
+        body = { error: { code: 'validation_failed', message: 'Unknown related record' } };
+      }
     } else {
       this.logger.error(exception instanceof Error ? exception.stack : String(exception));
     }

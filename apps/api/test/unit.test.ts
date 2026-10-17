@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+import { Logger } from '@nestjs/common';
 import { Access, buildGrants } from '../src/authz/access';
 import { toCsv } from '../src/common/csv';
+import { GlobalExceptionFilter } from '../src/common/errors';
 import { loadEnv } from '../src/config/env';
 
 describe('buildGrants (pure authorization logic)', () => {
@@ -140,6 +142,48 @@ describe('CSV export', () => {
     expect(csv).toContain(`"'=HYPERLINK(""x"")"`);
     expect(csv).toContain('"he said ""hi"", ok"');
     expect(csv).toContain('فريق,');
+  });
+});
+
+describe('CSV numbers', () => {
+  test('negative amounts stay numbers; formula-like text is still neutralised', () => {
+    const csv = toCsv(['v'], [['-500.00'], ['-1+2'], ['-']]);
+    expect(csv).toContain('\r\n-500.00\r\n');
+    expect(csv).toContain("'-1+2");
+    expect(csv).toContain("'-\r\n");
+  });
+});
+
+describe('database error mapping', () => {
+  // Drizzle wraps the driver error and keeps the Postgres error (with its SQLSTATE) on `cause`.
+  const wrapped = (code: string, detail = '') =>
+    Object.assign(new Error('Failed query: insert …'), {
+      cause: Object.assign(new Error('pg error'), { code, detail, severity: 'ERROR' }),
+    });
+  function run(err: unknown) {
+    let status = 0;
+    let body: { error: { code: string } } | null = null;
+    const res = { status: (s: number) => ((status = s), { json: (b: typeof body) => (body = b) }) };
+    const host = { switchToHttp: () => ({ getResponse: () => res }) };
+    new GlobalExceptionFilter().catch(err, host as never);
+    return { status, code: body!.error.code };
+  }
+
+  test('a wrapped unique violation is a 409 conflict', () => {
+    expect(run(wrapped('23505'))).toEqual({ status: 409, code: 'conflict' });
+  });
+  test('deleting a referenced record is 409 in_use; a bad reference is 400', () => {
+    expect(
+      run(wrapped('23503', 'Key (id)=(…) is still referenced from table "finance_entries".')),
+    ).toEqual({ status: 409, code: 'in_use' });
+    expect(run(wrapped('23503', 'Key (team_id)=(…) is not present in table "teams".'))).toEqual({
+      status: 400,
+      code: 'validation_failed',
+    });
+  });
+  test('anything else is a 500 without details', () => {
+    Logger.overrideLogger(false); // the filter logs the stack; keep test output clean
+    expect(run(new Error('boom'))).toEqual({ status: 500, code: 'internal_error' });
   });
 });
 

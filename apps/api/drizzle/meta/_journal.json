@@ -15,6 +15,20 @@
       "when": 1792095821319,
       "tag": "0001_security_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792100384430,
+      "tag": "0002_finance",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792100393284,
+      "tag": "0003_finance_hardening",
+      "breakpoints": true
     }
   ]
 }

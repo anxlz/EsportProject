@@ -33,6 +33,13 @@ export const ERROR_CODES = [
   'discord_not_linked',
   'discord_already_linked',
   'oauth_state_invalid',
+  'fx_rate_required',
+  'base_currency_locked',
+  'currency_not_enabled',
+  'roster_member_mismatch',
+  'season_overlap',
+  'in_use',
+  'export_failed',
   'internal_error',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -168,6 +175,7 @@ export const NOTIFICATION_TYPES = [
   'member.ownership_granted',
   'member.ownership_revoked',
   'member.reactivated',
+  'budget.exceeded',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

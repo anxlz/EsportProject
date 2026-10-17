@@ -23,6 +23,13 @@ COPY apps/api/tsconfig.json ./apps/api/tsconfig.json
 COPY apps/api/src ./apps/api/src
 COPY apps/api/drizzle ./apps/api/drizzle
 
+# 3. Chromium for PDF report exports (fonts are embedded by the app, so none are installed).
+USER root
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends chromium \
+  && rm -rf /var/lib/apt/lists/*
+ENV CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Bun reads tsconfig.json from the working directory; the API's tsconfig enables the legacy
 # decorators (+ metadata) NestJS needs, so the process MUST start from apps/api.
 WORKDIR /app/apps/api

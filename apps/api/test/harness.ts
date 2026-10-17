@@ -14,6 +14,8 @@ import { DISCORD_CLIENT, type DiscordOAuthClient } from '../src/auth/discord.cli
 import { configureApp } from '../src/bootstrap';
 import { loadEnv } from '../src/config/env';
 import { createDb, type DbHandle } from '../src/db/client';
+import { CLOCK, type Clock } from '../src/finance/clock';
+import { FX_PROVIDER, type FxRateProvider } from '../src/finance/fx.provider';
 import { runMigrations } from '../src/db/migrate';
 import { devOutbox } from '../src/db/schema';
 
@@ -32,6 +34,8 @@ const BASE_ENV: Record<string, string> = {
   COOKIE_SECURE: 'false',
   MAIL_TRANSPORT: 'outbox',
   ENABLE_API_DOCS: 'false',
+  // Tests never call the real exchange-rate service; individual tests inject a fake provider.
+  FX_PROVIDER: 'none',
 };
 
 let migrated = false;
@@ -47,15 +51,27 @@ export interface TestApp {
 }
 
 export async function startApp(
-  opts: { env?: Record<string, string>; discord?: DiscordOAuthClient } = {},
+  opts: {
+    env?: Record<string, string>;
+    discord?: DiscordOAuthClient;
+    fx?: FxRateProvider;
+    clock?: Clock;
+  } = {},
 ): Promise<TestApp> {
   if (!migrated) {
     await runMigrations(TEST_DATABASE_URL);
     migrated = true;
   }
-  const env = loadEnv({ ...BASE_ENV, ...opts.env });
+  const chromium = process.env.CHROMIUM_EXECUTABLE_PATH;
+  const env = loadEnv({
+    ...BASE_ENV,
+    ...(chromium ? { CHROMIUM_EXECUTABLE_PATH: chromium } : {}),
+    ...opts.env,
+  });
   let builder = Test.createTestingModule({ imports: [AppModule.forRoot(env)] });
   if (opts.discord) builder = builder.overrideProvider(DISCORD_CLIENT).useValue(opts.discord);
+  if (opts.fx) builder = builder.overrideProvider(FX_PROVIDER).useValue(opts.fx);
+  if (opts.clock) builder = builder.overrideProvider(CLOCK).useValue(opts.clock);
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({ logger: false });
   configureApp(app, env);

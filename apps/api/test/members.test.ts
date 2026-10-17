@@ -55,7 +55,10 @@ describe('invitations', () => {
     expect(acc.body.permissions.map((p) => p.key).sort()).toEqual([
       'departments.view',
       'games.view',
+      // Phase 2: operations staff can see rosters and the tournament calendar (no pay data).
+      'rosters.view',
       'teams.view',
+      'tournaments.view',
     ]);
 
     // Single use.

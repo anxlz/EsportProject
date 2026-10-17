@@ -51,6 +51,15 @@ const envSchema = z
     SMTP_SECURE: z.enum(['true', 'false']).optional(),
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
+
+    /**
+     * Exchange-rate provider. "frankfurter" (free, no key, historical rates, 200+ currencies incl.
+     * SAR) or "none" (every non-reporting-currency transaction needs a manually typed rate).
+     */
+    FX_PROVIDER: z.enum(['frankfurter', 'none']).default('frankfurter'),
+    FX_PROVIDER_URL: z.url().default('https://api.frankfurter.dev'),
+    /** Chromium for PDF exports. Unset: the bundled @sparticuz/chromium build is used. */
+    CHROMIUM_EXECUTABLE_PATH: z.string().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.MAIL_TRANSPORT === 'outbox') {

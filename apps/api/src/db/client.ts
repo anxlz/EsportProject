@@ -1,6 +1,9 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from './schema';
+import * as coreSchema from './schema';
+import * as financeSchema from './schema-finance';
+
+const schema = { ...coreSchema, ...financeSchema };
 
 export type Database = PostgresJsDatabase<typeof schema>;
 /** Either the root database handle or an open transaction. */

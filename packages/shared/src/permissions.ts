@@ -21,6 +21,9 @@ export const PERMISSION_DOMAINS = [
   'departments',
   'teams',
   'games',
+  'rosters',
+  'tournaments',
+  'finance',
   'audit',
 ] as const;
 
@@ -76,6 +79,32 @@ export const PERMISSIONS = {
   // Games (configurable entity)
   'games.view': def('games'),
   'games.manage': def('games'),
+
+  // Rosters — players, coaches and staff on a team (scopable). Pay terms are additionally gated
+  // by finance.view on the same team.
+  'rosters.view': def('rosters', { scopable: true }),
+  'rosters.create': def('rosters', { scopable: true }),
+  'rosters.edit': def('rosters', { scopable: true }),
+  'rosters.delete': def('rosters', { scopable: true }),
+  'rosters.export': def('rosters', { scopable: true }),
+
+  // Tournament research (manual entry, organization-level)
+  'tournaments.view': def('tournaments'),
+  'tournaments.create': def('tournaments'),
+  'tournaments.edit': def('tournaments'),
+  'tournaments.delete': def('tournaments'),
+
+  // Finance — expenses, revenue, reports (scopable by team; organization-wide records and
+  // organization/tournament/season reports need an organization-wide grant).
+  'finance.view': def('finance', { scopable: true }),
+  'finance.create': def('finance', { scopable: true }),
+  'finance.edit': def('finance', { scopable: true }),
+  'finance.delete': def('finance', { scopable: true }),
+  'finance.export': def('finance', { scopable: true }),
+  /** Create and change budgets for the teams in scope. */
+  'budgets.manage': def('finance', { scopable: true }),
+  /** Reporting currency, enabled currencies, seasons, exchange-rate refresh. */
+  'finance.configure': def('finance'),
 
   // Audit log
   'audit.view': def('audit'),
@@ -145,6 +174,21 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'games.view',
       'games.manage',
       'audit.view',
+      'rosters.view',
+      'rosters.create',
+      'rosters.edit',
+      'rosters.delete',
+      'rosters.export',
+      'tournaments.view',
+      'tournaments.create',
+      'tournaments.edit',
+      'tournaments.delete',
+      'finance.view',
+      'finance.create',
+      'finance.edit',
+      'finance.delete',
+      'finance.export',
+      'budgets.manage',
     ],
   },
   {
@@ -161,6 +205,14 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'teams.edit',
       'teams.export',
       'games.view',
+      'rosters.view',
+      'rosters.create',
+      'rosters.edit',
+      'rosters.export',
+      'tournaments.view',
+      'finance.view',
+      'finance.create',
+      'finance.export',
     ],
   },
   {
@@ -170,7 +222,13 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
     descriptionEn: 'Day-to-day operational view of teams.',
     descriptionAr: 'عرض تشغيلي يومي للفرق.',
     grantsAll: false,
-    permissions: ['departments.view', 'teams.view', 'games.view'],
+    permissions: [
+      'departments.view',
+      'teams.view',
+      'games.view',
+      'rosters.view',
+      'tournaments.view',
+    ],
   },
 ];
 

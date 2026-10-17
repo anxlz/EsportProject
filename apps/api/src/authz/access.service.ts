@@ -118,7 +118,12 @@ export class AccessService {
   async usersWithPermission(
     organizationId: string,
     perm: PermissionKey,
-    team?: TeamRef,
+    /**
+     * A team: holders whose scope covers it. 'organization': only organization-wide holders
+     * (e.g. for organization-level budgets a team-scoped manager cannot see).
+     * Omitted: anyone holding the permission at any scope.
+     */
+    team?: TeamRef | 'organization',
   ): Promise<string[]> {
     const rows = await this.assignmentRows(this.db, organizationId);
     const byUser = new Map<string, AssignmentRow[]>();
@@ -131,7 +136,13 @@ export class AccessService {
     for (const [uid, list] of byUser) {
       const { grants, isOwner } = buildGrants(list);
       const access = new Access(organizationId, uid, grants, isOwner);
-      if (team ? access.coversTeam(perm, team) : access.has(perm)) result.push(uid);
+      const ok =
+        team === 'organization'
+          ? access.hasAll(perm)
+          : team
+            ? access.coversTeam(perm, team)
+            : access.has(perm);
+      if (ok) result.push(uid);
     }
     return result;
   }

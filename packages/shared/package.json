@@ -11,6 +11,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "decimal.js": "^10",
     "zod": "^4"
   },
   "devDependencies": {
