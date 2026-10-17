@@ -27,6 +27,7 @@
     "exceljs": "^4.4.0",
     "ioredis": "^6.0.0",
     "nodemailer": "^10.1.1",
+    "pdf-lib": "1.17.1",
     "postgres": "^3.4.9",
     "puppeteer-core": "^25.14.0",
     "reflect-metadata": "^0.2.2",

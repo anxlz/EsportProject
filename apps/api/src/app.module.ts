@@ -23,6 +23,10 @@ import { InvitationsService } from './members/invitations.service';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { NotificationService } from './notifications/notification.service';
+import { ContractsModule } from './contracts/contracts.module';
+import { FilesService } from './files/files.service';
+import { PdfService } from './pdf/pdf.service';
+import { VersioningService } from './versioning/versioning.service';
 import { NotificationsController } from './notifications/notifications.controller';
 import { OrganizationController } from './organizations/organization.controller';
 import { ProvisioningService } from './organizations/provisioning.service';
@@ -34,29 +38,24 @@ import { TeamsService } from './teams/teams.service';
 
 /**
  * Cross-cutting services every feature module can inject: authorization, audit log,
- * notifications, sessions, mail, rate limiting. Built once, reused everywhere (spec §3.3).
+ * notifications, sessions, mail, rate limiting, plus (Phase 3) the version history, file store
+ * and PDF engine. Built once, reused everywhere (spec §3.3).
  */
+const SHARED = [
+  AccessService,
+  AuditService,
+  NotificationService,
+  SessionService,
+  PasswordService,
+  MailService,
+  RateLimitService,
+  VersioningService,
+  FilesService,
+  PdfService,
+];
+
 @Global()
-@Module({
-  providers: [
-    AccessService,
-    AuditService,
-    NotificationService,
-    SessionService,
-    PasswordService,
-    MailService,
-    RateLimitService,
-  ],
-  exports: [
-    AccessService,
-    AuditService,
-    NotificationService,
-    SessionService,
-    PasswordService,
-    MailService,
-    RateLimitService,
-  ],
-})
+@Module({ providers: SHARED, exports: SHARED })
 export class SharedServicesModule {}
 
 @Module({
@@ -109,6 +108,7 @@ export class AppModule {
         ActivityModule,
         PlatformModule,
         FinanceModule,
+        ContractsModule,
       ],
       providers: [
         // Guard order matters: CSRF origin check → rate limit → session/permission enforcement.

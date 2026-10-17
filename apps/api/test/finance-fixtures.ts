@@ -42,6 +42,10 @@ export class FakeClock implements Clock {
 
 export async function financeOrg(t: TestApp) {
   const { client: owner, me } = await registerOwner(t);
+  // New organizations report in SAR (Phase 3 default). The Phase 2 suites were written around a
+  // USD reporting currency, so they set it explicitly; the SAR default has its own test.
+  const set = await owner.patch('/finance/settings', { baseCurrency: 'USD', enabledCurrencies: ['USD', 'SAR'] });
+  if (set.status !== 200) throw new Error(`financeOrg: could not set USD (${set.status})`);
   const esports = (await owner.post('/departments', { name: 'Esports' })).body as { id: string };
   const games = (await owner.get('/games')).body as { id: string; name: string }[];
   const val = games.find((g) => g.name === 'VALORANT')!.id;

@@ -13,7 +13,7 @@ import type {
 import { and, eq } from 'drizzle-orm';
 import { auditLogs } from '../src/db/schema';
 import { FakeClock, FakeFx, expense, financeOrg, revenue, withRole } from './finance-fixtures';
-import { startApp, type TestApp } from './harness';
+import { registerOwner, startApp, type TestApp } from './harness';
 
 const fx = new FakeFx();
 const clock = new FakeClock();
@@ -289,6 +289,12 @@ describe('multi-currency: rates are snapshotted on each transaction', () => {
 });
 
 describe('finance settings and seasons', () => {
+  test('new organizations report in SAR, with SAR and USD enabled', async () => {
+    const { client: owner } = await registerOwner(t);
+    const s = await owner.get('/finance/settings');
+    expect(s.body).toMatchObject({ baseCurrency: 'SAR', enabledCurrencies: ['SAR', 'USD'], baseCurrencyLocked: false });
+  });
+
   test('the reporting currency locks once records exist; the base is always enabled', async () => {
     const { owner } = await financeOrg(t);
     const s = await owner.get('/finance/settings');

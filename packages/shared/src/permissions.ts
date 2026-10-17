@@ -24,6 +24,7 @@ export const PERMISSION_DOMAINS = [
   'rosters',
   'tournaments',
   'finance',
+  'contracts',
   'audit',
 ] as const;
 
@@ -105,6 +106,18 @@ export const PERMISSIONS = {
   'budgets.manage': def('finance', { scopable: true }),
   /** Reporting currency, enabled currencies, seasons, exchange-rate refresh. */
   'finance.configure': def('finance'),
+
+  // Contracts (Phase 3). Scopable by the contract's team; contracts without a team need an
+  // organization-wide grant. Approval is a separate, delegatable permission. Template-level
+  // editing (contract types, their clause lists, the document layout) is Owner-only (spec §7.3).
+  'contracts.view': def('contracts', { scopable: true }),
+  'contracts.create': def('contracts', { scopable: true }),
+  /** Edit drafts, choose optional clauses, submit for approval, withdraw, cancel. */
+  'contracts.edit': def('contracts', { scopable: true }),
+  'contracts.export': def('contracts', { scopable: true }),
+  /** Approve or reject approval requests. Owners hold it; delegate it by adding it to a role. */
+  'contracts.approve': def('contracts', { scopable: true }),
+  'contracts.manage_templates': def('contracts', { ownerOnly: true }),
 
   // Audit log
   'audit.view': def('audit'),
@@ -189,6 +202,10 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'finance.delete',
       'finance.export',
       'budgets.manage',
+      'contracts.view',
+      'contracts.create',
+      'contracts.edit',
+      'contracts.export',
     ],
   },
   {
@@ -213,6 +230,10 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'finance.view',
       'finance.create',
       'finance.export',
+      'contracts.view',
+      'contracts.create',
+      'contracts.edit',
+      'contracts.export',
     ],
   },
   {

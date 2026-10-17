@@ -46,11 +46,11 @@ export const organizations = appSchema.table('organizations', {
   slug: text('slug').notNull().unique('organizations_slug_unique'),
   defaultLocale: text('default_locale', { enum: LOCALES }).notNull().default('en'),
   /** Reporting currency for all finance figures. Locked once any ledger entry exists. */
-  baseCurrency: text('base_currency').notNull().default('USD'),
+  baseCurrency: text('base_currency').notNull().default('SAR'),
   enabledCurrencies: text('enabled_currencies')
     .array()
     .notNull()
-    .default(sql`'{USD,SAR}'::text[]`),
+    .default(sql`'{SAR,USD}'::text[]`),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

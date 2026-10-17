@@ -29,6 +29,20 @@
       "when": 1792100393284,
       "tag": "0003_finance_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792236965413,
+      "tag": "0004_contracts",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792236971598,
+      "tag": "0005_contracts_hardening",
+      "breakpoints": true
     }
   ]
 }

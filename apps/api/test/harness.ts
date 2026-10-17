@@ -9,6 +9,7 @@ import { Test } from '@nestjs/testing';
 import type { MeResponse, RoleAssignmentInput } from '@esports/shared';
 import { desc, eq, sql } from 'drizzle-orm';
 import Redis from 'ioredis';
+import { AI_PROVIDER, type AiProvider } from '../src/ai/ai.provider';
 import { AppModule } from '../src/app.module';
 import { DISCORD_CLIENT, type DiscordOAuthClient } from '../src/auth/discord.client';
 import { configureApp } from '../src/bootstrap';
@@ -56,6 +57,7 @@ export async function startApp(
     discord?: DiscordOAuthClient;
     fx?: FxRateProvider;
     clock?: Clock;
+    ai?: AiProvider;
   } = {},
 ): Promise<TestApp> {
   if (!migrated) {
@@ -72,8 +74,9 @@ export async function startApp(
   if (opts.discord) builder = builder.overrideProvider(DISCORD_CLIENT).useValue(opts.discord);
   if (opts.fx) builder = builder.overrideProvider(FX_PROVIDER).useValue(opts.fx);
   if (opts.clock) builder = builder.overrideProvider(CLOCK).useValue(opts.clock);
+  if (opts.ai) builder = builder.overrideProvider(AI_PROVIDER).useValue(opts.ai);
   const moduleRef = await builder.compile();
-  const app = moduleRef.createNestApplication({ logger: false });
+  const app = moduleRef.createNestApplication({ logger: process.env.TEST_LOGS ? ['error', 'warn'] : false });
   configureApp(app, env);
   await app.listen(0, '127.0.0.1');
   const address = app.getHttpServer().address() as { port: number };
@@ -111,6 +114,7 @@ export interface Res<T = any> {
   body: T;
   headers: Headers;
   text: string;
+  bytes: Buffer;
 }
 
 /** Minimal browser stand-in: keeps cookies, sends the web app's Origin on writes. */
@@ -127,7 +131,8 @@ export class Client {
     extraHeaders: Record<string, string> = {},
   ): Promise<Res<T>> {
     const headers: Record<string, string> = { ...extraHeaders };
-    if (body !== undefined) headers['content-type'] = 'application/json';
+    const raw = body instanceof Uint8Array;
+    if (body !== undefined && !raw) headers['content-type'] = 'application/json';
     if (this.origin && method !== 'GET') headers.origin = this.origin;
     if (this.cookies.size) {
       headers.cookie = [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; ');
@@ -135,7 +140,7 @@ export class Client {
     const res = await fetch(this.baseUrl + path, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : raw ? (body as Uint8Array) : JSON.stringify(body),
       redirect: 'manual',
     });
     for (const c of res.headers.getSetCookie()) {
@@ -149,14 +154,20 @@ export class Client {
       if (expired || value === '') this.cookies.delete(name);
       else this.cookies.set(name, value);
     }
-    const text = await res.text();
+    const bytes = Buffer.from(await res.arrayBuffer());
+    const text = bytes.toString('utf8');
     let parsed: unknown = text;
     try {
       parsed = text ? JSON.parse(text) : null;
     } catch {
       /* not JSON */
     }
-    return { status: res.status, body: parsed as T, headers: res.headers, text };
+    return { status: res.status, body: parsed as T, headers: res.headers, text, bytes };
+  }
+
+  /** Raw upload: the request body is the file itself. */
+  upload<T = any>(path: string, data: Uint8Array, contentType: string) {
+    return this.request<T>('POST', path, data, { 'content-type': contentType });
   }
 
   get<T = any>(path: string) {

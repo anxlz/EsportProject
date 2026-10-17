@@ -3,7 +3,14 @@
  * templates), the default game catalog, and the first Owner's membership + assignment.
  */
 import { Injectable } from '@nestjs/common';
-import { DEFAULT_GAMES, DEFAULT_ROLE_TEMPLATES, type Locale } from '@esports/shared';
+import {
+  DEFAULT_BASE_CURRENCY,
+  DEFAULT_ENABLED_CURRENCIES,
+  DEFAULT_GAMES,
+  DEFAULT_ROLE_TEMPLATES,
+  type Locale,
+} from '@esports/shared';
+import { seedContractTypes } from '../contracts/contract-types.service';
 import type { DbOrTx } from '../db/client';
 import {
   games,
@@ -23,7 +30,13 @@ export class ProvisioningService {
   ): Promise<{ organizationId: string; ownerRoleId: string }> {
     const [org] = await tx
       .insert(organizations)
-      .values({ name: input.name, slug: input.slug, defaultLocale: input.defaultLocale })
+      .values({
+        name: input.name,
+        slug: input.slug,
+        defaultLocale: input.defaultLocale,
+        baseCurrency: DEFAULT_BASE_CURRENCY,
+        enabledCurrencies: DEFAULT_ENABLED_CURRENCIES,
+      })
       .returning({ id: organizations.id });
     const organizationId = org!.id;
 
@@ -58,6 +71,9 @@ export class ProvisioningService {
         sortOrder: i,
       })),
     );
+
+    // Phase 3: the default contract types (player, coach, manager, staff) with sample templates.
+    await seedContractTypes(tx, organizationId, ownerUserId);
 
     await tx.insert(organizationMembers).values({ organizationId, userId: ownerUserId });
     await tx.insert(userRoleAssignments).values({

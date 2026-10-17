@@ -48,4 +48,10 @@ editable and deletable by Owners, and Owners can create any number of custom rol
 | `finance.export` | Scopable | ✓ | ✓ | ✓ |  |
 | `budgets.manage` | Scopable | ✓ | ✓ |  |  |
 | `finance.configure` | Org-level | ✓ |  |  |  |
+| `contracts.view` | Scopable | ✓ | ✓ | ✓ |  |
+| `contracts.create` | Scopable | ✓ | ✓ | ✓ |  |
+| `contracts.edit` | Scopable | ✓ | ✓ | ✓ |  |
+| `contracts.export` | Scopable | ✓ | ✓ | ✓ |  |
+| `contracts.approve` | Scopable | ✓ |  |  |  |
+| `contracts.manage_templates` | Owner-only | ✓ |  |  |  |
 | `audit.view` | Org-level | ✓ | ✓ |  |  |

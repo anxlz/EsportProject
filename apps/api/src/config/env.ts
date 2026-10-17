@@ -60,6 +60,15 @@ const envSchema = z
     FX_PROVIDER_URL: z.url().default('https://api.frankfurter.dev'),
     /** Chromium for PDF exports. Unset: the bundled @sparticuz/chromium build is used. */
     CHROMIUM_EXECUTABLE_PATH: z.string().optional(),
+
+    /**
+     * Anthropic API (Custom Clause Assistant, Phase 3; all assistants, Phase 5). Unset: the
+     * assistant reports "not configured" and nothing else is affected. Never commit a real key.
+     */
+    ANTHROPIC_API_KEY: z.string().optional(),
+    ANTHROPIC_MODEL: z.string().min(1).default('claude-sonnet-5-5'),
+    ANTHROPIC_API_URL: z.url().default('https://api.anthropic.com'),
+    ANTHROPIC_TIMEOUT_MS: z.coerce.number().int().min(5000).max(600000).default(120000),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.MAIL_TRANSPORT === 'outbox') {
@@ -100,7 +109,9 @@ export type Env = z.infer<typeof envSchema> & {
 };
 
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
-  const parsed = envSchema.safeParse(source);
+  // `KEY=` in a .env file means "not set" (so optional values fall back to their defaults).
+  const cleaned = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== undefined && v.trim() !== ''));
+  const parsed = envSchema.safeParse(cleaned);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `  - ${i.path.join('.') || '(root)'}: ${i.message}`)

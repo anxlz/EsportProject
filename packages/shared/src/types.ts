@@ -40,6 +40,16 @@ export const ERROR_CODES = [
   'season_overlap',
   'in_use',
   'export_failed',
+  'contract_incomplete',
+  'contract_not_editable',
+  'contract_invalid_transition',
+  'self_approval_not_allowed',
+  'no_changes_since_rejection',
+  'required_clause',
+  'file_too_large',
+  'unsupported_file_type',
+  'ai_not_configured',
+  'ai_unavailable',
   'internal_error',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -176,6 +186,9 @@ export const NOTIFICATION_TYPES = [
   'member.ownership_revoked',
   'member.reactivated',
   'budget.exceeded',
+  'contract.approval_requested',
+  'contract.approved',
+  'contract.rejected',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

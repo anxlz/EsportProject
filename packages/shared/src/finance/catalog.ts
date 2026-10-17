@@ -149,8 +149,13 @@ export const CURRENCIES: CurrencyInfo[] = [
 ];
 
 export const CURRENCY_CODES = CURRENCIES.map((c) => c.code);
-export const DEFAULT_ENABLED_CURRENCIES = ['USD', 'SAR'];
-export const DEFAULT_BASE_CURRENCY = 'USD';
+/**
+ * New organizations report in SAR (the first tenant is Saudi-based; salaries and local costs are
+ * in riyals) with USD enabled alongside for prize money and foreign deals. Owners can change the
+ * reporting currency until the first finance record exists. Decided 17 Oct 2026 (DECISIONS.md).
+ */
+export const DEFAULT_ENABLED_CURRENCIES = ['SAR', 'USD'];
+export const DEFAULT_BASE_CURRENCY = 'SAR';
 
 export function currencyInfo(code: string): CurrencyInfo {
   const c = CURRENCIES.find((x) => x.code === code);

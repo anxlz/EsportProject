@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import type { Express } from 'express';
@@ -12,6 +13,14 @@ export function configureApp(app: INestApplication, env: Env): void {
   http.set('trust proxy', env.TRUST_PROXY_HOPS);
   http.disable('x-powered-by');
   app.use(cookieParser());
+  // JSON bodies up to 1 MB (bilingual contracts with many clauses), and raw uploads of the file
+  // types the file store accepts (its service enforces per-kind limits and checks the bytes).
+  const express = app as NestExpressApplication;
+  express.useBodyParser('json', { limit: '1mb' });
+  express.useBodyParser('raw', {
+    type: ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'],
+    limit: '6mb',
+  });
   app.enableShutdownHooks();
   // Browsers reach the API through the web app's own origin (Next.js rewrite), so CORS is only
   // needed for the explicitly allowed extra origins.
@@ -20,7 +29,7 @@ export function configureApp(app: INestApplication, env: Env): void {
   if (env.apiDocsEnabled) {
     const config = new DocumentBuilder()
       .setTitle('Esports Organization Management Platform API')
-      .setVersion('0.1.0 (Phase 1)')
+      .setVersion('0.3.0 (Phase 3)')
       .addCookieAuth(env.cookieSecure ? '__Host-esp_sid' : 'esp_sid')
       .build();
     SwaggerModule.setup('docs', app, () => SwaggerModule.createDocument(app, config));
