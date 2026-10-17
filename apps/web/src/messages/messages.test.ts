@@ -69,6 +69,14 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
     'roster.compensation_changed',
     'tournament.created',
     'season.created',
+    'contract.created',
+    'contract.approved',
+    'contract.rejected',
+    'contract.clause_accepted',
+    'contract_type.template_updated',
+    'document_settings.updated',
+    'approval_stamp.updated',
+    'file.uploaded',
   ];
   for (const [locale, messages] of [
     ['en', en],
@@ -90,6 +98,11 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
           line: 'L',
           actual: '1',
           planned: '2',
+          number: 'CT-2026-0001',
+          requestedBy: 'R',
+          approvedBy: 'A',
+          rejectedBy: 'J',
+          reason: 'Why',
         });
       for (const a of auditActions) resolved(`audit.actions.${a}`);
     });

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { FILE_KINDS, type FileKind, type PermissionKey } from '@esports/shared';
 import type { Request, Response } from 'express';
@@ -16,7 +16,13 @@ const UPLOAD_PERMISSION: Record<FileKind, PermissionKey> = {
   stamp: 'org.settings.edit_sensitive',
 };
 /** Who may view uploaded assets (contract previews show them). */
-const VIEW_PERMISSIONS: PermissionKey[] = ['contracts.view', 'contracts.create', 'contracts.approve', 'contracts.manage_templates', 'org.settings.edit_sensitive'];
+const VIEW_PERMISSIONS: PermissionKey[] = [
+  'contracts.view',
+  'contracts.create',
+  'contracts.approve',
+  'contracts.manage_templates',
+  'org.settings.edit_sensitive',
+];
 
 @ApiTags('files')
 @Controller('files')
@@ -36,15 +42,35 @@ export class FilesController {
   ) {
     if (!ctx.access.has(UPLOAD_PERMISSION[q.kind])) throw Errors.forbidden();
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-    const file = await this.files.upload(ctx.organizationId, ctx.user.id, q.kind, body, req.headers['content-type']);
-    await this.audit.fromCtx(ctx, 'file.uploaded', { type: 'file', id: file.id }, { kind: q.kind, contentType: file.contentType, sizeBytes: file.sizeBytes, sha256: file.sha256 });
+    const file = await this.files.upload(
+      ctx.organizationId,
+      ctx.user.id,
+      q.kind,
+      body,
+      req.headers['content-type'],
+    );
+    await this.audit.fromCtx(
+      ctx,
+      'file.uploaded',
+      { type: 'file', id: file.id },
+      {
+        kind: q.kind,
+        contentType: file.contentType,
+        sizeBytes: file.sizeBytes,
+        sha256: file.sha256,
+      },
+    );
     return file;
   }
 
   /** Uploaded assets only; generated documents are served by their own, permission-checked routes. */
   @Get(':id')
   @RequireOrg()
-  async get(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @Res() res: Response) {
+  async get(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @Res() res: Response,
+  ) {
     if (!VIEW_PERMISSIONS.some((p) => ctx.access.has(p))) throw Errors.forbidden();
     const f = await this.files.get(ctx.organizationId, id);
     if (!f || !(FILE_KINDS as readonly string[]).includes(f.kind)) throw Errors.notFound('File');

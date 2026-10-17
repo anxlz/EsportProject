@@ -4,7 +4,7 @@
  * contract can't be submitted with gaps. Pure functions: the same input renders the same text in
  * the preview, the approval document and the dashboard.
  */
-import { formatIsoDate, formatMoney } from '../finance/format';
+import { formatIsoDate, formatMoney, type MoneyFormatOptions } from '../finance/format';
 import { MERGE_FIELDS, type MergeField } from './catalog';
 import { cl, type ContractLocale, formatDuration } from './i18n';
 import type { ContractSnapshot } from './dto';
@@ -38,12 +38,17 @@ export function contractLength(start: string, end: string): { months: number; da
   return { months: Math.max(0, months), days: Math.max(0, days) };
 }
 
-export function mergeValues(snapshot: ContractSnapshot, ctx: MergeContext, locale: ContractLocale): MergeValues {
+export function mergeValues(
+  snapshot: ContractSnapshot,
+  ctx: MergeContext,
+  locale: ContractLocale,
+  opts: MoneyFormatOptions = {},
+): MergeValues {
   const L = cl(locale);
   const d = snapshot.details;
   const r = d.recipient;
   const pick = (enV: string | null | undefined, arV: string | null | undefined) =>
-    (locale === 'ar' ? (arV || enV) : (enV || arV)) || undefined;
+    (locale === 'ar' ? arV || enV : enV || arV) || undefined;
   const v: MergeValues = {
     organizationName: ctx.organizationName,
     organizationLegalName: pick(ctx.legalNameEn, ctx.legalNameAr) ?? ctx.organizationName,
@@ -56,9 +61,11 @@ export function mergeValues(snapshot: ContractSnapshot, ctx: MergeContext, local
     endDate: d.endDate ? formatIsoDate(d.endDate, locale) : undefined,
     salary:
       d.compensation?.amount && d.compensation.currency
-        ? formatMoney(d.compensation.amount, d.compensation.currency, locale)
+        ? formatMoney(d.compensation.amount, d.compensation.currency, locale, opts)
         : undefined,
-    paymentFrequency: d.compensation?.amount ? L.frequencyPhrase[d.compensation.frequency] : undefined,
+    paymentFrequency: d.compensation?.amount
+      ? L.frequencyPhrase[d.compensation.frequency]
+      : undefined,
   };
   if (d.startDate && d.endDate) {
     const { months, days } = contractLength(d.startDate, d.endDate);
@@ -76,7 +83,9 @@ export function fillTemplate(body: string, values: MergeValues): TextPart[] {
   for (const m of body.matchAll(PLACEHOLDER)) {
     if (m.index! > last) parts.push({ text: body.slice(last, m.index) });
     const field = m[1]!;
-    const value = (MERGE_FIELDS as readonly string[]).includes(field) ? values[field as MergeField] : undefined;
+    const value = (MERGE_FIELDS as readonly string[]).includes(field)
+      ? values[field as MergeField]
+      : undefined;
     parts.push(value ? { text: value } : { missing: field });
     last = m.index! + m[0].length;
   }
@@ -89,8 +98,9 @@ export function placeholdersIn(body: string): string[] {
 }
 
 /** The languages a document is produced in. */
-export const documentLocales = (language: ContractSnapshot['details']['language']): ContractLocale[] =>
-  language === 'bilingual' ? ['en', 'ar'] : [language];
+export const documentLocales = (
+  language: ContractSnapshot['details']['language'],
+): ContractLocale[] => (language === 'bilingual' ? ['en', 'ar'] : [language]);
 
 /**
  * What still prevents submission: required values, placeholders without a value in included
@@ -101,7 +111,10 @@ export function completenessIssues(snapshot: ContractSnapshot, ctx: MergeContext
   const d = snapshot.details;
   const locales = documentLocales(d.language);
   for (const loc of locales) {
-    const name = loc === 'ar' ? d.recipient.fullNameAr || d.recipient.fullNameEn : d.recipient.fullNameEn || d.recipient.fullNameAr;
+    const name =
+      loc === 'ar'
+        ? d.recipient.fullNameAr || d.recipient.fullNameEn
+        : d.recipient.fullNameEn || d.recipient.fullNameAr;
     if (!name) issues.add('recipientName');
   }
   if (!d.startDate) issues.add('startDate');

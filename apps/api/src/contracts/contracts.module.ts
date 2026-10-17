@@ -15,7 +15,12 @@ import { ContractsService } from './contracts.service';
 import { DocumentSettingsService } from './document-settings.service';
 
 @Module({
-  controllers: [FilesController, ContractTypesController, ContractSettingsController, ContractsController],
+  controllers: [
+    FilesController,
+    ContractTypesController,
+    ContractSettingsController,
+    ContractsController,
+  ],
   providers: [
     { provide: AI_PROVIDER, inject: [ENV], useFactory: (env: Env) => aiProviderFromEnv(env) },
     ContractTypesService,

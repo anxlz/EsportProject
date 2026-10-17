@@ -52,8 +52,12 @@ export interface RenderInput {
   background?: { data: Buffer; contentType: string } | null;
 }
 
-const dataUri = (f: { data: Buffer; contentType: string }) => `data:${f.contentType};base64,${f.data.toString('base64')}`;
-const nl = (s: string) => esc(s).replace(/\n/g, '<br>');
+const dataUri = (f: { data: Buffer; contentType: string }) =>
+  `data:${f.contentType};base64,${f.data.toString('base64')}`;
+/** Amounts are LTR-isolated runs (formatMoney); keep each one on a single line. */
+const keepMoney = (html: string) =>
+  html.replace(/\u2066([^\u2066\u2069]*)\u2069/g, '<span class="nw">\u2066$1\u2069</span>');
+const nl = (s: string) => keepMoney(esc(s)).replace(/\n/g, '<br>');
 
 function mergeCtx(input: RenderInput): MergeContext {
   return {
@@ -66,7 +70,7 @@ function mergeCtx(input: RenderInput): MergeContext {
 
 /** Clause text with merge fields filled; missing values are highlighted, never hidden. */
 function clauseBody(body: string, input: RenderInput, loc: ContractLocale): string {
-  const values = mergeValues(input.snapshot, mergeCtx(input), loc);
+  const values = mergeValues(input.snapshot, mergeCtx(input), loc, { riyalSign: true });
   const L = cl(loc);
   return fillTemplate(body, values)
     .map((p) =>
@@ -82,9 +86,10 @@ function particularRows(input: RenderInput, loc: ContractLocale): [string, strin
   const s = input.settings;
   const d = input.snapshot.details;
   const r = d.recipient;
-  const pick = (en: string | null | undefined, ar: string | null | undefined) => (loc === 'ar' ? ar || en : en || ar) || '';
+  const pick = (en: string | null | undefined, ar: string | null | undefined) =>
+    (loc === 'ar' ? ar || en : en || ar) || '';
   const money = (amount: string | null | undefined, currency: string | null | undefined) =>
-    amount && currency ? formatMoney(amount, currency, loc) : '';
+    amount && currency ? formatMoney(amount, currency, loc, { riyalSign: true }) : '';
   const rows: [string, string][] = [
     [L.contractNumber, input.contractNumber],
     [L.type, loc === 'ar' ? input.snapshot.typeNameAr : input.snapshot.typeNameEn],
@@ -102,26 +107,56 @@ function particularRows(input: RenderInput, loc: ContractLocale): [string, strin
   if (contact) rows.push([L.contact, contact]);
   if (r.address) rows.push([L.address, r.address]);
   const g = d.guardian;
-  if (g?.fullName) rows.push([L.guardian, [g.fullName, g.relationship ? `(${g.relationship})` : '', [g.email, g.phone].filter(Boolean).join(' · ')].filter(Boolean).join(' ')]);
+  if (g?.fullName)
+    rows.push([
+      L.guardian,
+      [
+        g.fullName,
+        g.relationship ? `(${g.relationship})` : '',
+        [g.email, g.phone].filter(Boolean).join(' · '),
+      ]
+        .filter(Boolean)
+        .join(' '),
+    ]);
   if (input.snapshot.teamName) rows.push([L.team, input.snapshot.teamName]);
   if (input.snapshot.gameName) rows.push([L.game, input.snapshot.gameName]);
   if (d.role) rows.push([L.role, d.role]);
   if (d.startDate || d.endDate) {
-    const span = [d.startDate ? formatIsoDate(d.startDate, loc) : '…', d.endDate ? formatIsoDate(d.endDate, loc) : '…'].join(` ${L.to} `);
+    const span = [
+      d.startDate ? formatIsoDate(d.startDate, loc) : '…',
+      d.endDate ? formatIsoDate(d.endDate, loc) : '…',
+    ].join(` ${L.to} `);
     const len = d.startDate && d.endDate ? contractLength(d.startDate, d.endDate) : null;
     rows.push([L.term, len ? `${span} (${formatDuration(len.months, len.days, loc)})` : span]);
   }
   const c = d.compensation;
-  if (c?.amount) rows.push([L.salary, `${money(c.amount, c.currency)} ${cl(loc).frequencyPhrase[c.frequency]}`]);
+  if (c?.amount)
+    rows.push([L.salary, `${money(c.amount, c.currency)} ${cl(loc).frequencyPhrase[c.frequency]}`]);
   if (c?.offSeasonAmount || c?.offSeasonNotes)
-    rows.push([L.offSeason, [money(c.offSeasonAmount, c.currency), c.offSeasonNotes ?? ''].filter(Boolean).join(' — ')]);
+    rows.push([
+      L.offSeason,
+      [money(c.offSeasonAmount, c.currency), c.offSeasonNotes ?? ''].filter(Boolean).join(' — '),
+    ]);
   if (d.revenueShare?.percent || d.revenueShare?.description)
-    rows.push([L.revenueShare, [d.revenueShare.percent ? `${d.revenueShare.percent}%` : '', d.revenueShare.description ?? ''].filter(Boolean).join(' — ')]);
+    rows.push([
+      L.revenueShare,
+      [d.revenueShare.percent ? `${d.revenueShare.percent}%` : '', d.revenueShare.description ?? '']
+        .filter(Boolean)
+        .join(' — '),
+    ]);
   if (d.bonuses?.length)
     rows.push([
       L.bonuses,
       d.bonuses
-        .map((b) => [b.description, money(b.amount, b.currency), b.condition ? `${L.condition}: ${b.condition}` : ''].filter(Boolean).join(' — '))
+        .map((b) =>
+          [
+            b.description,
+            money(b.amount, b.currency),
+            b.condition ? `${L.condition}: ${b.condition}` : '',
+          ]
+            .filter(Boolean)
+            .join(' — '),
+        )
         .join('\n'),
     ]);
   if (d.buyout?.amount || d.buyout?.triggers) {
@@ -139,11 +174,13 @@ export function contractHtml(input: RenderInput): string {
   const bilingual = locales.length === 2;
   const mainLoc: ContractLocale = bilingual ? 'en' : locales[0]!;
   const dir = !bilingual && mainLoc === 'ar' ? 'rtl' : 'ltr';
-  const both = <T,>(f: (l: ContractLocale) => T) => locales.map(f);
+  const both = <T>(f: (l: ContractLocale) => T) => locales.map(f);
   const L = (l: ContractLocale) => cl(l).doc;
 
   // Letterhead
-  const logo = input.assets.logo ? `<img class="logo" src="${dataUri(input.assets.logo)}" alt="">` : '';
+  const logo = input.assets.logo
+    ? `<img class="logo" src="${dataUri(input.assets.logo)}" alt="">`
+    : '';
   /** One line per language; in bilingual documents English sits at the start and Arabic at the end. */
   const row = (cls: string, f: (l: ContractLocale) => string | null | undefined, html = false) => {
     const parts = both((l) => ({ l, t: f(l) })).filter((p) => p.t);
@@ -151,23 +188,47 @@ export function contractHtml(input: RenderInput): string {
     const unique = parts.length === 2 && parts[0]!.t === parts[1]!.t ? [parts[0]!] : parts;
     const cell = (p: { l: ContractLocale; t: string | null | undefined }) =>
       `<div class="${cls}" lang="${p.l}" dir="${p.l === 'ar' ? 'rtl' : 'ltr'}">${html ? p.t : esc(p.t!)}</div>`;
-    return unique.length === 2 ? `<div class="bi-row">${unique.map(cell).join('')}</div>` : cell(unique[0]!);
+    return unique.length === 2
+      ? `<div class="bi-row">${unique.map(cell).join('')}</div>`
+      : cell(unique[0]!);
   };
-  const orgNames = row('org', (l) => (l === 'ar' ? s.legalNameAr || s.legalNameEn : s.legalNameEn || s.legalNameAr) || s.organizationName);
-  const headerTexts = row('htext', (l) => {
-    const t = l === 'ar' ? s.headerTextAr : s.headerTextEn;
-    return t ? nl(t) : null;
-  }, true);
-  const footerTexts = both((l) => {
-    const t = l === 'ar' ? s.footerTextAr : s.footerTextEn;
-    return t ? `<div lang="${l}" dir="${l === 'ar' ? 'rtl' : 'ltr'}">${nl(t)}</div>` : '';
-  }).join('');
-  const footerIds = [s.commercialRegistration ? `CR ${esc(s.commercialRegistration)}` : '', s.taxNumber ? `VAT/TIN ${esc(s.taxNumber)}` : '', s.email ? esc(s.email) : '', s.phone ? esc(s.phone) : '', s.website ? esc(s.website) : '']
+  const orgNames = row(
+    'org',
+    (l) =>
+      (l === 'ar' ? s.legalNameAr || s.legalNameEn : s.legalNameEn || s.legalNameAr) ||
+      s.organizationName,
+  );
+  const headerTexts = row(
+    'htext',
+    (l) => {
+      const t = l === 'ar' ? s.headerTextAr : s.headerTextEn;
+      return t ? nl(t) : null;
+    },
+    true,
+  );
+  const footerTexts = row(
+    'ftext',
+    (l) => {
+      const t = l === 'ar' ? s.footerTextAr : s.footerTextEn;
+      return t ? nl(t) : null;
+    },
+    true,
+  );
+  const footerIds = [
+    s.commercialRegistration ? `CR ${esc(s.commercialRegistration)}` : '',
+    s.taxNumber ? `VAT/TIN ${esc(s.taxNumber)}` : '',
+    s.email ? esc(s.email) : '',
+    s.phone ? esc(s.phone) : '',
+    s.website ? esc(s.website) : '',
+  ]
     .filter(Boolean)
     .join(' · ');
 
   // Title
-  const title = row('title', (l) => snapshot.details.title || (l === 'ar' ? snapshot.typeNameAr : snapshot.typeNameEn));
+  const title = row(
+    'title',
+    (l) => snapshot.details.title || (l === 'ar' ? snapshot.typeNameAr : snapshot.typeNameEn),
+  );
 
   // Particulars
   let particulars: string;
@@ -240,7 +301,7 @@ export function contractHtml(input: RenderInput): string {
 @media (max-width:820px){body{padding:0}.sheet{padding:14px;min-height:0;box-shadow:none}.sheet .border{inset:6px}.pair{grid-template-columns:1fr}.particulars.bi th,.particulars.bi td{display:block;width:auto}.particulars.bi tr{display:block;padding:4pt 0;border-bottom:1px solid #eef0f2}.particulars td{border:0}}`
     : '';
 
-  return `<!doctype html><html lang="${mainLoc}" dir="${dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:"><title>${esc(input.contractNumber)}</title><style>
+  return `<!doctype html><html lang="${mainLoc}" dir="${dir}"${s.pageBorder ? ' class="bordered"' : ''}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:"><title>${esc(input.contractNumber)}</title><style>
 ${pdfFonts()}
 @page{size:A4}
 *{box-sizing:border-box}
@@ -248,6 +309,10 @@ html{font-family:'Plex',sans-serif;font-size:${s.fontSizePt}pt;line-height:${s.l
 body{margin:0}
 table.frame{width:100%;border-collapse:collapse}
 table.frame>thead>tr>td,table.frame>tfoot>tr>td{padding:0}
+.nw{white-space:nowrap}
+.bordered table.frame>*>tr>td{padding-left:5mm;padding-right:5mm}
+.bordered .letterhead{padding-top:4mm}
+.bordered .foot{padding-bottom:3mm}
 .letterhead{display:flex;flex-direction:column;gap:2pt;padding-bottom:8pt;margin-bottom:10pt;border-bottom:1px solid #c8ccd2;text-align:${s.logoPosition === 'center' ? 'center' : 'start'}}
 .letterhead.pos-end{text-align:end}
 .letterhead .logo{max-height:18mm;max-width:60mm;object-fit:contain;display:block;margin-inline-start:${s.logoPosition === 'start' ? '0' : 'auto'};margin-inline-end:${s.logoPosition === 'end' ? '0' : s.logoPosition === 'center' ? 'auto' : 'auto'}}

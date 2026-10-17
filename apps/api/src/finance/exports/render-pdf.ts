@@ -28,7 +28,7 @@ export function reportHtml(doc: ReportDocument, locale: FinanceLocale): string {
                     ]
                       .filter(Boolean)
                       .join(' ');
-                    return `<td class="${cls}">${esc(displayCell(c, locale))}</td>`;
+                    return `<td class="${cls}">${esc(displayCell(c, locale, { riyalSign: true }))}</td>`;
                   })
                   .join('')}</tr>`,
             )

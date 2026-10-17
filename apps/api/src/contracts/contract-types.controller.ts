@@ -13,7 +13,13 @@ import { UuidPipe, ZodBody } from '../common/zod';
 import { ContractTypesService } from './contract-types.service';
 
 /** Anyone working with contracts can read the types and templates they draft from. */
-const READ_ANY: PermissionKey[] = ['contracts.view', 'contracts.create', 'contracts.edit', 'contracts.approve', 'contracts.manage_templates'];
+const READ_ANY: PermissionKey[] = [
+  'contracts.view',
+  'contracts.create',
+  'contracts.edit',
+  'contracts.approve',
+  'contracts.manage_templates',
+];
 const requireAny = (ctx: TenantContext, perms: PermissionKey[]) => {
   if (!perms.some((p) => ctx.access.has(p))) throw Errors.forbidden();
 };
@@ -33,13 +39,20 @@ export class ContractTypesController {
   /** Template editing is Owner-only (spec §7.3). */
   @Post()
   @RequirePermission('contracts.manage_templates')
-  create(@TenantCtx() ctx: TenantContext, @ZodBody(contractTypeInputSchema) body: ContractTypeInput) {
+  create(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(contractTypeInputSchema) body: ContractTypeInput,
+  ) {
     return this.types.create(ctx, body);
   }
 
   @Patch(':id')
   @RequirePermission('contracts.manage_templates')
-  update(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @ZodBody(contractTypeInputSchema) body: ContractTypeInput) {
+  update(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @ZodBody(contractTypeInputSchema) body: ContractTypeInput,
+  ) {
     return this.types.update(ctx, id, body);
   }
 

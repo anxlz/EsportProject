@@ -96,7 +96,12 @@ export interface ContractDto extends ContractSummaryDto {
   /** Clause ids whose wording differs from the template clause they came from (shown to approvers). */
   modifiedClauseIds: string[];
   /** The stamped approved PDF, once approved. `verified`: its bytes still match the recorded hash. */
-  approvedDocument: { version: number; sha256: string; sizeBytes: number; verified: boolean } | null;
+  approvedDocument: {
+    version: number;
+    sha256: string;
+    sizeBytes: number;
+    verified: boolean;
+  } | null;
   /** What the caller may do now (UI hint; the API re-checks every action). */
   can: {
     edit: boolean;

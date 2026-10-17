@@ -235,7 +235,10 @@ export const contracts = appSchema.table(
     unique('contracts_org_id_unique').on(t.organizationId, t.id),
     unique('contracts_org_number_unique').on(t.organizationId, t.number),
     index('contracts_org_status_idx').on(t.organizationId, t.status),
-    check('contracts_roster_needs_team', sql`${t.rosterMemberId} is null or ${t.teamId} is not null`),
+    check(
+      'contracts_roster_needs_team',
+      sql`${t.rosterMemberId} is null or ${t.teamId} is not null`,
+    ),
     foreignKey({
       name: 'contracts_type_fk',
       columns: [t.organizationId, t.contractTypeId],
@@ -335,7 +338,14 @@ export const clauseProposals = appSchema.table(
     revisionOf: uuid('revision_of'),
     status: text('status').notNull().default('proposed'),
     output: jsonb('output')
-      .$type<{ titleEn: string; titleAr: string; bodyEn: string; bodyAr: string; questions: string[]; notes: string | null }>()
+      .$type<{
+        titleEn: string;
+        titleAr: string;
+        bodyEn: string;
+        bodyAr: string;
+        questions: string[];
+        notes: string | null;
+      }>()
       .notNull(),
     provider: text('provider').notNull(),
     model: text('model').notNull(),

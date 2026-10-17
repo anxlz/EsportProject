@@ -25,6 +25,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const locale = await getLocale();
   return (
     <html lang={locale} dir={dirFor(locale)}>
+      <head>
+        {/* Tiny (1–2 KB) font for the riyal sign; preloaded so amounts switch to it at once. */}
+        <link
+          rel="preload"
+          href="/fonts/saudi-riyal/saudi-riyal-regular.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
         <NextIntlClientProvider>
           <Providers>{children}</Providers>

@@ -54,14 +54,25 @@ const JSON_SCHEMA = {
   properties: {
     titleEn: { type: 'string', description: 'Short clause heading in English.' },
     titleAr: { type: 'string', description: 'The same heading in Modern Standard Arabic.' },
-    bodyEn: { type: 'string', description: 'The clause text in English, plain text, paragraphs separated by blank lines.' },
-    bodyAr: { type: 'string', description: 'The same clause in Modern Standard Arabic, equivalent in meaning to bodyEn.' },
+    bodyEn: {
+      type: 'string',
+      description: 'The clause text in English, plain text, paragraphs separated by blank lines.',
+    },
+    bodyAr: {
+      type: 'string',
+      description: 'The same clause in Modern Standard Arabic, equivalent in meaning to bodyEn.',
+    },
     questions: {
       type: 'array',
       items: { type: 'string' },
-      description: 'Details that are missing or ambiguous and that the user should supply or confirm, in the language of the request. Empty if none.',
+      description:
+        'Details that are missing or ambiguous and that the user should supply or confirm, in the language of the request. Empty if none.',
     },
-    notes: { type: 'string', description: 'One or two sentences on what the draft assumes. Empty string if nothing to add.' },
+    notes: {
+      type: 'string',
+      description:
+        'One or two sentences on what the draft assumes. Empty string if nothing to add.',
+    },
   },
   required: ['titleEn', 'titleAr', 'bodyEn', 'bodyAr', 'questions', 'notes'],
   additionalProperties: false,
@@ -89,13 +100,18 @@ export class ClauseAssistantService {
   ) {}
 
   status(): AssistantStatusDto {
-    return { configured: this.ai.configured, provider: this.ai.configured ? this.ai.name : null, model: this.ai.model };
+    return {
+      configured: this.ai.configured,
+      provider: this.ai.configured ? this.ai.name : null,
+      model: this.ai.model,
+    };
   }
 
   private async editableContract(ctx: TenantContext, contractId: string) {
     const c = await this.contracts.loadVisible(ctx, contractId);
     if (!this.contracts.canEdit(ctx, c)) throw Errors.forbidden();
-    if (!EDITABLE_STATUSES.includes(c.row.status as ContractStatus)) throw Errors.conflict('contract_not_editable');
+    if (!EDITABLE_STATUSES.includes(c.row.status as ContractStatus))
+      throw Errors.conflict('contract_not_editable');
     return c;
   }
 
@@ -122,7 +138,13 @@ export class ClauseAssistantService {
     const [p] = await this.db
       .select()
       .from(clauseProposals)
-      .where(and(eq(clauseProposals.id, id), eq(clauseProposals.organizationId, ctx.organizationId), eq(clauseProposals.contractId, contractId)));
+      .where(
+        and(
+          eq(clauseProposals.id, id),
+          eq(clauseProposals.organizationId, ctx.organizationId),
+          eq(clauseProposals.contractId, contractId),
+        ),
+      );
     if (!p) throw Errors.notFound('Proposal');
     return p;
   }
@@ -132,14 +154,23 @@ export class ClauseAssistantService {
     const rows = await this.db
       .select()
       .from(clauseProposals)
-      .where(and(eq(clauseProposals.organizationId, ctx.organizationId), eq(clauseProposals.contractId, contractId)))
+      .where(
+        and(
+          eq(clauseProposals.organizationId, ctx.organizationId),
+          eq(clauseProposals.contractId, contractId),
+        ),
+      )
       .orderBy(desc(clauseProposals.createdAt))
       .limit(50);
     return rows.map((r) => this.toDto(r));
   }
 
   /** Builds the prompt from non-personal context only. */
-  buildPrompt(snapshot: ContractSnapshot, input: ClauseProposalRequest, previous: ClauseText | null): string {
+  buildPrompt(
+    snapshot: ContractSnapshot,
+    input: ClauseProposalRequest,
+    previous: ClauseText | null,
+  ): string {
     const existing = snapshot.clauses
       .filter((c) => c.included)
       .map((c, i) => `${i + 1}. ${c.titleEn || '—'} / ${c.titleAr || '—'}`)
@@ -161,7 +192,12 @@ export class ClauseAssistantService {
       lines.push(
         '',
         'Your previous draft (revise it):',
-        JSON.stringify({ titleEn: previous.titleEn, titleAr: previous.titleAr, bodyEn: previous.bodyEn, bodyAr: previous.bodyAr }),
+        JSON.stringify({
+          titleEn: previous.titleEn,
+          titleAr: previous.titleAr,
+          bodyEn: previous.bodyEn,
+          bodyAr: previous.bodyAr,
+        }),
         '',
         "The user's feedback on that draft:",
         input.feedback || '(no specific feedback: improve clarity and fill gaps)',
@@ -170,15 +206,38 @@ export class ClauseAssistantService {
     return lines.join('\n');
   }
 
-  async propose(ctx: TenantContext, contractId: string, input: ClauseProposalRequest): Promise<ClauseProposalDto> {
-    if (!this.ai.configured) throw new AppError('ai_not_configured', 503, 'The AI assistant is not configured (ANTHROPIC_API_KEY is not set).');
+  async propose(
+    ctx: TenantContext,
+    contractId: string,
+    input: ClauseProposalRequest,
+  ): Promise<ClauseProposalDto> {
+    if (!this.ai.configured)
+      throw new AppError(
+        'ai_not_configured',
+        503,
+        'The AI assistant is not configured (ANTHROPIC_API_KEY is not set).',
+      );
     await this.editableContract(ctx, contractId);
     let previous: ClauseText | null = null;
-    if (input.revisionOf) previous = (await this.loadProposal(ctx, contractId, input.revisionOf)).output;
-    const wait = await this.rateLimit.consume(`ai-clause:${ctx.organizationId}:${ctx.user.id}`, PROPOSALS_PER_HOUR, 3600);
-    if (wait) throw new AppError('rate_limited', 429, `Too many assistant requests. Try again in ${Math.ceil(wait / 60)} minutes.`);
+    if (input.revisionOf)
+      previous = (await this.loadProposal(ctx, contractId, input.revisionOf)).output;
+    const wait = await this.rateLimit.consume(
+      `ai-clause:${ctx.organizationId}:${ctx.user.id}`,
+      PROPOSALS_PER_HOUR,
+      3600,
+    );
+    if (wait)
+      throw new AppError(
+        'rate_limited',
+        429,
+        `Too many assistant requests. Try again in ${Math.ceil(wait / 60)} minutes.`,
+      );
 
-    const latest = await this.versions.get<ContractSnapshot>(ctx.organizationId, CONTRACT_ENTITY, contractId);
+    const latest = await this.versions.get<ContractSnapshot>(
+      ctx.organizationId,
+      CONTRACT_ENTITY,
+      contractId,
+    );
     const result = await this.ai.generateJson({
       system: SYSTEM,
       prompt: this.buildPrompt(latest!.snapshot, input, previous),
@@ -186,7 +245,12 @@ export class ClauseAssistantService {
       maxTokens: 16000,
     });
     const parsed = outputSchema.safeParse(result.data);
-    if (!parsed.success) throw new AppError('ai_unavailable', 502, 'The assistant returned an incomplete proposal. Try again.');
+    if (!parsed.success)
+      throw new AppError(
+        'ai_unavailable',
+        502,
+        'The assistant returned an incomplete proposal. Try again.',
+      );
 
     const [row] = await this.db
       .insert(clauseProposals)
@@ -203,61 +267,103 @@ export class ClauseAssistantService {
         model: result.model,
       })
       .returning();
-    await this.audit.fromCtx(ctx, 'contract.clause_proposed', { type: 'contract', id: contractId }, {
-      proposalId: row!.id,
-      revisionOf: input.revisionOf ?? null,
-      provider: this.ai.name,
-      model: result.model,
-    });
+    await this.audit.fromCtx(
+      ctx,
+      'contract.clause_proposed',
+      { type: 'contract', id: contractId },
+      {
+        proposalId: row!.id,
+        revisionOf: input.revisionOf ?? null,
+        provider: this.ai.name,
+        model: result.model,
+      },
+    );
     return this.toDto(row!);
   }
 
   /** The explicit acceptance step: inserts that one clause as a new contract version. */
-  async accept(ctx: TenantContext, contractId: string, proposalId: string, beforeClauseId: string | null | undefined) {
+  async accept(
+    ctx: TenantContext,
+    contractId: string,
+    proposalId: string,
+    beforeClauseId: string | null | undefined,
+  ) {
     await this.editableContract(ctx, contractId);
     const result = await this.db.transaction(async (tx) => {
       const [p] = await tx
         .select()
         .from(clauseProposals)
-        .where(and(eq(clauseProposals.id, proposalId), eq(clauseProposals.organizationId, ctx.organizationId), eq(clauseProposals.contractId, contractId)))
+        .where(
+          and(
+            eq(clauseProposals.id, proposalId),
+            eq(clauseProposals.organizationId, ctx.organizationId),
+            eq(clauseProposals.contractId, contractId),
+          ),
+        )
         .for('update');
       if (!p) throw Errors.notFound('Proposal');
-      if (p.status !== 'proposed') throw Errors.conflict('contract_invalid_transition', 'This proposal was already decided');
+      if (p.status !== 'proposed')
+        throw Errors.conflict('contract_invalid_transition', 'This proposal was already decided');
       const added = await this.contracts.insertClause(
         ctx,
         tx,
         contractId,
-        { source: 'assistant', titleEn: p.output.titleEn, titleAr: p.output.titleAr, bodyEn: p.output.bodyEn, bodyAr: p.output.bodyAr },
+        {
+          source: 'assistant',
+          titleEn: p.output.titleEn,
+          titleAr: p.output.titleAr,
+          bodyEn: p.output.bodyEn,
+          bodyAr: p.output.bodyAr,
+        },
         beforeClauseId,
         'Added a clause drafted with the assistant',
       );
-      await tx.update(clauseProposals).set({ status: 'accepted', decidedByUserId: ctx.user.id, decidedAt: new Date() }).where(eq(clauseProposals.id, p.id));
-      await this.audit.fromCtx(ctx, 'contract.clause_accepted', { type: 'contract', id: contractId }, {
-        number: added.number,
-        proposalId: p.id,
-        clauseId: added.clauseId,
-        version: added.version,
-        versionSha256: added.sha256,
-      }, tx);
+      await tx
+        .update(clauseProposals)
+        .set({ status: 'accepted', decidedByUserId: ctx.user.id, decidedAt: new Date() })
+        .where(eq(clauseProposals.id, p.id));
+      await this.audit.fromCtx(
+        ctx,
+        'contract.clause_accepted',
+        { type: 'contract', id: contractId },
+        {
+          number: added.number,
+          proposalId: p.id,
+          clauseId: added.clauseId,
+          version: added.version,
+          versionSha256: added.sha256,
+        },
+        tx,
+      );
       return added;
     });
     return { clauseId: result.clauseId, contract: await this.contracts.get(ctx, contractId) };
   }
 
-  async reject(ctx: TenantContext, contractId: string, proposalId: string): Promise<ClauseProposalDto> {
+  async reject(
+    ctx: TenantContext,
+    contractId: string,
+    proposalId: string,
+  ): Promise<ClauseProposalDto> {
     await this.contracts.loadVisible(ctx, contractId);
     const p = await this.loadProposal(ctx, contractId, proposalId);
     if (p.requestedByUserId !== ctx.user.id) {
       const c = await this.contracts.loadVisible(ctx, contractId);
       if (!this.contracts.canEdit(ctx, c)) throw Errors.forbidden();
     }
-    if (p.status !== 'proposed') throw Errors.conflict('contract_invalid_transition', 'This proposal was already decided');
+    if (p.status !== 'proposed')
+      throw Errors.conflict('contract_invalid_transition', 'This proposal was already decided');
     const [row] = await this.db
       .update(clauseProposals)
       .set({ status: 'rejected', decidedByUserId: ctx.user.id, decidedAt: new Date() })
       .where(eq(clauseProposals.id, p.id))
       .returning();
-    await this.audit.fromCtx(ctx, 'contract.clause_proposal_rejected', { type: 'contract', id: contractId }, { proposalId: p.id });
+    await this.audit.fromCtx(
+      ctx,
+      'contract.clause_proposal_rejected',
+      { type: 'contract', id: contractId },
+      { proposalId: p.id },
+    );
     return this.toDto(row!);
   }
 }

@@ -22,6 +22,7 @@ COPY packages/shared ./packages/shared
 COPY apps/api/tsconfig.json ./apps/api/tsconfig.json
 COPY apps/api/src ./apps/api/src
 COPY apps/api/drizzle ./apps/api/drizzle
+COPY apps/api/assets ./apps/api/assets
 
 # 3. Chromium for PDF report exports (fonts are embedded by the app, so none are installed).
 USER root

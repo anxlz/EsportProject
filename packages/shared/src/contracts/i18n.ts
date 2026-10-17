@@ -211,9 +211,12 @@ export const cl = (locale: ContractLocale) => CONTRACT_LABELS[locale];
 /** "12 months", "1 month 15 days" / "12 شهرًا"… Arabic number agreement for months and days. */
 export function formatDuration(months: number, days: number, locale: ContractLocale): string {
   const part = (n: number, unit: 'm' | 'd') => {
-    if (locale === 'en') return `${n} ${unit === 'm' ? (n === 1 ? 'month' : 'months') : n === 1 ? 'day' : 'days'}`;
+    if (locale === 'en')
+      return `${n} ${unit === 'm' ? (n === 1 ? 'month' : 'months') : n === 1 ? 'day' : 'days'}`;
     const [one, two, few, many] =
-      unit === 'm' ? ['شهر واحد', 'شهران', 'أشهر', 'شهرًا'] : ['يوم واحد', 'يومان', 'أيام', 'يومًا'];
+      unit === 'm'
+        ? ['شهر واحد', 'شهران', 'أشهر', 'شهرًا']
+        : ['يوم واحد', 'يومان', 'أيام', 'يومًا'];
     if (n === 1) return one;
     if (n === 2) return two;
     if (n >= 3 && n <= 10) return `${n} ${few}`;

@@ -82,6 +82,62 @@
   --font-sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
 }
 
+/*
+ * The Saudi riyal sign (U+20C1, Unicode 17) isn't in IBM Plex yet. A one-glyph OFL font fills
+ * just that code point for both families (see public/fonts/saudi-riyal/README.md). Weights match
+ * the @fontsource faces exactly (400/500/600) so browsers combine them into one family. Amounts only
+ * switch from "SAR" to the sign once this font has loaded (lib/riyal.ts), so a missing font
+ * shows "SAR", never a broken character.
+ */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+  src: url('/fonts/saudi-riyal/saudi-riyal-regular.woff2') format('woff2');
+  unicode-range: U+20C1;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-weight: 500;
+  font-style: normal;
+  font-display: block;
+  src: url('/fonts/saudi-riyal/saudi-riyal-regular.woff2') format('woff2');
+  unicode-range: U+20C1;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+  src: url('/fonts/saudi-riyal/saudi-riyal-bold.woff2') format('woff2');
+  unicode-range: U+20C1;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+  src: url('/fonts/saudi-riyal/saudi-riyal-regular.woff2') format('woff2');
+  unicode-range: U+20C1;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-weight: 500;
+  font-style: normal;
+  font-display: block;
+  src: url('/fonts/saudi-riyal/saudi-riyal-regular.woff2') format('woff2');
+  unicode-range: U+20C1;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+  src: url('/fonts/saudi-riyal/saudi-riyal-bold.woff2') format('woff2');
+  unicode-range: U+20C1;
+}
+
 html {
   background: var(--bg);
   color: var(--ink);

@@ -8,6 +8,7 @@ import { Button, cx, EmptyState, ErrorBanner, PageHeader, Section, Spinner } fro
 import { api, apiPost } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useAction } from '@/lib/mutation';
+import { useRiyalSign } from '@/lib/riyal';
 
 export default function NotificationsPage() {
   const t = useTranslations('notifications');
@@ -21,6 +22,7 @@ export default function NotificationsPage() {
   const readOne = useAction((id: string) => apiPost(`/notifications/${id}/read`), { invalidate });
 
   const fl = locale === 'ar' ? 'ar' : 'en';
+  const riyalSign = useRiyalSign();
   /** Budget alerts carry raw amounts and a category key; format them for the reader. */
   const values = (n: NotificationDto): Record<string, string> => {
     const d = n.data as Record<string, string | null>;
@@ -28,8 +30,8 @@ export default function NotificationsPage() {
     const c = d.currency ?? 'USD';
     return {
       budgetName: d.budgetName ?? '',
-      actual: formatMoney(d.actual ?? '0', c, fl),
-      planned: formatMoney(d.planned ?? '0', c, fl),
+      actual: formatMoney(d.actual ?? '0', c, fl, { riyalSign }),
+      planned: formatMoney(d.planned ?? '0', c, fl, { riyalSign }),
       line: d.category
         ? t('budgetLine', { category: categoryLabel(fl, d.category) })
         : t('budgetTotal'),

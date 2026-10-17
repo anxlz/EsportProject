@@ -44,14 +44,20 @@ export class ContractsController {
   /** Views: all, drafts, approvals (pending), approved, signed (Phase 4). */
   @Get()
   @RequireOrg()
-  list(@TenantCtx() ctx: TenantContext, @ZodQuery(contractListQuerySchema) q: z.infer<typeof contractListQuerySchema>) {
+  list(
+    @TenantCtx() ctx: TenantContext,
+    @ZodQuery(contractListQuerySchema) q: z.infer<typeof contractListQuerySchema>,
+  ) {
     requireAny(ctx, SEE);
     return this.contracts.list(ctx, q);
   }
 
   @Post()
   @RequirePermission('contracts.create')
-  create(@TenantCtx() ctx: TenantContext, @ZodBody(contractCreateSchema) body: ContractCreateInput) {
+  create(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(contractCreateSchema) body: ContractCreateInput,
+  ) {
     return this.contracts.create(ctx, body);
   }
 
@@ -65,14 +71,22 @@ export class ContractsController {
   /** Saves the draft as a new version (no new version when nothing changed). */
   @Put(':id')
   @RequireOrg()
-  save(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @ZodBody(contractSaveSchema) body: ContractSaveInput) {
+  save(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @ZodBody(contractSaveSchema) body: ContractSaveInput,
+  ) {
     requireAny(ctx, ['contracts.create', 'contracts.edit']);
     return this.contracts.save(ctx, id, body);
   }
 
   @Get(':id/versions/:version')
   @RequireOrg()
-  version(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @Param('version') version: string) {
+  version(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @Param('version') version: string,
+  ) {
     requireAny(ctx, SEE);
     return this.contracts.version(ctx, id, z.coerce.number().int().min(1).parse(version));
   }
@@ -92,24 +106,44 @@ export class ContractsController {
   /** PDF of the current (or given) version; drafts carry a "not approved" watermark. */
   @Get(':id/document.pdf')
   @RequirePermission('contracts.export')
-  async document(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @ZodQuery(versionQuery) q: z.infer<typeof versionQuery>) {
-    const { pdf, filename } = await renderGuard(() => this.contracts.documentPdf(ctx, id, q.version));
-    return new StreamableFile(pdf, { type: 'application/pdf', disposition: `attachment; filename="${asciiFilename(filename)}"` });
+  async document(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @ZodQuery(versionQuery) q: z.infer<typeof versionQuery>,
+  ) {
+    const { pdf, filename } = await renderGuard(() =>
+      this.contracts.documentPdf(ctx, id, q.version),
+    );
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${asciiFilename(filename)}"`,
+    });
   }
 
   /** The stamped document exactly as stored at approval. */
   @Get(':id/approved.pdf')
   @RequirePermission('contracts.export')
-  async approved(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @Res({ passthrough: true }) res: Response) {
+  async approved(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { pdf, filename, sha256 } = await this.contracts.approvedPdf(ctx, id);
     res.set('X-Document-SHA256', sha256);
-    return new StreamableFile(pdf, { type: 'application/pdf', disposition: `attachment; filename="${asciiFilename(filename)}"` });
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${asciiFilename(filename)}"`,
+    });
   }
 
   @Post(':id/submit')
   @HttpCode(200)
   @RequireOrg()
-  submit(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @ZodBody(contractSubmitSchema) body: z.infer<typeof contractSubmitSchema>) {
+  submit(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @ZodBody(contractSubmitSchema) body: z.infer<typeof contractSubmitSchema>,
+  ) {
     requireAny(ctx, ['contracts.create', 'contracts.edit']);
     return this.contracts.submit(ctx, id, body.note);
   }
@@ -133,7 +167,11 @@ export class ContractsController {
   @Post(':id/approve')
   @HttpCode(200)
   @RequirePermission('contracts.approve')
-  approve(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @ZodBody(approvalDecisionSchema) body: z.infer<typeof approvalDecisionSchema>) {
+  approve(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @ZodBody(approvalDecisionSchema) body: z.infer<typeof approvalDecisionSchema>,
+  ) {
     return this.contracts.approve(ctx, id, body.comment);
   }
 
@@ -141,7 +179,11 @@ export class ContractsController {
   @Post(':id/reject')
   @HttpCode(200)
   @RequirePermission('contracts.approve')
-  reject(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @ZodBody(rejectionSchema) body: z.infer<typeof rejectionSchema>) {
+  reject(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @ZodBody(rejectionSchema) body: z.infer<typeof rejectionSchema>,
+  ) {
     return this.contracts.reject(ctx, id, body.reason);
   }
 
@@ -157,7 +199,11 @@ export class ContractsController {
   /** Drafts (or revises) a clause. Proposal only: the contract is not changed. */
   @Post(':id/proposals')
   @RequireOrg()
-  propose(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @ZodBody(clauseProposalRequestSchema) body: ClauseProposalRequest) {
+  propose(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @ZodBody(clauseProposalRequestSchema) body: ClauseProposalRequest,
+  ) {
     requireAny(ctx, ['contracts.create', 'contracts.edit']);
     return this.assistant.propose(ctx, id, body);
   }
@@ -179,7 +225,11 @@ export class ContractsController {
   @Post(':id/proposals/:proposalId/reject')
   @HttpCode(200)
   @RequireOrg()
-  rejectProposal(@TenantCtx() ctx: TenantContext, @Param('id', UuidPipe) id: string, @Param('proposalId', UuidPipe) proposalId: string) {
+  rejectProposal(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @Param('proposalId', UuidPipe) proposalId: string,
+  ) {
     requireAny(ctx, ['contracts.create', 'contracts.edit']);
     return this.assistant.reject(ctx, id, proposalId);
   }

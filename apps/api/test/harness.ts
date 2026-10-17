@@ -76,7 +76,9 @@ export async function startApp(
   if (opts.clock) builder = builder.overrideProvider(CLOCK).useValue(opts.clock);
   if (opts.ai) builder = builder.overrideProvider(AI_PROVIDER).useValue(opts.ai);
   const moduleRef = await builder.compile();
-  const app = moduleRef.createNestApplication({ logger: process.env.TEST_LOGS ? ['error', 'warn'] : false });
+  const app = moduleRef.createNestApplication({
+    logger: process.env.TEST_LOGS ? ['error', 'warn'] : false,
+  });
   configureApp(app, env);
   await app.listen(0, '127.0.0.1');
   const address = app.getHttpServer().address() as { port: number };

@@ -19,14 +19,30 @@ import { sha256Hex } from '../versioning/versioning.service';
 
 /** Detects the real type from the first bytes. */
 export function sniffContentType(data: Buffer): string | null {
-  if (data.length >= 8 && data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
-  if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) return 'image/jpeg';
-  if (data.length >= 12 && data.subarray(0, 4).toString('latin1') === 'RIFF' && data.subarray(8, 12).toString('latin1') === 'WEBP') return 'image/webp';
-  if (data.length >= 5 && data.subarray(0, 5).toString('latin1') === '%PDF-') return 'application/pdf';
+  if (
+    data.length >= 8 &&
+    data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  )
+    return 'image/png';
+  if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff)
+    return 'image/jpeg';
+  if (
+    data.length >= 12 &&
+    data.subarray(0, 4).toString('latin1') === 'RIFF' &&
+    data.subarray(8, 12).toString('latin1') === 'WEBP'
+  )
+    return 'image/webp';
+  if (data.length >= 5 && data.subarray(0, 5).toString('latin1') === '%PDF-')
+    return 'application/pdf';
   return null;
 }
 
-const toDto = (f: Pick<typeof storedFiles.$inferSelect, 'id' | 'kind' | 'contentType' | 'sizeBytes' | 'sha256' | 'createdAt'>): StoredFileDto => ({
+const toDto = (
+  f: Pick<
+    typeof storedFiles.$inferSelect,
+    'id' | 'kind' | 'contentType' | 'sizeBytes' | 'sha256' | 'createdAt'
+  >,
+): StoredFileDto => ({
   id: f.id,
   kind: f.kind,
   contentType: f.contentType,
@@ -40,30 +56,64 @@ export class FilesService {
   constructor(@Inject(DB) private readonly db: Database) {}
 
   /** Validates and stores an upload of one of the user-facing kinds. */
-  async upload(organizationId: string, userId: string, kind: FileKind, data: Buffer, declaredType: string | undefined): Promise<StoredFileDto> {
+  async upload(
+    organizationId: string,
+    userId: string,
+    kind: FileKind,
+    data: Buffer,
+    declaredType: string | undefined,
+  ): Promise<StoredFileDto> {
     const limit = FILE_LIMITS[kind];
     if (!data.length) throw Errors.badRequest('validation_failed', 'Empty file');
-    if (data.length > limit.maxBytes) throw new AppError('file_too_large', 413, `Files of this kind can be at most ${Math.round(limit.maxBytes / 1048576)} MB`);
+    if (data.length > limit.maxBytes)
+      throw new AppError(
+        'file_too_large',
+        413,
+        `Files of this kind can be at most ${Math.round(limit.maxBytes / 1048576)} MB`,
+      );
     const actual = sniffContentType(data);
-    if (!actual || !limit.types.includes(actual) || (declaredType && declaredType.split(';')[0]!.trim() !== actual)) {
+    if (
+      !actual ||
+      !limit.types.includes(actual) ||
+      (declaredType && declaredType.split(';')[0]!.trim() !== actual)
+    ) {
       throw new AppError('unsupported_file_type', 415, `Accepted: ${limit.types.join(', ')}`);
     }
     // Backgrounds are composited with pdf-lib, which reads PNG, JPEG and PDF (not WebP).
-    if (kind === 'background' && actual === 'image/webp') throw new AppError('unsupported_file_type', 415, 'Backgrounds must be PNG, JPEG or PDF');
+    if (kind === 'background' && actual === 'image/webp')
+      throw new AppError('unsupported_file_type', 415, 'Backgrounds must be PNG, JPEG or PDF');
     return this.put(this.db, organizationId, userId, kind, actual, data);
   }
 
   /** Stores bytes the platform produced itself (e.g. an approved contract PDF). */
-  async put(db: DbOrTx, organizationId: string, userId: string | null, kind: string, contentType: string, data: Buffer): Promise<StoredFileDto> {
+  async put(
+    db: DbOrTx,
+    organizationId: string,
+    userId: string | null,
+    kind: string,
+    contentType: string,
+    data: Buffer,
+  ): Promise<StoredFileDto> {
     const [row] = await db
       .insert(storedFiles)
-      .values({ organizationId, kind, contentType, sizeBytes: data.length, sha256: sha256Hex(data), data, createdByUserId: userId })
+      .values({
+        organizationId,
+        kind,
+        contentType,
+        sizeBytes: data.length,
+        sha256: sha256Hex(data),
+        data,
+        createdByUserId: userId,
+      })
       .returning();
     return toDto(row!);
   }
 
   async get(organizationId: string, id: string, db: DbOrTx = this.db) {
-    const [row] = await db.select().from(storedFiles).where(and(eq(storedFiles.id, id), eq(storedFiles.organizationId, organizationId)));
+    const [row] = await db
+      .select()
+      .from(storedFiles)
+      .where(and(eq(storedFiles.id, id), eq(storedFiles.organizationId, organizationId)));
     return row ?? null;
   }
 
@@ -73,7 +123,8 @@ export class FilesService {
       .select({ id: storedFiles.id, kind: storedFiles.kind, contentType: storedFiles.contentType })
       .from(storedFiles)
       .where(and(eq(storedFiles.id, id), eq(storedFiles.organizationId, organizationId)));
-    if (!row || !kinds.includes(row.kind)) throw Errors.badRequest('validation_failed', 'Unknown file');
+    if (!row || !kinds.includes(row.kind))
+      throw Errors.badRequest('validation_failed', 'Unknown file');
     return row;
   }
 }

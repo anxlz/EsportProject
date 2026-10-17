@@ -4,7 +4,8 @@ Multi-tenant platform for running esports organizations: people, custom roles wi
 department scoping, teams and games (Phase 1), followed by accounting and investment analysis,
 contracts with approvals and e-signatures, bilingual AI assistants, meetings and integrations.
 
-**Status: Phase 2 (Accounting & Investment Analysis) complete.** See
+**Status: Phase 3 (Contract Builder & Approval) complete.** See
+[`docs/PHASE-3-SUMMARY.md`](docs/PHASE-3-SUMMARY.md),
 [`docs/PHASE-2-SUMMARY.md`](docs/PHASE-2-SUMMARY.md) and
 [`docs/PHASE-1-SUMMARY.md`](docs/PHASE-1-SUMMARY.md) for what was built and what's deferred,
 [`DECISIONS.md`](DECISIONS.md) for technical decisions and open questions, and
@@ -19,10 +20,15 @@ apps/api         NestJS 12 on Bun. REST API, auth, authorization, all business l
   src/db           Drizzle schema, migration runner     drizzle/  SQL migrations
   src/finance      Ledger, exchange rates, budgets + alerts, reports, exports (PDF/CSV/XLSX/TXT)
   src/rosters      Team rosters and pay terms         src/tournaments  Tournament research
+  src/contracts    Contract types/templates, document setup, drafting, approval, clause assistant
+  src/versioning   Append-only version history        src/files  File store (Postgres)
+  src/pdf          Shared PDF engine (Chromium + pdf-lib underlay)   src/ai  AI provider interface
+  assets/fonts     Saudi riyal sign font (OFL), embedded in PDFs
   test/            Integration tests (real Postgres + Redis) and unit tests
 apps/web         Next.js 16 dashboard, Arabic/English with right-to-left support
 packages/shared  Permission catalog, request schemas, response types (used by both apps)
   src/finance      Money math, payroll projection, the report engine and export table model
+  src/contracts    Contract schemas, labels, default clause templates, merge fields
 docs/            Phase summaries and the generated permission matrix
 ```
 
@@ -75,9 +81,10 @@ bun run typecheck       # all workspaces
 bun run test            # shared + API integration tests + web catalog tests
 ```
 
-API tests need Postgres and Redis. The PDF export test also needs Chromium (the bundled
+API tests need Postgres and Redis. The PDF tests also need Chromium (the bundled
 `@sparticuz/chromium` is used unless `CHROMIUM_EXECUTABLE_PATH` points to one) and `pdftotext` /
-`pdffonts` from poppler-utils. They default to
+`pdffonts` / `pdfimages` from poppler-utils. Tests never call the Anthropic API (a fake provider is
+injected). Set `TEST_LOGS=1` to see API error logs while debugging a test. They default to
 `postgres://postgres:devpass@127.0.0.1:5432/esports_test` and `redis://127.0.0.1:6379/1`; override
 with `TEST_DATABASE_URL` / `TEST_REDIS_URL`. **They truncate that database**, so never point them at
 real data. CI (`.github/workflows/ci.yml`) runs all of the above plus the web build.
@@ -102,10 +109,12 @@ Production checklist:
 4. `TRUST_PROXY_HOPS` matches the real number of proxies; check the audit log shows real client
    IPs after the first sign-in.
 5. `ORG_SIGNUP_ENABLED=false` once your own organization exists, unless you want public signup.
-6. Exchange rates: the Frankfurter terms are reviewed (or `FX_PROVIDER=none`), and the API can
-   reach `FX_PROVIDER_URL`.
+6. Exchange rates: the API can reach `FX_PROVIDER_URL` (Frankfurter, approved for commercial use).
 7. The API image includes Chromium for PDF exports (the Dockerfile installs it); try one PDF
    download after deploying.
+8. Optional: `ANTHROPIC_API_KEY` for the Custom Clause Assistant (the assistant shows "not
+   configured" without it).
+9. Have counsel review the default contract templates before using them for real contracts.
 
 The browser only talks to the web origin; Next.js forwards `/api/*` to the API, which keeps the
 session cookie first-party. Don't expose the API's own URL to users.

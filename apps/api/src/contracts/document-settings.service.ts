@@ -37,9 +37,15 @@ export class DocumentSettingsService {
   ) {}
 
   async get(organizationId: string, db: DbOrTx = this.db): Promise<DocumentSettingsDto> {
-    const [org] = await db.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, organizationId));
+    const [org] = await db
+      .select({ name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId));
     if (!org) throw Errors.notFound('Organization');
-    const [row] = await db.select().from(documentSettings).where(eq(documentSettings.organizationId, organizationId));
+    const [row] = await db
+      .select()
+      .from(documentSettings)
+      .where(eq(documentSettings.organizationId, organizationId));
     const base: DocumentSettingsDto = {
       organizationName: org.name,
       legalNameEn: null,
@@ -73,20 +79,34 @@ export class DocumentSettingsService {
     };
     if (!row) return base;
     const { organizationId: _o, updatedAt: _u, updatedByUserId: _b, ...rest } = row;
-    return { ...base, ...(rest as Omit<DocumentSettingsDto, 'organizationName'>), organizationName: org.name };
+    return {
+      ...base,
+      ...(rest as Omit<DocumentSettingsDto, 'organizationName'>),
+      organizationName: org.name,
+    };
   }
 
   /** Saves the layout and letterhead. A file must be an upload of the matching kind. */
   async update(ctx: TenantContext, input: DocumentSettingsInput): Promise<DocumentSettingsDto> {
     const before = await this.get(ctx.organizationId);
-    if (input.logoFileId) await this.files.requireOfKind(this.db, ctx.organizationId, input.logoFileId, ['logo']);
+    if (input.logoFileId)
+      await this.files.requireOfKind(this.db, ctx.organizationId, input.logoFileId, ['logo']);
     if (input.backgroundKind === 'none') input.backgroundFileId = null;
     else {
-      if (!input.backgroundFileId) throw Errors.badRequest('validation_failed', 'Choose a background file');
-      const f = await this.files.requireOfKind(this.db, ctx.organizationId, input.backgroundFileId, ['background']);
+      if (!input.backgroundFileId)
+        throw Errors.badRequest('validation_failed', 'Choose a background file');
+      const f = await this.files.requireOfKind(
+        this.db,
+        ctx.organizationId,
+        input.backgroundFileId,
+        ['background'],
+      );
       const isPdf = f.contentType === 'application/pdf';
       if ((input.backgroundKind === 'pdf') !== isPdf) {
-        throw Errors.badRequest('validation_failed', 'The background file does not match the background type');
+        throw Errors.badRequest(
+          'validation_failed',
+          'The background file does not match the background type',
+        );
       }
     }
     const values = {
@@ -123,16 +143,23 @@ export class DocumentSettingsService {
         .insert(documentSettings)
         .values({ organizationId: ctx.organizationId, ...values })
         .onConflictDoUpdate({ target: documentSettings.organizationId, set: values });
-      await this.audit.fromCtx(ctx, 'document_settings.updated', { type: 'organization', id: ctx.organizationId }, {
-        changes: diff(before, { ...before, ...values }),
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'document_settings.updated',
+        { type: 'organization', id: ctx.organizationId },
+        {
+          changes: diff(before, { ...before, ...values }),
+        },
+        tx,
+      );
     });
     return this.get(ctx.organizationId);
   }
 
   async updateStamp(ctx: TenantContext, input: StampSettingsInput): Promise<DocumentSettingsDto> {
     const before = await this.get(ctx.organizationId);
-    if (input.stampFileId) await this.files.requireOfKind(this.db, ctx.organizationId, input.stampFileId, ['stamp']);
+    if (input.stampFileId)
+      await this.files.requireOfKind(this.db, ctx.organizationId, input.stampFileId, ['stamp']);
     const values = {
       stampFileId: input.stampFileId ?? null,
       stampPosition: input.stampPosition,
@@ -145,9 +172,15 @@ export class DocumentSettingsService {
         .insert(documentSettings)
         .values({ organizationId: ctx.organizationId, ...values })
         .onConflictDoUpdate({ target: documentSettings.organizationId, set: values });
-      await this.audit.fromCtx(ctx, 'approval_stamp.updated', { type: 'organization', id: ctx.organizationId }, {
-        changes: diff(before, { ...before, ...values }),
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'approval_stamp.updated',
+        { type: 'organization', id: ctx.organizationId },
+        {
+          changes: diff(before, { ...before, ...values }),
+        },
+        tx,
+      );
     });
     return this.get(ctx.organizationId);
   }

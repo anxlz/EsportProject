@@ -39,7 +39,10 @@ export class ContractSettingsController {
 
   @Put('document')
   @RequirePermission('contracts.manage_templates')
-  update(@TenantCtx() ctx: TenantContext, @ZodBody(documentSettingsSchema) body: DocumentSettingsInput) {
+  update(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(documentSettingsSchema) body: DocumentSettingsInput,
+  ) {
     return this.settings.update(ctx, body);
   }
 
@@ -53,16 +56,28 @@ export class ContractSettingsController {
   /** A sample contract in the current layout (HTML for the live preview). */
   @Get('sample.html')
   @RequireOrg()
-  async sampleHtml(@TenantCtx() ctx: TenantContext, @ZodQuery(sampleQuery) q: z.infer<typeof sampleQuery>, @Res() res: Response) {
+  async sampleHtml(
+    @TenantCtx() ctx: TenantContext,
+    @ZodQuery(sampleQuery) q: z.infer<typeof sampleQuery>,
+    @Res() res: Response,
+  ) {
     requireAny(ctx, ['contracts.manage_templates', 'org.settings.edit_sensitive']);
     sendPreviewHtml(res, await this.contracts.sampleHtml(ctx, q.language, q.approved === '1'));
   }
 
   @Get('sample.pdf')
   @RequireOrg()
-  async samplePdf(@TenantCtx() ctx: TenantContext, @ZodQuery(sampleQuery) q: z.infer<typeof sampleQuery>) {
+  async samplePdf(
+    @TenantCtx() ctx: TenantContext,
+    @ZodQuery(sampleQuery) q: z.infer<typeof sampleQuery>,
+  ) {
     requireAny(ctx, ['contracts.manage_templates', 'org.settings.edit_sensitive']);
-    const pdf = await renderGuard(() => this.contracts.samplePdf(ctx, q.language, q.approved === '1'));
-    return new StreamableFile(pdf, { type: 'application/pdf', disposition: 'inline; filename="sample-contract.pdf"' });
+    const pdf = await renderGuard(() =>
+      this.contracts.samplePdf(ctx, q.language, q.approved === '1'),
+    );
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: 'inline; filename="sample-contract.pdf"',
+    });
   }
 }

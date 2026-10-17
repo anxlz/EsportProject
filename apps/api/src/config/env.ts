@@ -110,7 +110,9 @@ export type Env = z.infer<typeof envSchema> & {
 
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
   // `KEY=` in a .env file means "not set" (so optional values fall back to their defaults).
-  const cleaned = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== undefined && v.trim() !== ''));
+  const cleaned = Object.fromEntries(
+    Object.entries(source).filter(([, v]) => v !== undefined && v.trim() !== ''),
+  );
   const parsed = envSchema.safeParse(cleaned);
   if (!parsed.success) {
     const issues = parsed.error.issues

@@ -292,7 +292,11 @@ describe('finance settings and seasons', () => {
   test('new organizations report in SAR, with SAR and USD enabled', async () => {
     const { client: owner } = await registerOwner(t);
     const s = await owner.get('/finance/settings');
-    expect(s.body).toMatchObject({ baseCurrency: 'SAR', enabledCurrencies: ['SAR', 'USD'], baseCurrencyLocked: false });
+    expect(s.body).toMatchObject({
+      baseCurrency: 'SAR',
+      enabledCurrencies: ['SAR', 'USD'],
+      baseCurrencyLocked: false,
+    });
   });
 
   test('the reporting currency locks once records exist; the base is always enabled', async () => {

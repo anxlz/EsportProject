@@ -13,6 +13,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
 import { api, ApiError } from './api';
+import { useRiyalSign } from './riyal';
 import { useCan } from './session';
 
 export function useFinanceLocale(): FinanceLocale {
@@ -24,11 +25,17 @@ export function useFinanceLabels() {
   return fl(useFinanceLocale());
 }
 
-/** Formats an amount exactly as the exports do ("USD 1,250.00", Western digits). */
+/**
+ * Formats an amount exactly as the PDF exports do ("USD 1,250.00", "⃁ 1,250.00", Western
+ * digits). The riyal sign appears once its font is confirmed loaded; until then, "SAR".
+ */
 export function useMoney() {
   const locale = useFinanceLocale();
+  const riyalSign = useRiyalSign();
   return (amount: string | null | undefined, currency: string) =>
-    amount === null || amount === undefined ? '' : formatMoney(amount, currency, locale);
+    amount === null || amount === undefined
+      ? ''
+      : formatMoney(amount, currency, locale, { riyalSign });
 }
 
 export function useFinanceSettings() {

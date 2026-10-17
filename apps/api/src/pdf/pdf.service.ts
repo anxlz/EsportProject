@@ -1,6 +1,7 @@
 /**
  * One PDF engine for the whole platform: HTML printed by headless Chromium with IBM Plex Sans /
  * Plex Sans Arabic embedded (so Arabic shapes correctly and output is identical on any server),
+ * plus a one-glyph font for the Saudi riyal sign U+20C1, which IBM Plex doesn't cover yet,
  * plus an optional full-page underlay (a PNG/JPEG image or the first page of a PDF) composited
  * beneath every page with pdf-lib. Used by finance reports (Phase 2) and contracts (Phase 3).
  *
@@ -22,21 +23,58 @@ function fontFace(pkg: string, file: string, family: string, weight: number, ran
   return `@font-face{font-family:'${family}';font-weight:${weight};font-style:normal;font-display:block;src:url(data:font/woff2;base64,${data}) format('woff2');${range ? `unicode-range:${range};` : ''}}`;
 }
 
+/** The bundled riyal-sign font (OFL, see assets/fonts/saudi-riyal/README.md), U+20C1 only. */
+export const RIYAL_FONT_FILES = {
+  400: new URL('../../assets/fonts/saudi-riyal/saudi-riyal-regular.woff2', import.meta.url),
+  600: new URL('../../assets/fonts/saudi-riyal/saudi-riyal-bold.woff2', import.meta.url),
+} as const;
+
+function riyalFace(weight: 400 | 600) {
+  const data = readFileSync(RIYAL_FONT_FILES[weight]).toString('base64');
+  return `@font-face{font-family:'Plex';font-weight:${weight};font-style:normal;font-display:block;src:url(data:font/woff2;base64,${data}) format('woff2');unicode-range:U+20C1;}`;
+}
+
 const ARABIC_RANGE =
   'U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC';
 const LATIN_EXT_RANGE =
   'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF';
 
 let fontCss: string | null = null;
-/** @font-face rules for family 'Plex' (Latin + Arabic, 400 and 600), inlined. */
+/** @font-face rules for family 'Plex' (Latin + Arabic + the riyal sign, 400 and 600), inlined. */
 export function pdfFonts(): string {
   fontCss ??= [
     fontFace('@fontsource/ibm-plex-sans', 'ibm-plex-sans-latin-400-normal.woff2', 'Plex', 400),
     fontFace('@fontsource/ibm-plex-sans', 'ibm-plex-sans-latin-600-normal.woff2', 'Plex', 600),
-    fontFace('@fontsource/ibm-plex-sans', 'ibm-plex-sans-latin-ext-400-normal.woff2', 'Plex', 400, LATIN_EXT_RANGE),
-    fontFace('@fontsource/ibm-plex-sans', 'ibm-plex-sans-latin-ext-600-normal.woff2', 'Plex', 600, LATIN_EXT_RANGE),
-    fontFace('@fontsource/ibm-plex-sans-arabic', 'ibm-plex-sans-arabic-arabic-400-normal.woff2', 'Plex', 400, ARABIC_RANGE),
-    fontFace('@fontsource/ibm-plex-sans-arabic', 'ibm-plex-sans-arabic-arabic-600-normal.woff2', 'Plex', 600, ARABIC_RANGE),
+    fontFace(
+      '@fontsource/ibm-plex-sans',
+      'ibm-plex-sans-latin-ext-400-normal.woff2',
+      'Plex',
+      400,
+      LATIN_EXT_RANGE,
+    ),
+    fontFace(
+      '@fontsource/ibm-plex-sans',
+      'ibm-plex-sans-latin-ext-600-normal.woff2',
+      'Plex',
+      600,
+      LATIN_EXT_RANGE,
+    ),
+    fontFace(
+      '@fontsource/ibm-plex-sans-arabic',
+      'ibm-plex-sans-arabic-arabic-400-normal.woff2',
+      'Plex',
+      400,
+      ARABIC_RANGE,
+    ),
+    fontFace(
+      '@fontsource/ibm-plex-sans-arabic',
+      'ibm-plex-sans-arabic-arabic-600-normal.woff2',
+      'Plex',
+      600,
+      ARABIC_RANGE,
+    ),
+    riyalFace(400),
+    riyalFace(600),
   ].join('');
   return fontCss;
 }
@@ -128,7 +166,9 @@ export class PdfService implements OnModuleDestroy {
       draw = (p) => p.drawPage(bg!, { x: 0, y: 0, width: A4.width, height: A4.height });
     } else {
       const img =
-        underlay.contentType === 'image/png' ? await out.embedPng(underlay.data) : await out.embedJpg(underlay.data);
+        underlay.contentType === 'image/png'
+          ? await out.embedPng(underlay.data)
+          : await out.embedJpg(underlay.data);
       draw = (p) => p.drawImage(img, { x: 0, y: 0, width: A4.width, height: A4.height });
     }
     for (const content of pages) {
@@ -142,6 +182,11 @@ export class PdfService implements OnModuleDestroy {
   async onModuleDestroy() {
     const b = this.browser;
     this.browser = null;
-    if (b) await (await b.catch(() => null))?.close().catch((e: unknown) => this.log.warn(`Closing browser failed: ${String(e)}`));
+    if (b)
+      await (
+        await b.catch(() => null)
+      )
+        ?.close()
+        .catch((e: unknown) => this.log.warn(`Closing browser failed: ${String(e)}`));
   }
 }

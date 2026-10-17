@@ -7,7 +7,8 @@ import { AppError } from '../common/errors';
  * served with a policy that forbids scripts, network access and framing by other sites, and the
  * dashboard shows them in a sandboxed iframe.
  */
-export const PREVIEW_CSP = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; frame-ancestors 'self'; sandbox";
+export const PREVIEW_CSP =
+  "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; frame-ancestors 'self'; sandbox";
 
 export function sendPreviewHtml(res: Response, html: string) {
   res
@@ -31,7 +32,11 @@ export async function renderGuard<T>(fn: () => Promise<T>): Promise<T> {
   } catch (err) {
     if (err instanceof AppError) throw err;
     log.error(`Contract PDF failed: ${err instanceof Error ? err.message : String(err)}`);
-    throw new AppError('export_failed', 500, 'The document could not be generated. Please try again.');
+    throw new AppError(
+      'export_failed',
+      500,
+      'The document could not be generated. Please try again.',
+    );
   }
 }
 

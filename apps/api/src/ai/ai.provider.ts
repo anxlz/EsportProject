@@ -44,7 +44,10 @@ export class AnthropicProvider implements AiProvider {
   private readonly logger = new Logger('AnthropicProvider');
 
   constructor(
-    private readonly env: Pick<Env, 'ANTHROPIC_API_KEY' | 'ANTHROPIC_MODEL' | 'ANTHROPIC_API_URL' | 'ANTHROPIC_TIMEOUT_MS'>,
+    private readonly env: Pick<
+      Env,
+      'ANTHROPIC_API_KEY' | 'ANTHROPIC_MODEL' | 'ANTHROPIC_API_URL' | 'ANTHROPIC_TIMEOUT_MS'
+    >,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
@@ -75,18 +78,30 @@ export class AnthropicProvider implements AiProvider {
       this.logger.warn(`Request failed: ${(e as Error).name}`);
       throw unavailable('The assistant could not be reached. Try again in a moment.');
     }
-    const body = (await res.json().catch(() => null)) as
-      | { content?: { type: string; text?: string }[]; stop_reason?: string; model?: string; error?: { type?: string }; request_id?: string }
-      | null;
+    const body = (await res.json().catch(() => null)) as {
+      content?: { type: string; text?: string }[];
+      stop_reason?: string;
+      model?: string;
+      error?: { type?: string };
+      request_id?: string;
+    } | null;
     if (!res.ok) {
       // Never log the key or the prompt; the status, error type and request id are enough.
-      this.logger.warn(`Anthropic API ${res.status} ${body?.error?.type ?? ''} ${body?.request_id ?? res.headers.get('request-id') ?? ''}`.trim());
-      if (res.status === 401 || res.status === 403) throw unavailable('The assistant is misconfigured (API key rejected). Ask the Owner to check ANTHROPIC_API_KEY.');
-      if (res.status === 429 || res.status === 529) throw unavailable('The assistant is busy. Try again in a moment.');
+      this.logger.warn(
+        `Anthropic API ${res.status} ${body?.error?.type ?? ''} ${body?.request_id ?? res.headers.get('request-id') ?? ''}`.trim(),
+      );
+      if (res.status === 401 || res.status === 403)
+        throw unavailable(
+          'The assistant is misconfigured (API key rejected). Ask the Owner to check ANTHROPIC_API_KEY.',
+        );
+      if (res.status === 429 || res.status === 529)
+        throw unavailable('The assistant is busy. Try again in a moment.');
       throw unavailable('The assistant returned an error.');
     }
-    if (body?.stop_reason === 'refusal') throw unavailable('The assistant declined this request. Rephrase what the clause should do.');
-    if (body?.stop_reason === 'max_tokens') throw unavailable('The assistant ran out of space. Try a narrower request.');
+    if (body?.stop_reason === 'refusal')
+      throw unavailable('The assistant declined this request. Rephrase what the clause should do.');
+    if (body?.stop_reason === 'max_tokens')
+      throw unavailable('The assistant ran out of space. Try a narrower request.');
     const text = body?.content?.find((b) => b.type === 'text')?.text;
     if (!text) throw unavailable('The assistant returned no proposal.');
     try {
@@ -103,7 +118,13 @@ export class UnconfiguredProvider implements AiProvider {
   readonly model = null;
   readonly configured = false;
   generateJson(): Promise<AiJsonResult> {
-    return Promise.reject(new AppError('ai_not_configured', 503, 'The AI assistant is not configured (ANTHROPIC_API_KEY is not set).'));
+    return Promise.reject(
+      new AppError(
+        'ai_not_configured',
+        503,
+        'The AI assistant is not configured (ANTHROPIC_API_KEY is not set).',
+      ),
+    );
   }
 }
 

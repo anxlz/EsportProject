@@ -47,14 +47,31 @@ import { AuditService } from '../audit/audit.service';
 import { AppError, Errors } from '../common/errors';
 import { DB, type Database, type DbOrTx } from '../db/client';
 import { games, organizations, teams, users } from '../db/schema';
-import { approvalRequests, contracts, contractCounters, contractTypes, storedFiles } from '../db/schema-contracts';
+import {
+  approvalRequests,
+  contracts,
+  contractCounters,
+  contractTypes,
+  storedFiles,
+} from '../db/schema-contracts';
 import { rosterMembers } from '../db/schema-finance';
 import { FilesService } from '../files/files.service';
 import { coversRecord, loadTeamRef } from '../finance/scope';
 import { NotificationService } from '../notifications/notification.service';
 import { PdfService } from '../pdf/pdf.service';
-import { canonicalJson, sha256Hex, VersioningService, type VersionRecord } from '../versioning/versioning.service';
-import { type ApprovalInfo, contractHtml, contractMargins, PAGE_NUMBER_FOOTER, type RenderInput } from './contract-document';
+import {
+  canonicalJson,
+  sha256Hex,
+  VersioningService,
+  type VersionRecord,
+} from '../versioning/versioning.service';
+import {
+  type ApprovalInfo,
+  contractHtml,
+  contractMargins,
+  PAGE_NUMBER_FOOTER,
+  type RenderInput,
+} from './contract-document';
 import { ContractTypesService } from './contract-types.service';
 import { DocumentSettingsService } from './document-settings.service';
 import { renderGuard } from './http';
@@ -108,24 +125,37 @@ export class ContractsService {
   // ---------------------------------------------------------------- permissions
 
   canSee(access: Access, team: TeamRef | null) {
-    return coversRecord(access, 'contracts.view', team) || coversRecord(access, 'contracts.approve', team);
+    return (
+      coversRecord(access, 'contracts.view', team) ||
+      coversRecord(access, 'contracts.approve', team)
+    );
   }
 
   canEdit(ctx: TenantContext, c: LoadedContract) {
     return (
       coversRecord(ctx.access, 'contracts.edit', c.team) ||
-      (coversRecord(ctx.access, 'contracts.create', c.team) && c.row.createdByUserId === ctx.user.id)
+      (coversRecord(ctx.access, 'contracts.create', c.team) &&
+        c.row.createdByUserId === ctx.user.id)
     );
   }
 
-  canDecide(ctx: TenantContext, team: TeamRef | null, request: Pick<RequestRow, 'requestedByUserId'>) {
+  canDecide(
+    ctx: TenantContext,
+    team: TeamRef | null,
+    request: Pick<RequestRow, 'requestedByUserId'>,
+  ) {
     if (!coversRecord(ctx.access, 'contracts.approve', team)) return false;
     return request.requestedByUserId !== ctx.user.id || ctx.access.isOwner;
   }
 
   // ---------------------------------------------------------------- loading
 
-  private async loadRow(db: DbOrTx, organizationId: string, id: string, lock = false): Promise<LoadedContract | null> {
+  private async loadRow(
+    db: DbOrTx,
+    organizationId: string,
+    id: string,
+    lock = false,
+  ): Promise<LoadedContract | null> {
     // Row lock first, on the contract alone (Postgres won't take FOR UPDATE OF a
     // schema-qualified name, and the team row needn't be locked).
     if (lock) {
@@ -143,25 +173,43 @@ export class ContractsService {
     if (!r) return null;
     return {
       row: r.c,
-      team: r.c.teamId ? { id: r.c.teamId, departmentId: r.teamDepartmentId, name: r.teamName ?? '' } : null,
+      team: r.c.teamId
+        ? { id: r.c.teamId, departmentId: r.teamDepartmentId, name: r.teamName ?? '' }
+        : null,
     };
   }
 
   /** The contract if the caller may see it; otherwise "not found" (no existence leak). */
-  async loadVisible(ctx: TenantContext, id: string, db: DbOrTx = this.db, lock = false): Promise<LoadedContract> {
+  async loadVisible(
+    ctx: TenantContext,
+    id: string,
+    db: DbOrTx = this.db,
+    lock = false,
+  ): Promise<LoadedContract> {
     const c = await this.loadRow(db, ctx.organizationId, id, lock);
     if (!c || !this.canSee(ctx.access, c.team)) throw Errors.notFound('Contract');
     return c;
   }
 
   private async latest(organizationId: string, contractId: string, db: DbOrTx = this.db) {
-    const v = await this.versions.get<ContractSnapshot>(organizationId, CONTRACT_ENTITY, contractId, undefined, db);
+    const v = await this.versions.get<ContractSnapshot>(
+      organizationId,
+      CONTRACT_ENTITY,
+      contractId,
+      undefined,
+      db,
+    );
     if (!v) throw new AppError('internal_error', 500, 'Contract has no versions');
     return v;
   }
 
   private mergeContext(s: DocumentSettingsDto, number: string): MergeContext {
-    return { organizationName: s.organizationName, legalNameEn: s.legalNameEn, legalNameAr: s.legalNameAr, contractNumber: number };
+    return {
+      organizationName: s.organizationName,
+      legalNameEn: s.legalNameEn,
+      legalNameAr: s.legalNameAr,
+      contractNumber: number,
+    };
   }
 
   // ---------------------------------------------------------------- creation
@@ -194,8 +242,15 @@ export class ContractsService {
       const [rm] = await db
         .select({ id: rosterMembers.id })
         .from(rosterMembers)
-        .where(and(eq(rosterMembers.id, rosterMemberId), eq(rosterMembers.organizationId, organizationId), eq(rosterMembers.teamId, team.id)));
-      if (!rm) throw Errors.badRequest('validation_failed', 'That roster member is not on this team');
+        .where(
+          and(
+            eq(rosterMembers.id, rosterMemberId),
+            eq(rosterMembers.organizationId, organizationId),
+            eq(rosterMembers.teamId, team.id),
+          ),
+        );
+      if (!rm)
+        throw Errors.badRequest('validation_failed', 'That roster member is not on this team');
     }
     let gameName: string | null = null;
     if (details.gameId) {
@@ -222,21 +277,35 @@ export class ContractsService {
   async create(ctx: TenantContext, input: ContractCreateInput): Promise<ContractDto> {
     await this.types.ensureDefaults(ctx);
     const type = await this.types.load(this.db, ctx.organizationId, input.contractTypeId);
-    if (type.archivedAt) throw Errors.badRequest('validation_failed', 'This contract type is archived');
+    if (type.archivedAt)
+      throw Errors.badRequest('validation_failed', 'This contract type is archived');
     const team = await loadTeamRef(this.db, ctx.organizationId, input.teamId);
     if (!coversRecord(ctx.access, 'contracts.create', team)) throw Errors.forbidden();
-    if (input.rosterMemberId && !team) throw Errors.badRequest('validation_failed', 'A roster member needs a team');
+    if (input.rosterMemberId && !team)
+      throw Errors.badRequest('validation_failed', 'A roster member needs a team');
 
     const settings = await this.settings.get(ctx.organizationId);
-    const [org] = await this.db.select({ base: organizations.baseCurrency }).from(organizations).where(eq(organizations.id, ctx.organizationId));
-    const [teamRow] = team ? await this.db.select({ gameId: teams.gameId }).from(teams).where(eq(teams.id, team.id)) : [];
+    const [org] = await this.db
+      .select({ base: organizations.baseCurrency })
+      .from(organizations)
+      .where(eq(organizations.id, ctx.organizationId));
+    const [teamRow] = team
+      ? await this.db.select({ gameId: teams.gameId }).from(teams).where(eq(teams.id, team.id))
+      : [];
     const [rm] = input.rosterMemberId
       ? await this.db
           .select()
           .from(rosterMembers)
-          .where(and(eq(rosterMembers.id, input.rosterMemberId), eq(rosterMembers.organizationId, ctx.organizationId), eq(rosterMembers.teamId, team!.id)))
+          .where(
+            and(
+              eq(rosterMembers.id, input.rosterMemberId),
+              eq(rosterMembers.organizationId, ctx.organizationId),
+              eq(rosterMembers.teamId, team!.id),
+            ),
+          )
       : [];
-    if (input.rosterMemberId && !rm) throw Errors.badRequest('validation_failed', 'That roster member is not on this team');
+    if (input.rosterMemberId && !rm)
+      throw Errors.badRequest('validation_failed', 'That roster member is not on this team');
 
     const kind: RecipientKind = rm
       ? (ROSTER_KIND[rm.role as RosterRole] ?? 'other')
@@ -272,7 +341,15 @@ export class ContractsService {
     }));
 
     const id = await this.db.transaction(async (tx) => {
-      const snapshot = await this.buildSnapshot(tx, ctx.organizationId, type, team, rm?.id ?? null, details, clauses);
+      const snapshot = await this.buildSnapshot(
+        tx,
+        ctx.organizationId,
+        type,
+        team,
+        rm?.id ?? null,
+        details,
+        clauses,
+      );
       const number = await this.nextNumber(tx, ctx.organizationId, new Date());
       const [row] = await tx
         .insert(contracts)
@@ -299,14 +376,20 @@ export class ContractsService {
         userId: ctx.user.id,
         note: null,
       });
-      await this.audit.fromCtx(ctx, 'contract.created', { type: 'contract', id: row!.id }, {
-        number,
-        contractTypeId: type.id,
-        teamId: team?.id ?? null,
-        rosterMemberId: rm?.id ?? null,
-        version: v.version,
-        versionSha256: v.sha256,
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'contract.created',
+        { type: 'contract', id: row!.id },
+        {
+          number,
+          contractTypeId: type.id,
+          teamId: team?.id ?? null,
+          rosterMemberId: rm?.id ?? null,
+          version: v.version,
+          versionSha256: v.sha256,
+        },
+        tx,
+      );
       return row!.id;
     });
     return this.get(ctx, id);
@@ -319,12 +402,19 @@ export class ContractsService {
    * excluded, and a clause's origin (template / custom / assistant) and required flag are taken
    * from the stored version, never from the request. New clauses are custom and optional.
    */
-  async save(ctx: TenantContext, id: string, input: ContractSaveInput): Promise<ContractDto & { unchanged?: boolean }> {
+  async save(
+    ctx: TenantContext,
+    id: string,
+    input: ContractSaveInput,
+  ): Promise<ContractDto & { unchanged?: boolean }> {
     const result = await this.db.transaction(async (tx) => {
       const c = await this.loadVisible(ctx, id, tx, true);
       if (!this.canEdit(ctx, c)) throw Errors.forbidden();
       if (!EDITABLE_STATUSES.includes(c.row.status as ContractStatus)) {
-        throw Errors.conflict('contract_not_editable', 'Only drafts and contracts with requested changes can be edited');
+        throw Errors.conflict(
+          'contract_not_editable',
+          'Only drafts and contracts with requested changes can be edited',
+        );
       }
       const team = await loadTeamRef(tx, ctx.organizationId, input.teamId);
       // Moving a contract to another team (or to none) needs the same right there too.
@@ -364,13 +454,19 @@ export class ContractsService {
           updatedAt: new Date(),
         })
         .where(eq(contracts.id, id));
-      await this.audit.fromCtx(ctx, 'contract.saved', { type: 'contract', id }, {
-        number: c.row.number,
-        version: v.version,
-        versionSha256: v.sha256,
-        changed: changedParts(prev.snapshot, snapshot),
-        note: input.note ?? null,
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'contract.saved',
+        { type: 'contract', id },
+        {
+          number: c.row.number,
+          version: v.version,
+          versionSha256: v.sha256,
+          changed: changedParts(prev.snapshot, snapshot),
+          note: input.note ?? null,
+        },
+        tx,
+      );
       return { unchanged: false };
     });
     const dto = await this.get(ctx, id);
@@ -388,9 +484,16 @@ export class ContractsService {
   ) {
     const c = await this.loadVisible(ctx, id, tx, true);
     if (!this.canEdit(ctx, c)) throw Errors.forbidden();
-    if (!EDITABLE_STATUSES.includes(c.row.status as ContractStatus)) throw Errors.conflict('contract_not_editable');
+    if (!EDITABLE_STATUSES.includes(c.row.status as ContractStatus))
+      throw Errors.conflict('contract_not_editable');
     const prev = await this.latest(ctx.organizationId, id, tx);
-    const added: ContractClause = { ...clause, id: randomUUID(), templateClauseId: null, required: false, included: true };
+    const added: ContractClause = {
+      ...clause,
+      id: randomUUID(),
+      templateClauseId: null,
+      required: false,
+      included: true,
+    };
     const clauses = [...prev.snapshot.clauses];
     const at = beforeClauseId ? clauses.findIndex((x) => x.id === beforeClauseId) : -1;
     if (beforeClauseId && at < 0) throw Errors.badRequest('validation_failed', 'Unknown clause');
@@ -413,17 +516,27 @@ export class ContractsService {
 
   // ---------------------------------------------------------------- workflow
 
-  async submit(ctx: TenantContext, id: string, note: string | null | undefined): Promise<ContractDto> {
+  async submit(
+    ctx: TenantContext,
+    id: string,
+    note: string | null | undefined,
+  ): Promise<ContractDto> {
     const settings = await this.settings.get(ctx.organizationId);
     const { team, number } = await this.db.transaction(async (tx) => {
       const c = await this.loadVisible(ctx, id, tx, true);
       if (!this.canEdit(ctx, c)) throw Errors.forbidden();
       if (!EDITABLE_STATUSES.includes(c.row.status as ContractStatus)) {
-        throw Errors.conflict('contract_invalid_transition', 'This contract cannot be submitted in its current state');
+        throw Errors.conflict(
+          'contract_invalid_transition',
+          'This contract cannot be submitted in its current state',
+        );
       }
       const v = await this.latest(ctx.organizationId, id, tx);
       const missing = completenessIssues(v.snapshot, this.mergeContext(settings, c.row.number));
-      if (missing.length) throw new AppError('contract_incomplete', 400, 'Some details are still missing', { missing });
+      if (missing.length)
+        throw new AppError('contract_incomplete', 400, 'Some details are still missing', {
+          missing,
+        });
       if (c.row.status === 'changes_requested') {
         const [last] = await tx
           .select({ version: approvalRequests.version })
@@ -432,7 +545,10 @@ export class ContractsService {
           .orderBy(desc(approvalRequests.requestedAt))
           .limit(1);
         if (last && last.version === v.version) {
-          throw Errors.conflict('no_changes_since_rejection', 'Revise the contract before submitting it again');
+          throw Errors.conflict(
+            'no_changes_since_rejection',
+            'Revise the contract before submitting it again',
+          );
         }
       }
       const [req] = await tx
@@ -447,14 +563,23 @@ export class ContractsService {
           requestedByUserId: ctx.user.id,
         })
         .returning({ id: approvalRequests.id });
-      await tx.update(contracts).set({ status: 'pending_approval', updatedAt: new Date() }).where(eq(contracts.id, id));
-      await this.audit.fromCtx(ctx, 'contract.submitted', { type: 'contract', id }, {
-        number: c.row.number,
-        requestId: req!.id,
-        version: v.version,
-        versionSha256: v.sha256,
-        resubmission: c.row.status === 'changes_requested',
-      }, tx);
+      await tx
+        .update(contracts)
+        .set({ status: 'pending_approval', updatedAt: new Date() })
+        .where(eq(contracts.id, id));
+      await this.audit.fromCtx(
+        ctx,
+        'contract.submitted',
+        { type: 'contract', id },
+        {
+          number: c.row.number,
+          requestId: req!.id,
+          version: v.version,
+          versionSha256: v.sha256,
+          resubmission: c.row.status === 'changes_requested',
+        },
+        tx,
+      );
       return { team: c.team, number: c.row.number };
     });
     await this.notifications.notifyPermissionHolders({
@@ -473,9 +598,13 @@ export class ContractsService {
     await this.db.transaction(async (tx) => {
       const c = await this.loadVisible(ctx, id, tx, true);
       const req = await this.pendingRequest(tx, id);
-      if (c.row.status !== 'pending_approval' || !req) throw Errors.conflict('contract_invalid_transition');
+      if (c.row.status !== 'pending_approval' || !req)
+        throw Errors.conflict('contract_invalid_transition');
       if (!this.canEdit(ctx, c) && req.requestedByUserId !== ctx.user.id) throw Errors.forbidden();
-      await tx.update(approvalRequests).set({ status: 'withdrawn', decidedAt: new Date(), decidedByUserId: ctx.user.id }).where(eq(approvalRequests.id, req.id));
+      await tx
+        .update(approvalRequests)
+        .set({ status: 'withdrawn', decidedAt: new Date(), decidedByUserId: ctx.user.id })
+        .where(eq(approvalRequests.id, req.id));
       const rejectedBefore = await tx
         .select({ id: approvalRequests.id })
         .from(approvalRequests)
@@ -483,9 +612,18 @@ export class ContractsService {
         .limit(1);
       await tx
         .update(contracts)
-        .set({ status: rejectedBefore.length ? 'changes_requested' : 'draft', updatedAt: new Date() })
+        .set({
+          status: rejectedBefore.length ? 'changes_requested' : 'draft',
+          updatedAt: new Date(),
+        })
         .where(eq(contracts.id, id));
-      await this.audit.fromCtx(ctx, 'contract.withdrawn', { type: 'contract', id }, { number: c.row.number, requestId: req.id, version: req.version }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'contract.withdrawn',
+        { type: 'contract', id },
+        { number: c.row.number, requestId: req.id, version: req.version },
+        tx,
+      );
     });
     return this.get(ctx, id);
   }
@@ -495,10 +633,22 @@ export class ContractsService {
       const c = await this.loadVisible(ctx, id, tx, true);
       if (!this.canEdit(ctx, c)) throw Errors.forbidden();
       if (!EDITABLE_STATUSES.includes(c.row.status as ContractStatus)) {
-        throw Errors.conflict('contract_invalid_transition', 'Withdraw the approval request first; approved contracts are final');
+        throw Errors.conflict(
+          'contract_invalid_transition',
+          'Withdraw the approval request first; approved contracts are final',
+        );
       }
-      await tx.update(contracts).set({ status: 'cancelled', updatedByUserId: ctx.user.id, updatedAt: new Date() }).where(eq(contracts.id, id));
-      await this.audit.fromCtx(ctx, 'contract.cancelled', { type: 'contract', id }, { number: c.row.number, version: c.row.currentVersion }, tx);
+      await tx
+        .update(contracts)
+        .set({ status: 'cancelled', updatedByUserId: ctx.user.id, updatedAt: new Date() })
+        .where(eq(contracts.id, id));
+      await this.audit.fromCtx(
+        ctx,
+        'contract.cancelled',
+        { type: 'contract', id },
+        { number: c.row.number, version: c.row.currentVersion },
+        tx,
+      );
     });
     return this.get(ctx, id);
   }
@@ -507,7 +657,9 @@ export class ContractsService {
     const [r] = await db
       .select()
       .from(approvalRequests)
-      .where(and(eq(approvalRequests.contractId, contractId), eq(approvalRequests.status, 'pending')));
+      .where(
+        and(eq(approvalRequests.contractId, contractId), eq(approvalRequests.status, 'pending')),
+      );
     return r ?? null;
   }
 
@@ -515,30 +667,62 @@ export class ContractsService {
   private async decisionTarget(ctx: TenantContext, db: DbOrTx, id: string, lock: boolean) {
     const c = await this.loadVisible(ctx, id, db, lock);
     const req = await this.pendingRequest(db, id);
-    if (c.row.status !== 'pending_approval' || !req) throw Errors.conflict('contract_invalid_transition', 'There is no pending approval request');
+    if (c.row.status !== 'pending_approval' || !req)
+      throw Errors.conflict('contract_invalid_transition', 'There is no pending approval request');
     if (!coversRecord(ctx.access, 'contracts.approve', c.team)) throw Errors.forbidden();
     if (!this.canDecide(ctx, c.team, req)) {
-      throw new AppError('self_approval_not_allowed', 403, 'Someone else with approval rights must decide on your own request');
+      throw new AppError(
+        'self_approval_not_allowed',
+        403,
+        'Someone else with approval rights must decide on your own request',
+      );
     }
     return { c, req };
   }
 
-  async approve(ctx: TenantContext, id: string, comment: string | null | undefined): Promise<ContractDto> {
+  async approve(
+    ctx: TenantContext,
+    id: string,
+    comment: string | null | undefined,
+  ): Promise<ContractDto> {
     // Render outside the transaction (Chromium is slow); re-check everything before committing.
     const { c, req } = await this.decisionTarget(ctx, this.db, id, false);
-    const version = await this.versions.get<ContractSnapshot>(ctx.organizationId, CONTRACT_ENTITY, id, req.version);
-    if (!version || version.id !== req.versionId) throw new AppError('internal_error', 500, 'Submitted version not found');
+    const version = await this.versions.get<ContractSnapshot>(
+      ctx.organizationId,
+      CONTRACT_ENTITY,
+      id,
+      req.version,
+    );
+    if (!version || version.id !== req.versionId)
+      throw new AppError('internal_error', 500, 'Submitted version not found');
     const approvedAt = new Date();
-    const approval: ApprovalInfo = { approverName: ctx.user.displayName, approvedAt, version: version.version, sha256: version.sha256 };
-    const pdf = await renderGuard(() => this.renderPdf(ctx.organizationId, c.row.number, version.snapshot, approval));
+    const approval: ApprovalInfo = {
+      approverName: ctx.user.displayName,
+      approvedAt,
+      version: version.version,
+      sha256: version.sha256,
+    };
+    const pdf = await renderGuard(() =>
+      this.renderPdf(ctx.organizationId, c.row.number, version.snapshot, approval),
+    );
     const selfApproved = req.requestedByUserId === ctx.user.id;
 
     const doc = await this.db.transaction(async (tx) => {
       const again = await this.decisionTarget(ctx, tx, id, true);
       if (again.req.id !== req.id || again.c.row.currentVersion !== c.row.currentVersion) {
-        throw Errors.conflict('contract_invalid_transition', 'The request changed while it was being approved; reload and try again');
+        throw Errors.conflict(
+          'contract_invalid_transition',
+          'The request changed while it was being approved; reload and try again',
+        );
       }
-      const file = await this.files.put(tx, ctx.organizationId, ctx.user.id, APPROVED_DOCUMENT_KIND, 'application/pdf', pdf);
+      const file = await this.files.put(
+        tx,
+        ctx.organizationId,
+        ctx.user.id,
+        APPROVED_DOCUMENT_KIND,
+        'application/pdf',
+        pdf,
+      );
       await tx
         .update(approvalRequests)
         .set({
@@ -553,25 +737,42 @@ export class ContractsService {
         .where(eq(approvalRequests.id, req.id));
       await tx
         .update(contracts)
-        .set({ status: 'approved', approvedAt, approvedByUserId: ctx.user.id, approvedRequestId: req.id, updatedAt: approvedAt })
+        .set({
+          status: 'approved',
+          approvedAt,
+          approvedByUserId: ctx.user.id,
+          approvedRequestId: req.id,
+          updatedAt: approvedAt,
+        })
         .where(eq(contracts.id, id));
-      await this.audit.fromCtx(ctx, 'contract.approved', { type: 'contract', id }, {
-        number: c.row.number,
-        requestId: req.id,
-        version: version.version,
-        versionSha256: version.sha256,
-        documentFileId: file.id,
-        documentSha256: file.sha256,
-        selfApproved,
-        comment: comment ?? null,
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'contract.approved',
+        { type: 'contract', id },
+        {
+          number: c.row.number,
+          requestId: req.id,
+          version: version.version,
+          versionSha256: version.sha256,
+          documentFileId: file.id,
+          documentSha256: file.sha256,
+          selfApproved,
+          comment: comment ?? null,
+        },
+        tx,
+      );
       return file;
     });
     await this.notifications.notify({
       organizationId: ctx.organizationId,
       recipientUserIds: [req.requestedByUserId].filter((u) => u !== ctx.user.id),
       type: 'contract.approved',
-      data: { contractId: id, number: c.row.number, approvedBy: ctx.user.displayName, version: version.version },
+      data: {
+        contractId: id,
+        number: c.row.number,
+        approvedBy: ctx.user.displayName,
+        version: version.version,
+      },
       link: `/dashboard/contracts/${id}`,
     });
     this.logger.log(`Approved ${c.row.number} v${version.version} (${doc.sha256.slice(0, 12)})`);
@@ -580,21 +781,37 @@ export class ContractsService {
 
   async reject(ctx: TenantContext, id: string, reason: string): Promise<ContractDto> {
     const trimmed = reason.trim();
-    if (trimmed.length < 3) throw Errors.validation([{ path: ['reason'], message: 'reason_required' }]);
+    if (trimmed.length < 3)
+      throw Errors.validation([{ path: ['reason'], message: 'reason_required' }]);
     const { number, requester, version } = await this.db.transaction(async (tx) => {
       const { c, req } = await this.decisionTarget(ctx, tx, id, true);
       const now = new Date();
       await tx
         .update(approvalRequests)
-        .set({ status: 'rejected', decidedByUserId: ctx.user.id, decidedAt: now, comment: trimmed, selfApproved: req.requestedByUserId === ctx.user.id })
+        .set({
+          status: 'rejected',
+          decidedByUserId: ctx.user.id,
+          decidedAt: now,
+          comment: trimmed,
+          selfApproved: req.requestedByUserId === ctx.user.id,
+        })
         .where(eq(approvalRequests.id, req.id));
-      await tx.update(contracts).set({ status: 'changes_requested', updatedAt: now }).where(eq(contracts.id, id));
-      await this.audit.fromCtx(ctx, 'contract.rejected', { type: 'contract', id }, {
-        number: c.row.number,
-        requestId: req.id,
-        version: req.version,
-        reason: trimmed,
-      }, tx);
+      await tx
+        .update(contracts)
+        .set({ status: 'changes_requested', updatedAt: now })
+        .where(eq(contracts.id, id));
+      await this.audit.fromCtx(
+        ctx,
+        'contract.rejected',
+        { type: 'contract', id },
+        {
+          number: c.row.number,
+          requestId: req.id,
+          version: req.version,
+          reason: trimmed,
+        },
+        tx,
+      );
       return { number: c.row.number, requester: req.requestedByUserId, version: req.version };
     });
     await this.notifications.notify({
@@ -618,16 +835,38 @@ export class ContractsService {
   ): Promise<{ input: RenderInput; underlay: { data: Buffer; contentType: string } | null }> {
     const s = await this.settings.get(organizationId);
     const { assets, background } = await this.settings.assets(organizationId, s);
-    return { input: { snapshot, contractNumber: number, settings: s, assets, approval, mode, background }, underlay: background };
+    return {
+      input: { snapshot, contractNumber: number, settings: s, assets, approval, mode, background },
+      underlay: background,
+    };
   }
 
-  async renderPdf(organizationId: string, number: string, snapshot: ContractSnapshot, approval: ApprovalInfo | null): Promise<Buffer> {
-    const { input, underlay } = await this.renderInput(organizationId, number, snapshot, approval, 'print');
-    return this.pdf.render(contractHtml(input), { margin: contractMargins(input), footerTemplate: PAGE_NUMBER_FOOTER, underlay });
+  async renderPdf(
+    organizationId: string,
+    number: string,
+    snapshot: ContractSnapshot,
+    approval: ApprovalInfo | null,
+  ): Promise<Buffer> {
+    const { input, underlay } = await this.renderInput(
+      organizationId,
+      number,
+      snapshot,
+      approval,
+      'print',
+    );
+    return this.pdf.render(contractHtml(input), {
+      margin: contractMargins(input),
+      footerTemplate: PAGE_NUMBER_FOOTER,
+      underlay,
+    });
   }
 
   /** Approval details for a version that was approved (so its preview carries the stamp). */
-  private async approvalFor(organizationId: string, contractId: string, version: VersionRecord<ContractSnapshot>): Promise<ApprovalInfo | null> {
+  private async approvalFor(
+    organizationId: string,
+    contractId: string,
+    version: VersionRecord<ContractSnapshot>,
+  ): Promise<ApprovalInfo | null> {
     const decider = alias(users, 'decider');
     const [r] = await this.db
       .select({ decidedAt: approvalRequests.decidedAt, name: decider.displayName })
@@ -641,11 +880,23 @@ export class ContractsService {
           eq(approvalRequests.status, 'approved'),
         ),
       );
-    return r?.decidedAt ? { approverName: r.name ?? '', approvedAt: r.decidedAt, version: version.version, sha256: version.sha256 } : null;
+    return r?.decidedAt
+      ? {
+          approverName: r.name ?? '',
+          approvedAt: r.decidedAt,
+          version: version.version,
+          sha256: version.sha256,
+        }
+      : null;
   }
 
   private async versionOrLatest(ctx: TenantContext, id: string, version?: number) {
-    const v = await this.versions.get<ContractSnapshot>(ctx.organizationId, CONTRACT_ENTITY, id, version);
+    const v = await this.versions.get<ContractSnapshot>(
+      ctx.organizationId,
+      CONTRACT_ENTITY,
+      id,
+      version,
+    );
     if (!v) throw Errors.notFound('Version');
     return v;
   }
@@ -654,54 +905,102 @@ export class ContractsService {
     const c = await this.loadVisible(ctx, id);
     const v = await this.versionOrLatest(ctx, id, version);
     const approval = await this.approvalFor(ctx.organizationId, id, v);
-    const { input } = await this.renderInput(ctx.organizationId, c.row.number, v.snapshot, approval, 'screen');
+    const { input } = await this.renderInput(
+      ctx.organizationId,
+      c.row.number,
+      v.snapshot,
+      approval,
+      'screen',
+    );
     return contractHtml(input);
   }
 
   /** PDF of any version (watermarked unless that version was approved). */
-  async documentPdf(ctx: TenantContext, id: string, version?: number): Promise<{ pdf: Buffer; filename: string }> {
+  async documentPdf(
+    ctx: TenantContext,
+    id: string,
+    version?: number,
+  ): Promise<{ pdf: Buffer; filename: string }> {
     const c = await this.loadVisible(ctx, id);
     if (!coversRecord(ctx.access, 'contracts.export', c.team)) throw Errors.forbidden();
     const v = await this.versionOrLatest(ctx, id, version);
     const approval = await this.approvalFor(ctx.organizationId, id, v);
     const pdf = await this.renderPdf(ctx.organizationId, c.row.number, v.snapshot, approval);
-    await this.audit.fromCtx(ctx, 'contract.exported', { type: 'contract', id }, { number: c.row.number, version: v.version, kind: approval ? 'approved_render' : 'draft' });
+    await this.audit.fromCtx(
+      ctx,
+      'contract.exported',
+      { type: 'contract', id },
+      { number: c.row.number, version: v.version, kind: approval ? 'approved_render' : 'draft' },
+    );
     return { pdf, filename: `${c.row.number}-v${v.version}${approval ? '' : '-draft'}.pdf` };
   }
 
   /** The stamped PDF exactly as stored at approval, after checking its hash. */
-  async approvedPdf(ctx: TenantContext, id: string): Promise<{ pdf: Buffer; filename: string; sha256: string }> {
+  async approvedPdf(
+    ctx: TenantContext,
+    id: string,
+  ): Promise<{ pdf: Buffer; filename: string; sha256: string }> {
     const c = await this.loadVisible(ctx, id);
     if (!coversRecord(ctx.access, 'contracts.export', c.team)) throw Errors.forbidden();
-    if (c.row.status !== 'approved' || !c.row.approvedRequestId) throw Errors.notFound('Approved document');
-    const [r] = await this.db.select().from(approvalRequests).where(eq(approvalRequests.id, c.row.approvedRequestId));
+    if (c.row.status !== 'approved' || !c.row.approvedRequestId)
+      throw Errors.notFound('Approved document');
+    const [r] = await this.db
+      .select()
+      .from(approvalRequests)
+      .where(eq(approvalRequests.id, c.row.approvedRequestId));
     const f = r?.documentFileId ? await this.files.get(ctx.organizationId, r.documentFileId) : null;
     if (!r || !f) throw Errors.notFound('Approved document');
     if (sha256Hex(f.data) !== r.documentSha256) {
       this.logger.error(`Integrity check failed for ${c.row.number} (file ${f.id})`);
       throw new AppError('internal_error', 500, 'The stored document failed its integrity check');
     }
-    await this.audit.fromCtx(ctx, 'contract.exported', { type: 'contract', id }, { number: c.row.number, version: r.version, kind: 'approved', sha256: r.documentSha256 });
-    return { pdf: f.data, filename: `${c.row.number}-v${r.version}-approved.pdf`, sha256: r.documentSha256! };
+    await this.audit.fromCtx(
+      ctx,
+      'contract.exported',
+      { type: 'contract', id },
+      { number: c.row.number, version: r.version, kind: 'approved', sha256: r.documentSha256 },
+    );
+    return {
+      pdf: f.data,
+      filename: `${c.row.number}-v${r.version}-approved.pdf`,
+      sha256: r.documentSha256!,
+    };
   }
 
   /** Sample contract for the document-settings preview (no stored contract involved). */
   async samplePdf(ctx: TenantContext, language: 'bilingual' | 'ar' | 'en', approved: boolean) {
     const snapshot = await this.sampleSnapshot(ctx, language);
-    return this.renderPdf(ctx.organizationId, 'CT-0000-0000', snapshot, approved ? sampleApproval(ctx) : null);
+    return this.renderPdf(
+      ctx.organizationId,
+      'CT-0000-0000',
+      snapshot,
+      approved ? sampleApproval(ctx) : null,
+    );
   }
 
   async sampleHtml(ctx: TenantContext, language: 'bilingual' | 'ar' | 'en', approved: boolean) {
     const snapshot = await this.sampleSnapshot(ctx, language);
-    const { input } = await this.renderInput(ctx.organizationId, 'CT-0000-0000', snapshot, approved ? sampleApproval(ctx) : null, 'screen');
+    const { input } = await this.renderInput(
+      ctx.organizationId,
+      'CT-0000-0000',
+      snapshot,
+      approved ? sampleApproval(ctx) : null,
+      'screen',
+    );
     return contractHtml(input);
   }
 
-  private async sampleSnapshot(ctx: TenantContext, language: 'bilingual' | 'ar' | 'en'): Promise<ContractSnapshot> {
+  private async sampleSnapshot(
+    ctx: TenantContext,
+    language: 'bilingual' | 'ar' | 'en',
+  ): Promise<ContractSnapshot> {
     const list = await this.types.list(ctx);
     const type = list.find((t) => t.key === 'player') ?? list[0]!;
     const clauses = (await this.types.clauses(ctx.organizationId, type.id)).slice(0, 4);
-    const [org] = await this.db.select({ base: organizations.baseCurrency }).from(organizations).where(eq(organizations.id, ctx.organizationId));
+    const [org] = await this.db
+      .select({ base: organizations.baseCurrency })
+      .from(organizations)
+      .where(eq(organizations.id, ctx.organizationId));
     return {
       contractTypeId: type.id,
       typeNameEn: type.nameEn,
@@ -718,7 +1017,12 @@ export class ContractsService {
         endDate: '2026-12-31',
         compensation: { amount: '10000', currency: org?.base ?? 'SAR', frequency: 'monthly' },
       }),
-      clauses: clauses.map(({ position: _p, ...c }) => ({ ...c, templateClauseId: c.id, source: 'template' as const, included: true })),
+      clauses: clauses.map(({ position: _p, ...c }) => ({
+        ...c,
+        templateClauseId: c.id,
+        source: 'template' as const,
+        included: true,
+      })),
     };
   }
 
@@ -726,11 +1030,20 @@ export class ContractsService {
 
   async list(
     ctx: TenantContext,
-    q: { view: 'all' | 'drafts' | 'approvals' | 'approved' | 'signed'; teamId?: string; status?: string; q?: string; limit: number },
+    q: {
+      view: 'all' | 'drafts' | 'approvals' | 'approved' | 'signed';
+      teamId?: string;
+      status?: string;
+      q?: string;
+      limit: number;
+    },
   ): Promise<ContractSummaryDto[]> {
     // Signatures arrive in Phase 4; nothing is signed yet.
     if (q.view === 'signed') return [];
-    const conds: (SQL | undefined)[] = [eq(contracts.organizationId, ctx.organizationId), visibleCondition(ctx.access)];
+    const conds: (SQL | undefined)[] = [
+      eq(contracts.organizationId, ctx.organizationId),
+      visibleCondition(ctx.access),
+    ];
     if (q.view === 'drafts') conds.push(inArray(contracts.status, ['draft', 'changes_requested']));
     if (q.view === 'approvals') conds.push(eq(contracts.status, 'pending_approval'));
     if (q.view === 'approved') conds.push(eq(contracts.status, 'approved'));
@@ -739,7 +1052,13 @@ export class ContractsService {
     else if (q.teamId) conds.push(eq(contracts.teamId, q.teamId));
     if (q.q) {
       const like = `%${q.q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
-      conds.push(or(ilike(contracts.number, like), ilike(contracts.title, like), ilike(contracts.recipientName, like)));
+      conds.push(
+        or(
+          ilike(contracts.number, like),
+          ilike(contracts.title, like),
+          ilike(contracts.recipientName, like),
+        ),
+      );
     }
     const rows = await this.summaryQuery()
       .where(and(...conds))
@@ -765,7 +1084,10 @@ export class ContractsService {
       .leftJoin(teams, eq(teams.id, contracts.teamId))
       .innerJoin(contractTypes, eq(contractTypes.id, contracts.contractTypeId))
       .leftJoin(creator, eq(creator.id, contracts.createdByUserId))
-      .leftJoin(approvalRequests, and(eq(approvalRequests.contractId, contracts.id), eq(approvalRequests.status, 'pending')));
+      .leftJoin(
+        approvalRequests,
+        and(eq(approvalRequests.contractId, contracts.id), eq(approvalRequests.status, 'pending')),
+      );
   }
 
   private toSummary(
@@ -796,7 +1118,9 @@ export class ContractsService {
       currentVersion: r.c.currentVersion,
       pendingRequestId: r.pendingId,
       canDecide: !!r.pendingId && this.canDecide(ctx, team, { requestedByUserId: r.pendingBy! }),
-      createdBy: r.c.createdByUserId ? { id: r.c.createdByUserId, displayName: r.creatorName ?? '' } : null,
+      createdBy: r.c.createdByUserId
+        ? { id: r.c.createdByUserId, displayName: r.creatorName ?? '' }
+        : null,
       updatedAt: r.c.updatedAt.toISOString(),
       approvedAt: r.c.approvedAt?.toISOString() ?? null,
     };
@@ -806,7 +1130,11 @@ export class ContractsService {
     const c = await this.loadVisible(ctx, id);
     const [summaryRow] = await this.summaryQuery().where(eq(contracts.id, id));
     const summary = this.toSummary(ctx, summaryRow!);
-    const history = await this.versions.list<ContractSnapshot>(ctx.organizationId, CONTRACT_ENTITY, id);
+    const history = await this.versions.list<ContractSnapshot>(
+      ctx.organizationId,
+      CONTRACT_ENTITY,
+      id,
+    );
     const current = history.at(-1)!;
     const settings = await this.settings.get(ctx.organizationId);
     const requests = await this.requests(ctx.organizationId, id, c.row.number, c.row.title);
@@ -817,7 +1145,13 @@ export class ContractsService {
       .filter((x) => x.source === 'template')
       .filter((x) => {
         const o = original.get(x.id);
-        return !o || o.titleEn !== x.titleEn || o.titleAr !== x.titleAr || o.bodyEn !== x.bodyEn || o.bodyAr !== x.bodyAr;
+        return (
+          !o ||
+          o.titleEn !== x.titleEn ||
+          o.titleAr !== x.titleAr ||
+          o.bodyEn !== x.bodyEn ||
+          o.bodyAr !== x.bodyAr
+        );
       })
       .map((x) => x.id);
 
@@ -839,7 +1173,8 @@ export class ContractsService {
       }
     }
 
-    const editable = EDITABLE_STATUSES.includes(c.row.status as ContractStatus) && this.canEdit(ctx, c);
+    const editable =
+      EDITABLE_STATUSES.includes(c.row.status as ContractStatus) && this.canEdit(ctx, c);
     const pending = requests.find((r) => r.status === 'pending');
     return {
       ...summary,
@@ -861,7 +1196,8 @@ export class ContractsService {
         submit: editable,
         withdraw: !!pending && (this.canEdit(ctx, c) || pending.requestedBy.id === ctx.user.id),
         cancel: editable,
-        decide: !!pending && this.canDecide(ctx, c.team, { requestedByUserId: pending.requestedBy.id }),
+        decide:
+          !!pending && this.canDecide(ctx, c.team, { requestedByUserId: pending.requestedBy.id }),
         export: coversRecord(ctx.access, 'contracts.export', c.team),
       },
     };
@@ -869,20 +1205,47 @@ export class ContractsService {
 
   async version(ctx: TenantContext, id: string, version: number) {
     await this.loadVisible(ctx, id);
-    const v = await this.versions.get<ContractSnapshot>(ctx.organizationId, CONTRACT_ENTITY, id, version);
+    const v = await this.versions.get<ContractSnapshot>(
+      ctx.organizationId,
+      CONTRACT_ENTITY,
+      id,
+      version,
+    );
     if (!v) throw Errors.notFound('Version');
-    return { version: v.version, sha256: v.sha256, verified: this.versions.verify(v), note: v.note, createdBy: v.createdBy, createdAt: v.createdAt.toISOString(), snapshot: v.snapshot };
+    return {
+      version: v.version,
+      sha256: v.sha256,
+      verified: this.versions.verify(v),
+      note: v.note,
+      createdBy: v.createdBy,
+      createdAt: v.createdAt.toISOString(),
+      snapshot: v.snapshot,
+    };
   }
 
-  private async requests(organizationId: string, contractId: string, number: string, title: string): Promise<ApprovalRequestDto[]> {
+  private async requests(
+    organizationId: string,
+    contractId: string,
+    number: string,
+    title: string,
+  ): Promise<ApprovalRequestDto[]> {
     const requester = alias(users, 'requester');
     const decider = alias(users, 'decider');
     const rows = await this.db
-      .select({ r: approvalRequests, requesterName: requester.displayName, deciderName: decider.displayName })
+      .select({
+        r: approvalRequests,
+        requesterName: requester.displayName,
+        deciderName: decider.displayName,
+      })
       .from(approvalRequests)
       .innerJoin(requester, eq(requester.id, approvalRequests.requestedByUserId))
       .leftJoin(decider, eq(decider.id, approvalRequests.decidedByUserId))
-      .where(and(eq(approvalRequests.organizationId, organizationId), eq(approvalRequests.contractId, contractId)))
+      .where(
+        and(
+          eq(approvalRequests.organizationId, organizationId),
+          eq(approvalRequests.contractId, contractId),
+        ),
+      )
       .orderBy(asc(approvalRequests.requestedAt));
     return rows.map(({ r, requesterName, deciderName }) => ({
       id: r.id,
@@ -894,7 +1257,9 @@ export class ContractsService {
       note: r.note,
       requestedBy: { id: r.requestedByUserId, displayName: requesterName },
       requestedAt: r.requestedAt.toISOString(),
-      decidedBy: r.decidedByUserId ? { id: r.decidedByUserId, displayName: deciderName ?? '' } : null,
+      decidedBy: r.decidedByUserId
+        ? { id: r.decidedByUserId, displayName: deciderName ?? '' }
+        : null,
       decidedAt: r.decidedAt?.toISOString() ?? null,
       comment: r.comment,
       selfApproved: r.selfApproved,
@@ -917,15 +1282,37 @@ export function mergeClauses(
   const out = incoming.map((c): ContractClause => {
     const p = prev.get(c.id);
     seen.add(c.id);
-    const base = { id: c.id, included: c.included, titleEn: c.titleEn, titleAr: c.titleAr, bodyEn: c.bodyEn, bodyAr: c.bodyAr };
+    const base = {
+      id: c.id,
+      included: c.included,
+      titleEn: c.titleEn,
+      titleAr: c.titleAr,
+      bodyEn: c.bodyEn,
+      bodyAr: c.bodyAr,
+    };
     if (!p) return { ...base, templateClauseId: null, source: 'custom', required: false };
-    return { ...base, templateClauseId: p.templateClauseId, source: p.source, required: p.required };
+    return {
+      ...base,
+      templateClauseId: p.templateClauseId,
+      source: p.source,
+      required: p.required,
+    };
   });
   for (const c of out) {
-    if (c.required && !c.included) throw new AppError('required_clause', 400, `"${c.titleEn || c.titleAr}" is required by the template`);
+    if (c.required && !c.included)
+      throw new AppError(
+        'required_clause',
+        400,
+        `"${c.titleEn || c.titleAr}" is required by the template`,
+      );
   }
   for (const p of previous) {
-    if (p.required && !seen.has(p.id)) throw new AppError('required_clause', 400, `"${p.titleEn || p.titleAr}" is required by the template and cannot be removed`);
+    if (p.required && !seen.has(p.id))
+      throw new AppError(
+        'required_clause',
+        400,
+        `"${p.titleEn || p.titleAr}" is required by the template and cannot be removed`,
+      );
   }
   return out;
 }
@@ -943,7 +1330,15 @@ function changedParts(a: ContractSnapshot, b: ContractSnapshot): string[] {
   const added = [...bc.keys()].filter((k) => !ac.has(k)).length;
   const removed = [...ac.keys()].filter((k) => !bc.has(k)).length;
   const edited = [...bc.keys()].filter((k) => ac.has(k) && ac.get(k) !== bc.get(k)).length;
-  const reordered = a.clauses.filter((c) => bc.has(c.id)).map((c) => c.id).join() !== b.clauses.filter((c) => ac.has(c.id)).map((c) => c.id).join();
+  const reordered =
+    a.clauses
+      .filter((c) => bc.has(c.id))
+      .map((c) => c.id)
+      .join() !==
+    b.clauses
+      .filter((c) => ac.has(c.id))
+      .map((c) => c.id)
+      .join();
   if (added) parts.push(`clauses.added:${added}`);
   if (removed) parts.push(`clauses.removed:${removed}`);
   if (edited) parts.push(`clauses.edited:${edited}`);
@@ -952,5 +1347,10 @@ function changedParts(a: ContractSnapshot, b: ContractSnapshot): string[] {
 }
 
 function sampleApproval(ctx: TenantContext): ApprovalInfo {
-  return { approverName: ctx.user.displayName, approvedAt: new Date(), version: 1, sha256: '0'.repeat(64) };
+  return {
+    approverName: ctx.user.displayName,
+    approvedAt: new Date(),
+    version: 1,
+    sha256: '0'.repeat(64),
+  };
 }

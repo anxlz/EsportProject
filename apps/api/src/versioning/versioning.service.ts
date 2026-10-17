@@ -44,13 +44,27 @@ export class VersioningService {
   /** Saves a new version inside the caller's transaction and returns it. */
   async record<T>(
     tx: DbOrTx,
-    input: { organizationId: string; entityType: string; entityId: string; snapshot: T; userId: string | null; note?: string | null },
+    input: {
+      organizationId: string;
+      entityType: string;
+      entityId: string;
+      snapshot: T;
+      userId: string | null;
+      note?: string | null;
+    },
   ): Promise<{ id: string; version: number; sha256: string }> {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${input.entityType}:${input.entityId}`}))`);
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`${input.entityType}:${input.entityId}`}))`,
+    );
     const [last] = await tx
       .select({ version: entityVersions.version })
       .from(entityVersions)
-      .where(and(eq(entityVersions.entityType, input.entityType), eq(entityVersions.entityId, input.entityId)))
+      .where(
+        and(
+          eq(entityVersions.entityType, input.entityType),
+          eq(entityVersions.entityId, input.entityId),
+        ),
+      )
       .orderBy(desc(entityVersions.version))
       .limit(1);
     const version = (last?.version ?? 0) + 1;
@@ -78,19 +92,29 @@ export class VersioningService {
       .leftJoin(users, eq(users.id, entityVersions.createdByUserId));
   }
 
-  private toRecord<T>(r: { v: typeof entityVersions.$inferSelect; createdByName: string | null }): VersionRecord<T> {
+  private toRecord<T>(r: {
+    v: typeof entityVersions.$inferSelect;
+    createdByName: string | null;
+  }): VersionRecord<T> {
     return {
       id: r.v.id,
       version: r.v.version,
       snapshot: r.v.snapshot as T,
       sha256: r.v.sha256,
       note: r.v.note,
-      createdBy: r.v.createdByUserId ? { id: r.v.createdByUserId, displayName: r.createdByName ?? '' } : null,
+      createdBy: r.v.createdByUserId
+        ? { id: r.v.createdByUserId, displayName: r.createdByName ?? '' }
+        : null,
       createdAt: r.v.createdAt,
     };
   }
 
-  async list<T>(organizationId: string, entityType: string, entityId: string, db: DbOrTx = this.db): Promise<VersionRecord<T>[]> {
+  async list<T>(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+    db: DbOrTx = this.db,
+  ): Promise<VersionRecord<T>[]> {
     const rows = await this.select(db)
       .where(
         and(
@@ -103,7 +127,13 @@ export class VersioningService {
     return rows.map((r) => this.toRecord<T>(r));
   }
 
-  async get<T>(organizationId: string, entityType: string, entityId: string, version?: number, db: DbOrTx = this.db): Promise<VersionRecord<T> | null> {
+  async get<T>(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+    version?: number,
+    db: DbOrTx = this.db,
+  ): Promise<VersionRecord<T> | null> {
     const [row] = await this.select(db)
       .where(
         and(

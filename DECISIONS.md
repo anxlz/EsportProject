@@ -21,17 +21,29 @@ why, and whether it is easy to reverse.
 | Production credentials | Still outstanding (SMTP, Supabase, Redis, SESSION_SECRET, Discord OAuth, hosting). Phase 2 is built against local equivalents. |
 | Tax                    | Fields present but inert; no calculation logic (spec §6.7).                                                                    |
 
+## Decisions taken with the user (Phase 3, 17 Oct 2026)
+
+| Topic                      | Decision                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exchange-rate provider     | **Frankfurter approved** by the user: its FAQ confirms free commercial use, data from the ECB and 104 other central banks/official sources, open source. No provider switch.                      |
+| Network access             | The API host may rely on `https://api.frankfurter.dev` (confirmed by the user).                                                                                                                   |
+| Default reporting currency | The user left SAR or USD to me; I picked **SAR** for new organizations (SAR + USD enabled), because the organizations are Saudi. Existing organizations keep their setting.                       |
+| Saudi riyal sign           | The user asked for the official sign ⃁ (U+20C1) instead of "SAR" wherever an amount is shown, with plain "SAR" as the fallback if a font lacks the glyph. See "Saudi riyal sign" under Interface. |
+| Reuse                      | Contracts reuse the audit log, notification service and permission/scope guards; the version history, file store and PDF engine are new shared services.                                          |
+| Production credentials     | Still outstanding; Phase 3 is built against local equivalents (see below). The Anthropic API key joins the list.                                                                                  |
+
 ## Still open — needs your input
 
-| Topic                           | Needed by                     | Notes                                                                                                                                                                                                                                                                                                                                                                   |
-| ------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Email provider (SMTP)           | Before production             | Invitations and password-reset emails need one. The code is provider-neutral SMTP (Resend, Postmark, Amazon SES, Mailgun, Brevo all offer SMTP). Until configured, Owners can still copy invitation links from the UI; password reset will not work in production.                                                                                                      |
-| Railway vs Fly.io               | Deployment                    | Dockerfile is portable to both (and AWS).                                                                                                                                                                                                                                                                                                                               |
-| Supabase project + environments | Deployment                    | Whether you want separate dev/staging/prod projects pre-launch.                                                                                                                                                                                                                                                                                                         |
-| Discord OAuth app               | When you want Discord sign-in | Client id/secret + redirect URL; feature is fully built and hidden until configured.                                                                                                                                                                                                                                                                                    |
-| Product name                    | Any time                      | "Club Manager / إدارة النادي" is a placeholder in `apps/web/src/messages/*.json` (`app.name`).                                                                                                                                                                                                                                                                          |
-| Frankfurter terms               | Before production             | Phase 2 uses Frankfurter for exchange rates (no API key). Its documentation describes the rates as free to use, but its licence page could not be opened from the build environment, so the terms have **not** been reviewed. Please confirm they fit commercial use, or name another provider (the adapter is one file). `FX_PROVIDER=none` turns automatic rates off. |
-| Docker image with Chromium      | Deployment                    | PDF export needs Chromium. The Dockerfile now installs Debian's `chromium`; the container could not be built here (no Docker daemon), so build it once before deploying. PDF rendering itself is tested against both the bundled and a standard Chromium build.                                                                                                         |
+| Topic                           | Needed by                     | Notes                                                                                                                                                                                                                                                                  |
+| ------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Email provider (SMTP)           | Before production             | Invitations and password-reset emails need one. The code is provider-neutral SMTP (Resend, Postmark, Amazon SES, Mailgun, Brevo all offer SMTP). Until configured, Owners can still copy invitation links from the UI; password reset will not work in production.     |
+| Railway vs Fly.io               | Deployment                    | Dockerfile is portable to both (and AWS).                                                                                                                                                                                                                              |
+| Supabase project + environments | Deployment                    | Whether you want separate dev/staging/prod projects pre-launch.                                                                                                                                                                                                        |
+| Discord OAuth app               | When you want Discord sign-in | Client id/secret + redirect URL; feature is fully built and hidden until configured.                                                                                                                                                                                   |
+| Product name                    | Any time                      | "Club Manager / إدارة النادي" is a placeholder in `apps/web/src/messages/*.json` (`app.name`).                                                                                                                                                                         |
+| Anthropic API key               | To use the clause assistant   | Set `ANTHROPIC_API_KEY` on the API (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`). Without it the assistant says it isn't configured and everything else works. The live API was never called from here (no key, and the build environment can't reach it). |
+| Contract wording review         | Before using real contracts   | The default clause wording is sample text written for this build, not legal advice; "Governing law and disputes" is a placeholder. Have counsel review the templates (Owners can edit them).                                                                           |
+| Docker image with Chromium      | Deployment                    | PDF export needs Chromium. The Dockerfile now installs Debian's `chromium`; the container could not be built here (no Docker daemon), so build it once before deploying. PDF rendering itself is tested against both the bundled and a standard Chromium build.        |
 
 ## Stack and runtime
 
@@ -132,7 +144,20 @@ why, and whether it is easy to reverse.
   permission and team (ready for budget alerts and approvals).
 - **Mail**: provider-neutral SMTP; a dev/test "outbox" transport writes to a table and is refused at
   startup in production because it stores reset links in plain text. Emails are bilingual.
-- **Versioning service** (spec §3.3) is scheduled for Phase 3 with contracts, its first consumer.
+- **Versioning service** (spec §3.3, Phase 3): one append-only table `entity_versions`
+  (entity type + id + version number, full JSON snapshot, SHA-256 of the canonical JSON). UPDATE
+  and DELETE are refused by a trigger; numbering is serialized with an advisory lock. Contracts are
+  the first user; anything else that needs history can use `VersioningService` as is.
+- **File store** (Phase 3): uploads and generated documents live in Postgres (`stored_files`,
+  bytea, SHA-256, never updated). Supabase Storage would need credentials that don't exist yet,
+  and the files are small (logo/stamp ≤ 2 MB, background ≤ 5 MB, contract PDFs ~100 KB). Uploads
+  are typed by their bytes (PNG, JPEG, WebP, PDF; SVG refused because it can carry script) and must
+  match the declared type. One service touches the table, so moving to object storage is one
+  adapter. Reversible.
+- **PDF engine** (Phase 3): the Phase 2 Chromium renderer became a shared `PdfService` used by
+  finance reports and contracts, plus a full-page underlay (PNG/JPEG image or the first page of a
+  PDF) composited beneath every page with pdf-lib. pdf-lib cannot read WebP, so backgrounds are
+  PNG/JPEG/PDF only.
 
 ## Interface
 
@@ -147,6 +172,28 @@ why, and whether it is easy to reverse.
   the Hijri calendar). Reversible in `apps/web/src/lib/format.ts`.
 - **Fonts**: IBM Plex Sans + IBM Plex Sans Arabic, self-hosted from npm (no Google Fonts request at
   build or run time).
+- **Saudi riyal sign (Phase 3, at the user's request).** Amounts in SAR read "⃁ 1,250.00": the
+  official sign U+20C1 (Unicode 17.0), to the left of the number with a space in both languages,
+  as SAMA's FAQ specifies; inside an LTR isolate so it stays left of the digits in Arabic text.
+  - Fonts checked for U+20C1 (cmap, with fontTools): IBM Plex Sans 5.3.0 and IBM Plex Sans Arabic
+    5.3.0 (our fonts) — **no glyph**; also Noto Sans, Noto Sans Arabic, Noto Sans Symbols 1/2,
+    Noto Naskh Arabic, Noto Kufi Arabic, Cairo, Tajawal, Almarai, Readex Pro, Rubik, Inter
+    (fontsource 5.3.0) — none. The build machine's only system font with it is GNU Unifont.
+  - So a one-glyph font is bundled: `@emran-alhaddad/saudi-riyal-font` 1.1.0 (SIL OFL 1.1,
+    embeddable), regular + bold, copied unmodified into `apps/web/public/fonts/saudi-riyal/` and
+    `apps/api/assets/fonts/saudi-riyal/` with its licence; a test pins both copies by SHA-256. Its
+    glyph was compared visually with SAMA's published symbol. It's declared as extra faces of the
+    IBM Plex families with `unicode-range: U+20C1`, so it draws that one character only.
+  - **Dashboard**: amounts switch from "SAR" to the sign only after the browser confirms the font
+    has loaded for both families (`document.fonts.load` + `check`); if it doesn't load, they stay
+    "SAR" — never a missing-glyph box. Verified with Chromium's DevTools protocol that the sign is
+    drawn by the bundled face (`saudi_riyal`), in English and Arabic pages.
+  - **PDFs** (finance reports, contracts): the font is embedded; `pdffonts` lists it and
+    `pdftotext` extracts "⃁ 1,250.00" in English and Arabic (tested).
+  - **CSV / TXT / XLSX keep "SAR"**: those files are opened in other software (Excel, editors)
+    whose fonts we can't control, which is exactly the fallback case. Currency pickers and the
+    "reporting currency" label also keep the ISO code; the sign replaces the code only next to an
+    amount. Other currencies keep their ISO code.
 - Validation schemas are shared; the web app uses them only for earlier feedback. OpenAPI is
   generated from the same zod schemas via zod 4's `z.toJSONSchema` (the `nestjs-zod` package does
   not support NestJS 12 yet).
@@ -157,7 +204,9 @@ why, and whether it is easy to reverse.
 
 - Per spec §7.8 and §17, the product makes no compliance claims. Settings shows a quiet note
   recommending confirmation with the Saudi Esports Federation or legal counsel before relying on
-  in-platform contracts for player registration.
+  in-platform contracts for player registration. Phase 3 repeats it on the contract Document setup
+  page, labels the default clause wording as a starting point that is not legal advice, and shows
+  a non-legal-advice caveat with every Custom Clause Assistant output.
 
 ## Accounting and investment analysis (Phase 2)
 
@@ -165,8 +214,8 @@ why, and whether it is easy to reverse.
 
 - Amounts are decimal strings end to end (NUMERIC in Postgres, `decimal.js` in code, 40 digits,
   half-up rounding); floats never touch money. Amounts store up to 4 decimals, rates 12.
-- Each organization has one **reporting currency** (default USD) and a list of enabled currencies
-  (default USD + SAR). Every record keeps its own currency; its converted amount is rounded **once**,
+- Each organization has one **reporting currency** (default SAR since Phase 3; USD before) and a list
+  of enabled currencies (default SAR + USD). Every record keeps its own currency; its converted amount is rounded **once**,
   to the reporting currency's minor unit (ISO 4217: 3 for KWD/BHD/OMR/JOD, 0 for JPY/KRW).
 - The reporting currency **locks once any cost, revenue or budget exists**, because changing it
   would silently change every stored conversion. Reversible only by a deliberate data migration.
@@ -271,3 +320,91 @@ why, and whether it is easy to reverse.
 **Deferred from Phase 2** — generating salary costs automatically from roster pay terms (payroll is
 projected for scenarios but posted by hand), recurring-entry automation, CSV import, multi-currency
 budgets, and tax calculation (spec §6.7).
+
+## Contracts (Phase 3)
+
+**Types and templates**
+
+- Four system types (Player, Coach, Manager, Staff) are seeded per organization, at signup and on
+  first use for older organizations; each has its own clause list (e.g. only Player has content
+  duties and the under-18 clause). They can be renamed and edited but not removed. Owners add custom
+  types; a custom type used by a contract is archived, not deleted.
+- Template editing (types, clause order, required/optional, wording) is Owner-only
+  (`contracts.manage_templates`, never grantable). A template change affects future contracts only:
+  every contract keeps its own copy of the clauses.
+- Default clause wording is sample text written for this build (not taken from any law or other
+  template), clearly labeled as needing legal review; "Governing law and disputes" is a placeholder.
+
+**Drafting**
+
+- A draft copies the type's template; recipient details are prefilled from a roster member, and pay
+  currency from the reporting currency. Numbers are `CT-<year>-<0001>` per organization.
+- Per contract (`contracts.create` for one's own drafts, `contracts.edit` for any in scope):
+  optional clauses can be left out or removed, wording can change, custom clauses can be added.
+  Required clauses can't be left out or removed. A clause's origin and required flag always come
+  from the stored version, never from the request, so they can't be forged.
+- Template clauses reworded in a contract are flagged to the approver ("Reworded"), compared with
+  the version first drafted from the template.
+- Merge fields (`{{recipientName}}`, `{{salary}}`, …) fill clause text from the details. A field
+  with no value shows as a highlighted "missing" marker in the preview and **blocks submission**,
+  as do missing clause text for a document language, the recipient's name and the start date.
+- Documents can be bilingual (English and Arabic side by side, the default), Arabic only or
+  English only.
+
+**Versions and approval (spec §7.6)**
+
+- Every save is a new immutable version; saving with no change creates none. Each approval request
+  points at the exact version submitted, so every attempt keeps its decision, reviewer, time and
+  comment.
+- States: draft → awaiting approval → changes requested (after a rejection) → awaiting approval →
+  approved; drafts can be cancelled; a pending request can be withdrawn. One open request per
+  contract (unique index). Editing is locked while a request is open.
+- **Rejection needs a reason** (≥ 3 characters), enforced by the API and by a database check.
+- **Resubmission needs a change**: submitting the same version that was rejected is refused.
+- **Approval authority** is `contracts.approve` (team-scopable). No default role template includes
+  it: Owners hold it, and they delegate it by giving a role this permission (spec: "the Owner can
+  designate another role"). Approvers also see the contracts they can approve.
+- **Nobody decides their own request**, except an Owner (who may be the only approver); an Owner's
+  self-approval is recorded as such in the request and the audit log.
+- On approval, the stamped document is rendered from that version with the Owner-configured stamp
+  (image, position, width), the approver's name, date, version and the version's SHA-256
+  fingerprint, and stored with the PDF's own SHA-256. The stored file is served as stored, after
+  checking its hash; the contract page shows whether the check passed.
+- **Approved contracts are final in Phase 3** (no amendments): changing one would need a new
+  contract. Signing (Phase 4) starts from the approved document.
+- The "Signed" view exists and is empty until Phase 4 adds signatures.
+- Approvers are notified in-app when a contract is submitted (`contract.approval_requested`, to
+  every holder of `contracts.approve` covering the team, except the requester); the requester is
+  notified of approval or rejection (with the reason).
+- Everything is audited: created, saved (with which parts changed), submitted, withdrawn,
+  cancelled, approved, rejected (with reason), exported, assistant proposals and acceptances.
+
+**Document rendering**
+
+- One HTML layout for the in-app preview, draft PDFs and the stamped PDF, so what the approver
+  reviews is what gets stamped. A4; letterhead (logo, legal names, header line) and footer
+  repeat on every page; drafts carry a "DRAFT — NOT APPROVED" watermark; optional page border.
+- The preview is self-contained HTML (inline styles, data: images and fonts) served with a
+  no-script CSP and shown in a sandboxed iframe (`srcdoc`). PDF backgrounds appear in the PDF only.
+- Margins are "start/end" and follow the reading direction.
+
+**Custom Clause Assistant (spec §7.4)**
+
+- Behind the single provider interface (`src/ai/ai.provider.ts`); the Anthropic adapter calls the
+  Messages API with structured outputs (`output_config.format`, JSON schema). Forced tool use is
+  not used because Claude Opus 5.5 / Sonnet 5.5 reject `tool_choice` "tool"/"any" (checked in the
+  API docs on 17 Oct 2026). Model from `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`.
+- Proposal only: drafting, revising or discarding never changes the contract; "Add to contract"
+  is a separate request that inserts exactly that clause as a new version (tested: every other
+  clause and all details are unchanged).
+- The prompt carries no personal data — contract type, document language, existing clause titles,
+  the merge-field list and the user's description only — and tells the model to use merge fields
+  and bracketed blanks instead of inventing specifics, to list open questions, and never to call a
+  clause valid, enforceable or compliant. The UI shows the non-legal-advice caveat with every
+  proposal. Output is validated (both languages present, length limits) before it is stored.
+- Same permissions as editing the contract; 30 proposals per user per hour.
+
+**Configuration**
+
+- Empty values in `.env` (`KEY=`) now count as unset, so optional settings fall back to their
+  defaults instead of failing validation.

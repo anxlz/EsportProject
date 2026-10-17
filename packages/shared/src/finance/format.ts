@@ -1,8 +1,12 @@
 /**
- * Display formatting shared by the dashboard and the PDF/TXT exports, so a figure reads exactly
- * the same everywhere. Currency is shown as its ISO code (multi-currency tool: "SAR 1,250.00" is
- * unambiguous where symbols are not). Western digits and the Gregorian calendar in both
- * languages (see DECISIONS.md).
+ * Display formatting shared by the dashboard and the exports, so a figure reads exactly the same
+ * everywhere. Currency is shown as its ISO code ("USD 1,250.00": unambiguous in a multi-currency
+ * tool), except the Saudi riyal, which uses the official riyal sign U+20C1 ("⃁ 1,250.00") where
+ * the output is guaranteed to have a font for it: the dashboard (once its bundled riyal font has
+ * loaded) and our PDFs (font embedded). CSV/TXT/XLSX files keep "SAR", because they are opened
+ * in other software whose fonts we can't control. The sign sits to the left of the number with
+ * a space, in Arabic and English alike (SAMA guidance). Western digits and the Gregorian
+ * calendar in both languages (see DECISIONS.md).
  */
 import { currencyInfo } from './catalog';
 import type { FinanceLocale } from './i18n';
@@ -10,7 +14,24 @@ import { money } from './money';
 
 const numberLocale = (l: FinanceLocale) => (l === 'ar' ? 'ar-u-nu-latn' : 'en-GB');
 
-export function formatMoney(amount: string, currency: string, locale: FinanceLocale): string {
+/** U+20C1 SAUDI RIYAL SIGN (Unicode 17.0). */
+export const RIYAL_SIGN = '\u20C1';
+
+export interface MoneyFormatOptions {
+  /** Show the riyal sign instead of "SAR". Only where a font with the glyph is guaranteed. */
+  riyalSign?: boolean;
+}
+
+/** The currency mark printed before an amount: the riyal sign or the ISO code. */
+export const currencyMark = (currency: string, opts: MoneyFormatOptions = {}) =>
+  currency === 'SAR' && opts.riyalSign ? RIYAL_SIGN : currency;
+
+export function formatMoney(
+  amount: string,
+  currency: string,
+  locale: FinanceLocale,
+  opts: MoneyFormatOptions = {},
+): string {
   const minor = currencyInfo(currency).minorUnits;
   const fixed = money(amount, currency);
   const n = new Intl.NumberFormat(numberLocale(locale), {
@@ -19,7 +40,7 @@ export function formatMoney(amount: string, currency: string, locale: FinanceLoc
     // Decimal strings are formatted exactly (no float conversion).
   }).format(fixed as unknown as number);
   // Isolate the code + number so the minus sign and digits stay in order inside Arabic text.
-  return `⁦${currency} ${n}⁩`;
+  return `⁦${currencyMark(currency, opts)} ${n}⁩`;
 }
 
 export function formatNumber(

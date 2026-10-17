@@ -190,8 +190,7 @@ export const contractSaveSchema = z
   })
   .refine((v) => !v.rosterMemberId || !!v.teamId, 'roster_member_requires_team')
   .refine(
-    (v) =>
-      !v.details.startDate || !v.details.endDate || v.details.startDate <= v.details.endDate,
+    (v) => !v.details.startDate || !v.details.endDate || v.details.startDate <= v.details.endDate,
     'contract_dates',
   )
   .refine((v) => new Set(v.clauses.map((c) => c.id)).size === v.clauses.length, 'duplicate_clause');

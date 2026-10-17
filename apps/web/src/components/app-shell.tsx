@@ -6,6 +6,7 @@ import {
   Bell,
   Building2,
   CalendarDays,
+  FileSignature,
   Gamepad2,
   LayoutDashboard,
   LogOut,
@@ -55,6 +56,18 @@ function useNav(me: MeResponse): NavItem[] {
       label: t('finance'),
       icon: Wallet,
       anyOf: ['finance.view', 'finance.create', 'finance.configure'],
+      needsOrg: true,
+    },
+    {
+      href: '/dashboard/contracts',
+      label: t('contracts'),
+      icon: FileSignature,
+      anyOf: [
+        'contracts.view',
+        'contracts.create',
+        'contracts.approve',
+        'contracts.manage_templates',
+      ],
       needsOrg: true,
     },
     {

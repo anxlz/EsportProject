@@ -67,8 +67,10 @@ function clausesFor(type: SystemContractType): DefaultClause[] {
       required: true,
       titleEn: 'Term',
       titleAr: 'مدة العقد',
-      bodyEn: 'This contract starts on {{startDate}} and ends on {{endDate}} ({{duration}}), unless ended earlier under its terms.',
-      bodyAr: 'يبدأ هذا العقد في {{startDate}} وينتهي في {{endDate}} ({{duration}})، ما لم يُنهَ قبل ذلك وفق أحكامه.',
+      bodyEn:
+        'This contract starts on {{startDate}} and ends on {{endDate}} ({{duration}}), unless ended earlier under its terms.',
+      bodyAr:
+        'يبدأ هذا العقد في {{startDate}} وينتهي في {{endDate}} ({{duration}})، ما لم يُنهَ قبل ذلك وفق أحكامه.',
     },
     {
       key: 'role',
@@ -83,16 +85,20 @@ function clausesFor(type: SystemContractType): DefaultClause[] {
       required: true,
       titleEn: 'Compensation',
       titleAr: 'المقابل المالي',
-      bodyEn: 'The Organization will pay {{salary}} {{paymentFrequency}}. Off-season pay, bonuses and any revenue share are set out in the Contract Particulars.',
-      bodyAr: 'تدفع المنظمة مبلغ {{salary}} {{paymentFrequency}}. ويُحدَّد أجر خارج الموسم والمكافآت وأي حصة من الإيرادات في بيانات العقد.',
+      bodyEn:
+        'The Organization will pay {{salary}} {{paymentFrequency}}. Off-season pay, bonuses and any revenue share are set out in the Contract Particulars.',
+      bodyAr:
+        'تدفع المنظمة مبلغ {{salary}} {{paymentFrequency}}. ويُحدَّد أجر خارج الموسم والمكافآت وأي حصة من الإيرادات في بيانات العقد.',
     },
     {
       key: 'bonuses',
       required: false,
       titleEn: 'Bonuses and revenue share',
       titleAr: 'المكافآت وحصة الإيرادات',
-      bodyEn: 'Bonuses, conditional payments and revenue shares listed in the Contract Particulars are payable only when their stated conditions are met.',
-      bodyAr: 'تُستحق المكافآت والمدفوعات المشروطة وحصص الإيرادات المذكورة في بيانات العقد عند تحقق شروطها المحددة فقط.',
+      bodyEn:
+        'Bonuses, conditional payments and revenue shares listed in the Contract Particulars are payable only when their stated conditions are met.',
+      bodyAr:
+        'تُستحق المكافآت والمدفوعات المشروطة وحصص الإيرادات المذكورة في بيانات العقد عند تحقق شروطها المحددة فقط.',
     },
     {
       key: 'conduct',
@@ -109,8 +115,10 @@ function clausesFor(type: SystemContractType): DefaultClause[] {
       required: false,
       titleEn: 'Content and sponsor activities',
       titleAr: 'أنشطة المحتوى والرعاة',
-      bodyEn: 'The Player agrees to take part in reasonable content, streaming and sponsor activities arranged by the Organization, as further described in the Contract Particulars.',
-      bodyAr: 'يوافق اللاعب على المشاركة في أنشطة المحتوى والبث والرعاة التي ترتّبها المنظمة بشكل معقول، وفق ما تبيّنه بيانات العقد.',
+      bodyEn:
+        'The Player agrees to take part in reasonable content, streaming and sponsor activities arranged by the Organization, as further described in the Contract Particulars.',
+      bodyAr:
+        'يوافق اللاعب على المشاركة في أنشطة المحتوى والبث والرعاة التي ترتّبها المنظمة بشكل معقول، وفق ما تبيّنه بيانات العقد.',
     });
   }
   list.push(
@@ -119,16 +127,20 @@ function clausesFor(type: SystemContractType): DefaultClause[] {
       required: false,
       titleEn: 'Confidentiality',
       titleAr: 'السرية',
-      bodyEn: 'Both parties will keep confidential the terms of this contract and any non-public information about the other party, except where disclosure is required by law.',
-      bodyAr: 'يلتزم الطرفان بالحفاظ على سرية شروط هذا العقد وأي معلومات غير معلنة تخص الطرف الآخر، إلا إذا تطلّب القانون الإفصاح عنها.',
+      bodyEn:
+        'Both parties will keep confidential the terms of this contract and any non-public information about the other party, except where disclosure is required by law.',
+      bodyAr:
+        'يلتزم الطرفان بالحفاظ على سرية شروط هذا العقد وأي معلومات غير معلنة تخص الطرف الآخر، إلا إذا تطلّب القانون الإفصاح عنها.',
     },
     {
       key: 'termination',
       required: true,
       titleEn: 'Termination and buyout',
       titleAr: 'الإنهاء ومبلغ فسخ العقد',
-      bodyEn: 'This contract may be ended under the termination conditions and, where applicable, the buyout terms set out in the Contract Particulars.',
-      bodyAr: 'يجوز إنهاء هذا العقد وفق شروط الإنهاء المبيّنة في بيانات العقد، ووفق شروط مبلغ فسخ العقد عند الاقتضاء.',
+      bodyEn:
+        'This contract may be ended under the termination conditions and, where applicable, the buyout terms set out in the Contract Particulars.',
+      bodyAr:
+        'يجوز إنهاء هذا العقد وفق شروط الإنهاء المبيّنة في بيانات العقد، ووفق شروط مبلغ فسخ العقد عند الاقتضاء.',
     },
   );
   if (type === 'player') {
@@ -137,8 +149,10 @@ function clausesFor(type: SystemContractType): DefaultClause[] {
       required: false,
       titleEn: 'Players under 18',
       titleAr: 'اللاعبون دون الثامنة عشرة',
-      bodyEn: 'If the Player is under 18 when this contract is signed, it also requires the signature of the Player’s parent or legal guardian.',
-      bodyAr: 'إذا كان اللاعب دون الثامنة عشرة عند توقيع هذا العقد، فيلزم أيضًا توقيع والده أو وليّ أمره.',
+      bodyEn:
+        'If the Player is under 18 when this contract is signed, it also requires the signature of the Player’s parent or legal guardian.',
+      bodyAr:
+        'إذا كان اللاعب دون الثامنة عشرة عند توقيع هذا العقد، فيلزم أيضًا توقيع والده أو وليّ أمره.',
     });
   }
   list.push(
@@ -147,7 +161,8 @@ function clausesFor(type: SystemContractType): DefaultClause[] {
       required: false,
       titleEn: 'Changes to this contract',
       titleAr: 'تعديل العقد',
-      bodyEn: 'Changes to this contract are valid only if made in writing and agreed by both parties.',
+      bodyEn:
+        'Changes to this contract are valid only if made in writing and agreed by both parties.',
       bodyAr: 'لا يُعتد بأي تعديل على هذا العقد ما لم يكن مكتوبًا ومتفقًا عليه من الطرفين.',
     },
     {
@@ -165,6 +180,11 @@ function clausesFor(type: SystemContractType): DefaultClause[] {
 export const DEFAULT_CONTRACT_TYPES: DefaultContractType[] = [
   { key: 'player', nameEn: 'Player contract', nameAr: 'عقد لاعب', clauses: clausesFor('player') },
   { key: 'coach', nameEn: 'Coach contract', nameAr: 'عقد مدرب', clauses: clausesFor('coach') },
-  { key: 'manager', nameEn: 'Manager contract', nameAr: 'عقد مدير', clauses: clausesFor('manager') },
+  {
+    key: 'manager',
+    nameEn: 'Manager contract',
+    nameAr: 'عقد مدير',
+    clauses: clausesFor('manager'),
+  },
   { key: 'staff', nameEn: 'Staff contract', nameAr: 'عقد موظف', clauses: clausesFor('staff') },
 ];

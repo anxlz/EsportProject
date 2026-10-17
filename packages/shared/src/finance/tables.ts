@@ -4,7 +4,14 @@
  * can drift from another or from the on-screen report (which shows the same FinancialReport).
  */
 import { currencyInfo } from './catalog';
-import { formatIsoDate, formatMoney, formatMonth, formatNumber, formatPercent } from './format';
+import {
+  formatIsoDate,
+  formatMoney,
+  formatMonth,
+  formatNumber,
+  formatPercent,
+  type MoneyFormatOptions,
+} from './format';
 import { categoryLabel, type FinanceLocale, fl, footnoteText } from './i18n';
 import { SCENARIO_NAMES, type FinancialReport } from './report';
 
@@ -47,14 +54,18 @@ const fixedDigits = (v: string, digits: number) => {
   return digits ? `${i}.${(f + '0'.repeat(digits)).slice(0, digits)}` : i!;
 };
 
-/** Display text, identical to the dashboard. */
-export function displayCell(cell: ReportCell, locale: FinanceLocale): string {
+/** Display text, identical to the dashboard (the riyal sign only where its font is available). */
+export function displayCell(
+  cell: ReportCell,
+  locale: FinanceLocale,
+  opts: MoneyFormatOptions = {},
+): string {
   if (!cell) return '';
   switch (cell.t) {
     case 'text':
       return cell.v;
     case 'money':
-      return formatMoney(cell.v, cell.c, locale);
+      return formatMoney(cell.v, cell.c, locale, opts);
     case 'amount':
       return `⁦${formatNumber(cell.v, locale, digitsFor(cell.v, cell.c))}⁩`;
     case 'percent':
