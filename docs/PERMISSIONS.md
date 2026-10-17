@@ -32,4 +32,20 @@ editable and deletable by Owners, and Owners can create any number of custom rol
 | `teams.export` | Scopable | ✓ | ✓ | ✓ |  |
 | `games.view` | Org-level | ✓ | ✓ | ✓ | ✓ |
 | `games.manage` | Org-level | ✓ | ✓ |  |  |
+| `rosters.view` | Scopable | ✓ | ✓ | ✓ | ✓ |
+| `rosters.create` | Scopable | ✓ | ✓ | ✓ |  |
+| `rosters.edit` | Scopable | ✓ | ✓ | ✓ |  |
+| `rosters.delete` | Scopable | ✓ | ✓ |  |  |
+| `rosters.export` | Scopable | ✓ | ✓ | ✓ |  |
+| `tournaments.view` | Org-level | ✓ | ✓ | ✓ | ✓ |
+| `tournaments.create` | Org-level | ✓ | ✓ |  |  |
+| `tournaments.edit` | Org-level | ✓ | ✓ |  |  |
+| `tournaments.delete` | Org-level | ✓ | ✓ |  |  |
+| `finance.view` | Scopable | ✓ | ✓ | ✓ |  |
+| `finance.create` | Scopable | ✓ | ✓ | ✓ |  |
+| `finance.edit` | Scopable | ✓ | ✓ |  |  |
+| `finance.delete` | Scopable | ✓ | ✓ |  |  |
+| `finance.export` | Scopable | ✓ | ✓ | ✓ |  |
+| `budgets.manage` | Scopable | ✓ | ✓ |  |  |
+| `finance.configure` | Org-level | ✓ |  |  |  |
 | `audit.view` | Org-level | ✓ | ✓ |  |  |
