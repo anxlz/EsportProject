@@ -318,6 +318,8 @@ export const tableClass = 'w-full border-collapse text-start text-[0.9375rem]';
 export const thClass =
   'border-b border-line bg-panel-2 px-5 py-2.5 text-start text-[0.8125rem] font-medium text-muted';
 export const tdClass = 'border-b border-line px-5 py-3 align-top';
+/** Header cell for a numeric (end-aligned) column. */
+export const thEndClass = thClass.replace('text-start', 'text-end');
 
 // ------------------------------------------------------------------------------------------
 // Dialog (native <dialog>)

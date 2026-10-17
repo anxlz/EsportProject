@@ -4,6 +4,7 @@ import type { DepartmentDto, GameDto, TeamDto } from '@esports/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Download, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { useState } from 'react';
 import {
   Badge,
@@ -329,7 +330,14 @@ export default function TeamsPage() {
                   <tbody>
                     {visibleTeams.map((team) => (
                       <tr key={team.id}>
-                        <td className={`${tdClass} font-medium whitespace-nowrap`}>{team.name}</td>
+                        <td className={`${tdClass} font-medium whitespace-nowrap`}>
+                          <Link
+                            href={`/dashboard/teams/${team.id}`}
+                            className="underline-offset-4 hover:underline"
+                          >
+                            {team.name}
+                          </Link>
+                        </td>
                         <td className={`${tdClass} whitespace-nowrap`}>
                           {team.gameName ?? <span className="text-muted">{t('noGame')}</span>}
                         </td>

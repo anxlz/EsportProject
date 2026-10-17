@@ -53,7 +53,9 @@
     "signOut": "Sign out",
     "switchOrganization": "Switch organization",
     "menu": "Menu",
-    "mainNavigation": "Main navigation"
+    "mainNavigation": "Main navigation",
+    "finance": "Finance",
+    "tournaments": "Tournaments"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -138,7 +140,14 @@
     "discord_already_linked": "That Discord account is already linked to another user, or you already linked one.",
     "oauth_state_invalid": "The Discord sign-in expired or was interrupted. Try again.",
     "internal_error": "Something went wrong on our side. Try again.",
-    "network": "Can't reach the server. Check your connection."
+    "network": "Can't reach the server. Check your connection.",
+    "fx_rate_required": "No exchange rate is known for that currency and date. Enter the rate.",
+    "base_currency_locked": "The reporting currency can't change once costs, revenue or budgets are recorded.",
+    "currency_not_enabled": "That currency isn't enabled. Turn it on in Finance settings.",
+    "roster_member_mismatch": "That person isn't on the selected team.",
+    "season_overlap": "Seasons can't overlap. Adjust the dates.",
+    "in_use": "This is still used by other records, so it can't be deleted.",
+    "export_failed": "The file couldn't be generated. Try again."
   },
   "overview": {
     "greeting": "Welcome, {name}",
@@ -302,7 +311,10 @@
     "departments": "Departments",
     "teams": "Teams",
     "games": "Games",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "rosters": "Rosters",
+    "tournaments": "Tournaments",
+    "finance": "Finance"
   },
   "permissions": {
     "org": {
@@ -343,6 +355,30 @@
     },
     "audit": {
       "view": "Read the audit log"
+    },
+    "rosters": {
+      "view": "See team rosters",
+      "create": "Add people to rosters",
+      "edit": "Edit roster details",
+      "delete": "Remove people from rosters",
+      "export": "Export rosters to CSV"
+    },
+    "tournaments": {
+      "view": "See tournament research",
+      "create": "Add tournaments",
+      "edit": "Edit tournament research",
+      "delete": "Delete tournaments"
+    },
+    "finance": {
+      "view": "See costs, revenue, pay and financial reports",
+      "create": "Record costs and revenue",
+      "edit": "Change recorded costs, revenue and pay terms",
+      "delete": "Delete costs and revenue",
+      "export": "Download financial reports",
+      "configure": "Set the reporting currency, currencies and seasons"
+    },
+    "budgets": {
+      "manage": "Create and change budgets"
     }
   },
   "audit": {
@@ -412,6 +448,41 @@
       "platform": {
         "members_viewed": "Platform admin viewed members",
         "audit_viewed": "Platform admin viewed the audit log"
+      },
+      "finance": {
+        "expense_created": "Recorded a cost",
+        "expense_updated": "Changed a cost",
+        "expense_deleted": "Deleted a cost",
+        "revenue_created": "Recorded revenue",
+        "revenue_updated": "Changed revenue",
+        "revenue_deleted": "Deleted revenue",
+        "settings_updated": "Changed finance settings",
+        "scenarios_saved": "Saved scenario inputs",
+        "scenarios_reset": "Reset scenario inputs",
+        "report_exported": "Downloaded a financial report"
+      },
+      "season": {
+        "created": "Created a season",
+        "updated": "Changed a season",
+        "deleted": "Deleted a season"
+      },
+      "budget": {
+        "created": "Created a budget",
+        "updated": "Changed a budget",
+        "deleted": "Deleted a budget",
+        "exceeded": "Budget went over plan"
+      },
+      "roster": {
+        "member_added": "Added someone to a roster",
+        "member_updated": "Changed roster details",
+        "member_removed": "Removed someone from a roster",
+        "compensation_changed": "Changed pay terms",
+        "exported": "Exported a roster"
+      },
+      "tournament": {
+        "created": "Added a tournament",
+        "updated": "Changed a tournament",
+        "deleted": "Deleted a tournament"
       }
     }
   },
@@ -427,9 +498,14 @@
         "ownership_granted": "{byName} made you an Owner.",
         "ownership_revoked": "{byName} removed you as an Owner.",
         "reactivated": "{byName} restored your access."
+      },
+      "budget": {
+        "exceeded": "{budgetName}: {line} is over plan, {actual} spent of {planned}."
       }
     },
-    "markRead": "Mark as read"
+    "markRead": "Mark as read",
+    "budgetLine": "the {category} line",
+    "budgetTotal": "the total"
   },
   "settings": {
     "title": "Settings",
@@ -471,5 +547,295 @@
     "viewMembers": "View members",
     "membersOf": "Members of {name}",
     "back": "All organizations"
+  },
+  "finance": {
+    "title": "Finance",
+    "nav": {
+      "label": "Finance sections",
+      "report": "Report",
+      "expenses": "Costs",
+      "revenue": "Revenue",
+      "budgets": "Budgets",
+      "settings": "Settings"
+    },
+    "level": {
+      "organization": "Organization-wide",
+      "team": "Team",
+      "player": "Player or staff member"
+    },
+    "rateSource": {
+      "same_currency": "Same currency",
+      "provider": "Rate from the exchange-rate service on that date",
+      "manual": "rate entered by hand"
+    },
+    "ledger": {
+      "expense": {
+        "title": "Costs",
+        "lead": "Every cost, recorded at organization, team or player level, in its own currency.",
+        "new": "Record a cost",
+        "edit": "Edit cost",
+        "delete": "Delete this cost?",
+        "empty": "No costs recorded yet.",
+        "emptyLead": "Record salaries, travel, bootcamps, fees and equipment to see where money goes."
+      },
+      "revenue": {
+        "title": "Revenue",
+        "lead": "Income received, and income still expected. Only received income counts in totals.",
+        "new": "Record revenue",
+        "edit": "Edit revenue",
+        "delete": "Delete this revenue?",
+        "empty": "No revenue recorded yet.",
+        "emptyLead": "Record prize money, sponsorships, media share and merchandising."
+      },
+      "saved": "Saved.",
+      "created": "Recorded.",
+      "deleted": "Deleted.",
+      "deleteConfirm": "This removes the record from all totals and reports. The audit log keeps a copy.",
+      "level": "Recorded for",
+      "levelCol": "For",
+      "team": "Team",
+      "player": "Person",
+      "chooseTeam": "Choose a team.",
+      "choosePlayer": "Choose a person on this team.",
+      "category": "Category",
+      "date": "Date",
+      "expectedDate": "Expected date",
+      "amount": "Amount",
+      "amountHint": "Digits with up to 4 decimals, for example 1250.50",
+      "amountInvalid": "Enter an amount greater than zero, for example 1250.50",
+      "currency": "Currency",
+      "rate": "Exchange rate: 1 {from} = ? {to}",
+      "rateInvalid": "Enter a positive rate, for example 0.2667",
+      "inBase": "In {currency}",
+      "rateManual": "Using the rate you entered. It is stored with this record.",
+      "rateStored": "Using the rate stored when this was recorded ({date}). Enter a rate to replace it.",
+      "rateProvider": "Rate for {date} from {source}. It will be stored with this record and never change.",
+      "rateMissing": "No rate is known for this date. Enter the rate to save.",
+      "realized": "Received",
+      "realizedHint": "Untick for income that is expected but not yet received. It then appears only in projections.",
+      "certainty": "How certain is it?",
+      "counterparty": "From (sponsor, organizer…)",
+      "recurrence": "Recurrence",
+      "ownership": "Rental or owned",
+      "tournament": "Tournament",
+      "season": "Season",
+      "seasonHint": "Automatic uses the season that contains the date.",
+      "seasonAuto": "Automatic (by date)",
+      "description": "Description",
+      "taxSection": "Tax details for your accountant",
+      "taxNotice": "Recorded only. No tax is calculated, and these amounts are not included in any total.",
+      "taxAmount": "Tax amount ({currency})",
+      "taxJurisdiction": "Tax jurisdiction",
+      "taxRecorded": "Tax recorded",
+      "allLevels": "All",
+      "allCategories": "All categories",
+      "original": "Amount",
+      "received": "Received",
+      "expected": "Expected",
+      "totalShown": "Total of the rows shown",
+      "totalReceived": "Received, rows shown",
+      "totalExpected": "Expected, not counted in totals",
+      "createOnly": "You can record entries here, but seeing existing records needs finance view access.",
+      "reportingCurrency": "Reporting currency"
+    },
+    "report": {
+      "lead": "Costs against realized revenue, month by month, with break-even and scenarios. Every figure lists its inputs.",
+      "noAccess": "You don't have access to financial reports.",
+      "noScopes": "No reports are available to you yet.",
+      "from": "From",
+      "to": "To",
+      "rateMode": {
+        "snapshot": "Stored rates",
+        "current": "Today's rates"
+      },
+      "export": "Download",
+      "formats": {
+        "pdf": "PDF",
+        "csv": "CSV",
+        "xlsx": "Excel",
+        "txt": "Text"
+      },
+      "netShort": "Net result",
+      "netNote": "Realized revenue minus costs",
+      "brokeEvenIn": "Broke even in {month}",
+      "stillNeeded": "{amount} still needed",
+      "monthlyLead": "Realized revenue only. Expected income is listed under projections.",
+      "monthlyChart": "Costs and realized revenue by month",
+      "cumulativeChart": "Cumulative net result by month",
+      "showTable": "Show as table",
+      "showChart": "Show as chart",
+      "nothingYet": "Nothing recorded for this selection.",
+      "nothingYetLead": "Record costs and revenue, or widen the dates.",
+      "howTitle": "How these numbers work",
+      "asOf": "As of {date}"
+    },
+    "scenarios": {
+      "save": "Save for everyone",
+      "saved": "Scenario inputs saved.",
+      "reset": "Back to calculated values",
+      "resetDone": "Scenario inputs reset to the calculated values.",
+      "unsaved": "Unsaved changes",
+      "customized": "Edited inputs",
+      "monthsAway": "{count, plural, one {In # month} other {In # months}} (after the horizon)",
+      "chart": "Projected cumulative result for each scenario"
+    },
+    "budgets": {
+      "lead": "Planned spend against actual costs. People who can see a budget are notified once when it goes over plan.",
+      "new": "New budget",
+      "edit": "Edit budget",
+      "delete": "Delete budget?",
+      "deleteConfirm": "Delete {name}? Recorded costs are not affected.",
+      "saved": "Budget saved.",
+      "created": "Budget created.",
+      "deleted": "Budget deleted.",
+      "team": "Team",
+      "teamHint": "A budget without a team covers costs across the whole organization.",
+      "wholeOrganization": "Whole organization",
+      "total": "Planned total ({currency})",
+      "amountInvalid": "Enter an amount greater than zero.",
+      "tournament": "Tournament",
+      "season": "Season",
+      "periodStart": "From",
+      "periodEnd": "To",
+      "datesInvalid": "The end date must be on or after the start date.",
+      "lines": "Category limits",
+      "linesHint": "Optional. Each limit is tracked and alerted on separately.",
+      "addLine": "Add a category limit",
+      "chooseCategory": "Choose a category",
+      "notes": "Notes",
+      "totalLine": "Total",
+      "over": "Over plan",
+      "overBy": "Over by",
+      "remaining": "Remaining",
+      "statusOver": "Over plan",
+      "statusOk": "Within plan",
+      "empty": "No budgets yet.",
+      "emptyLead": "Set a planned total for a team, tournament or season to track spending against it.",
+      "alertsNote": "Budgets use the reporting currency. Costs in other currencies count at the rate stored on each cost."
+    },
+    "settings": {
+      "lead": "Reporting currency, currencies in use, exchange rates and seasons.",
+      "currencies": "Currencies",
+      "currenciesLead": "All totals are shown in the reporting currency. Each record keeps its own currency and rate.",
+      "baseCurrency": "Reporting currency",
+      "baseHint": "Choose it before recording anything; it can't change afterwards.",
+      "baseLocked": "Locked because records already exist. Changing it would change every stored conversion.",
+      "enabledCurrencies": "Currencies people can record in",
+      "fxProvider": "Exchange rates are provided by",
+      "fxSnapshot": "Each record stores the rate for its own date, so past reports never change.",
+      "fxNone": "Automatic exchange rates are turned off. Enter a rate whenever a record is in another currency.",
+      "saved": "Finance settings saved.",
+      "seasons": "Seasons",
+      "seasonsLead": "Costs and revenue are assigned to the season that contains their date. Seasons can't overlap.",
+      "newSeason": "New season",
+      "editSeason": "Edit season",
+      "seasonLead": "Records with dates in this range are assigned to it automatically.",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "seasonSaved": "Season saved.",
+      "seasonCreated": "Season created.",
+      "seasonDeleted": "Season deleted.",
+      "noSeasons": "No seasons yet.",
+      "deleteSeason": "Delete season?",
+      "deleteSeasonConfirm": "Delete {name}? Records keep their dates and are no longer assigned to a season.",
+      "reportingIn": "Reporting in"
+    }
+  },
+  "tournaments": {
+    "title": "Tournaments",
+    "lead": "Research on tournaments you might enter: dates, fees, prize pools and requirements.",
+    "manualNotice": "Entered by hand. Check the source before relying on it.",
+    "new": "Add tournament",
+    "edit": "Edit tournament",
+    "delete": "Delete tournament?",
+    "deleteConfirm": "Delete {name}? Tournaments linked to costs or revenue can't be deleted.",
+    "saved": "Tournament saved.",
+    "created": "Tournament added.",
+    "deleted": "Tournament deleted.",
+    "fixFields": "Some fields need fixing.",
+    "organizer": "Organizer",
+    "game": "Game",
+    "region": "Region",
+    "startDate": "Starts",
+    "endDate": "Ends",
+    "money": "Fees and prizes",
+    "entryFee": "Entry fee",
+    "prizePool": "Prize pool",
+    "currency": "Currency",
+    "amount": "Amount",
+    "amountInvalid": "Enter an amount greater than zero.",
+    "placementRewards": "Prize by placement",
+    "placement": "Placement",
+    "addPlacement": "Add a placement",
+    "eligibility": "Eligibility",
+    "qualification": "Qualification path",
+    "travelRequirements": "Travel requirements",
+    "sponsorCoverage": "Sponsor or organizer coverage",
+    "historicalResults": "Past results",
+    "sourceSection": "Source",
+    "sourceUrl": "Source link",
+    "urlInvalid": "Enter a web address starting with https:// or http://",
+    "lastVerifiedOn": "Last checked against the source",
+    "verifiedToday": "Checked today",
+    "source": "Source",
+    "noSource": "No source recorded",
+    "verifiedOn": "Checked {date}",
+    "neverVerified": "Never checked",
+    "stale": "may be out of date",
+    "teams": "Teams",
+    "notes": "Notes",
+    "details": "Details",
+    "allStatuses": "All",
+    "empty": "No tournaments yet.",
+    "emptyLead": "Add tournaments you're considering, with a link to where the information came from."
+  },
+  "roster": {
+    "backToTeams": "Teams",
+    "new": "Add person",
+    "edit": "Edit person",
+    "delete": "Remove from roster?",
+    "deleteConfirm": "Remove {name}? People with recorded costs can't be removed; mark them as left instead.",
+    "saved": "Saved.",
+    "created": "Added to the roster.",
+    "deleted": "Removed from the roster.",
+    "groups": {
+      "players": "Players",
+      "staff": "Coaches and staff"
+    },
+    "emptyGroup": "Nobody here yet.",
+    "noAccess": "You don't have access to this team's roster.",
+    "financeReport": "Finance report",
+    "exportCsv": "Export CSV",
+    "fullName": "Full name",
+    "handle": "Handle",
+    "role": "Role",
+    "position": "Position",
+    "nationality": "Nationality",
+    "dateOfBirth": "Date of birth",
+    "phone": "Phone",
+    "joinedOn": "Joined",
+    "leftOn": "Left",
+    "activeLabel": "On the roster",
+    "activeHint": "Untick when someone leaves. Their history stays with this team.",
+    "notes": "Notes",
+    "left": "Left",
+    "pay": "Pay",
+    "payLead": "Pay is visible to people with finance access for this team.",
+    "payReadOnly": "Changing pay needs finance edit access for this team.",
+    "hasPay": "Has pay terms",
+    "amount": "Amount per period",
+    "amountInvalid": "Enter an amount greater than zero.",
+    "currency": "Currency",
+    "frequency": "Paid",
+    "offSeasonAmount": "Off-season amount",
+    "offSeasonHint": "Used outside configured seasons. Leave empty if the same all year.",
+    "contractStart": "Contract start",
+    "contractEnd": "Contract end",
+    "contract": "Contract",
+    "signingBonus": "Signing bonus",
+    "payNotes": "Pay notes",
+    "payInvalid": "Check the pay terms: amount, currency and contract dates.",
+    "perMonth": "{amount} a month",
+    "noPay": "Not set"
   }
 }

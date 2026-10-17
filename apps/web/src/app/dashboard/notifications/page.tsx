@@ -1,6 +1,6 @@
 'use client';
 
-import type { NotificationDto } from '@esports/shared';
+import { categoryLabel, formatMoney, type NotificationDto } from '@esports/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -20,9 +20,24 @@ export default function NotificationsPage() {
   const readAll = useAction(() => apiPost('/notifications/read-all'), { invalidate });
   const readOne = useAction((id: string) => apiPost(`/notifications/${id}/read`), { invalidate });
 
+  const fl = locale === 'ar' ? 'ar' : 'en';
+  /** Budget alerts carry raw amounts and a category key; format them for the reader. */
+  const values = (n: NotificationDto): Record<string, string> => {
+    const d = n.data as Record<string, string | null>;
+    if (n.type !== 'budget.exceeded') return d as Record<string, string>;
+    const c = d.currency ?? 'USD';
+    return {
+      budgetName: d.budgetName ?? '',
+      actual: formatMoney(d.actual ?? '0', c, fl),
+      planned: formatMoney(d.planned ?? '0', c, fl),
+      line: d.category
+        ? t('budgetLine', { category: categoryLabel(fl, d.category) })
+        : t('budgetTotal'),
+    };
+  };
   const text = (n: NotificationDto) => {
     const key = `types.${n.type}`;
-    return t.has(key as never) ? t(key as never, n.data as never) : n.type;
+    return t.has(key as never) ? t(key as never, values(n) as never) : n.type;
   };
   const unread = (list.data ?? []).filter((n) => !n.readAt).length;
 

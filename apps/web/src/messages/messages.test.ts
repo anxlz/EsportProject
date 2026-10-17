@@ -63,6 +63,12 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
     'team.exported',
     'auth.login_failed',
     'platform.members_viewed',
+    'finance.expense_created',
+    'finance.report_exported',
+    'budget.exceeded',
+    'roster.compensation_changed',
+    'tournament.created',
+    'season.created',
   ];
   for (const [locale, messages] of [
     ['en', en],
@@ -77,7 +83,14 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
       for (const key of PERMISSION_KEYS) resolved(`permissions.${key}`);
       for (const code of ERROR_CODES) resolved(`errors.${code}`);
       for (const n of NOTIFICATION_TYPES)
-        resolved(`notifications.types.${n}`, { memberName: 'X', byName: 'Y' });
+        resolved(`notifications.types.${n}`, {
+          memberName: 'X',
+          byName: 'Y',
+          budgetName: 'B',
+          line: 'L',
+          actual: '1',
+          planned: '2',
+        });
       for (const a of auditActions) resolved(`audit.actions.${a}`);
     });
   }

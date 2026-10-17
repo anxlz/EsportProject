@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
   Building2,
+  CalendarDays,
   Gamepad2,
   LayoutDashboard,
   LogOut,
@@ -14,6 +15,7 @@ import {
   ShieldCheck,
   Trophy,
   Users,
+  Wallet,
   X,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -46,6 +48,20 @@ function useNav(me: MeResponse): NavItem[] {
       label: t('teams'),
       icon: Trophy,
       anyOf: ['teams.view', 'departments.view'],
+      needsOrg: true,
+    },
+    {
+      href: '/dashboard/finance',
+      label: t('finance'),
+      icon: Wallet,
+      anyOf: ['finance.view', 'finance.create', 'finance.configure'],
+      needsOrg: true,
+    },
+    {
+      href: '/dashboard/tournaments',
+      label: t('tournaments'),
+      icon: CalendarDays,
+      anyOf: ['tournaments.view'],
       needsOrg: true,
     },
     {
