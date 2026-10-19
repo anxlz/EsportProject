@@ -1,6 +1,11 @@
 'use client';
 
-import type { MeResponse, PermissionKey } from '@esports/shared';
+import {
+  ASSISTANT_KEYS,
+  ASSISTANT_PERMISSION,
+  type MeResponse,
+  type PermissionKey,
+} from '@esports/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
@@ -14,6 +19,7 @@ import {
   ScrollText,
   Settings,
   ShieldCheck,
+  Sparkles,
   Trophy,
   Users,
   Wallet,
@@ -24,6 +30,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 import { api, ApiError, apiPost } from '@/lib/api';
+import { ASSISTANT_ICONS } from '@/lib/assistants';
 import { MeProvider, useMeQuery } from '@/lib/session';
 import { LanguageSwitcher } from './language-switcher';
 import { cx, Spinner } from './ui';
@@ -36,10 +43,13 @@ interface NavItem {
   anyOf?: PermissionKey[];
   platformOnly?: boolean;
   needsOrg?: boolean;
+  /** Listed under a group heading instead of the main list. */
+  section?: 'assistants';
 }
 
 function useNav(me: MeResponse): NavItem[] {
   const t = useTranslations('nav');
+  const ta = useTranslations('assistants.short');
   const has = (keys?: PermissionKey[]) =>
     !keys || keys.some((k) => me.permissions.some((p) => p.key === k));
   const items: NavItem[] = [
@@ -107,6 +117,15 @@ function useNav(me: MeResponse): NavItem[] {
     },
     { href: '/dashboard/settings', label: t('settings'), icon: Settings },
     { href: '/platform', label: t('platform'), icon: Building2, platformOnly: true },
+    // One entry per assistant, each gated by its own permission (spec §4.2).
+    ...ASSISTANT_KEYS.map((key): NavItem => ({
+      href: `/dashboard/assistants/${key}`,
+      label: ta(key),
+      icon: ASSISTANT_ICONS[key],
+      anyOf: [ASSISTANT_PERMISSION[key]],
+      needsOrg: true,
+      section: 'assistants',
+    })),
   ];
   return items.filter(
     (i) =>
@@ -146,11 +165,48 @@ function OrgSwitcher({ me }: { me: MeResponse }) {
   );
 }
 
+function NavList({
+  items,
+  isActive,
+  onNavigate,
+}: {
+  items: NavItem[];
+  isActive: (href: string) => boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {items.map((item) => {
+        const active = isActive(item.href);
+        const Icon = item.icon;
+        return (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              onClick={onNavigate}
+              aria-current={active ? 'page' : undefined}
+              className={cx(
+                'flex items-center gap-3 rounded-md px-3 py-2 text-[0.9375rem]',
+                active ? 'bg-turf text-turf-ink' : 'text-ink hover:bg-panel-2',
+              )}
+            >
+              <Icon className="size-4 shrink-0" aria-hidden="true" />
+              {item.label}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function Sidebar({ me, onNavigate }: { me: MeResponse; onNavigate?: () => void }) {
   const t = useTranslations('nav');
   const tApp = useTranslations('app');
   const pathname = usePathname();
   const items = useNav(me);
+  const main = items.filter((i) => !i.section);
+  const assistants = items.filter((i) => i.section === 'assistants');
   const qc = useQueryClient();
 
   const isActive = (href: string) =>
@@ -165,28 +221,26 @@ function Sidebar({ me, onNavigate }: { me: MeResponse; onNavigate?: () => void }
         <OrgSwitcher me={me} />
       </div>
       <nav aria-label={t('mainNavigation')} className="flex-1 overflow-y-auto px-2 py-3">
-        <ul className="flex flex-col gap-0.5">
-          {items.map((item) => {
-            const active = isActive(item.href);
-            const Icon = item.icon;
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={onNavigate}
-                  aria-current={active ? 'page' : undefined}
-                  className={cx(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-[0.9375rem]',
-                    active ? 'bg-turf text-turf-ink' : 'text-ink hover:bg-panel-2',
-                  )}
-                >
-                  <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <NavList items={main} isActive={isActive} onNavigate={onNavigate} />
+        {assistants.length > 0 && (
+          <div className="mt-4 border-t border-line pt-3">
+            <Link
+              href="/dashboard/assistants"
+              onClick={onNavigate}
+              aria-current={pathname === '/dashboard/assistants' ? 'page' : undefined}
+              className={cx(
+                'mb-1 flex items-center gap-2 rounded-md px-3 py-1.5 text-[0.8125rem] font-medium',
+                pathname === '/dashboard/assistants'
+                  ? 'bg-turf text-turf-ink'
+                  : 'text-muted hover:bg-panel-2 hover:text-ink',
+              )}
+            >
+              <Sparkles className="size-3.5 shrink-0" aria-hidden="true" />
+              {t('assistants')}
+            </Link>
+            <NavList items={assistants} isActive={isActive} onNavigate={onNavigate} />
+          </div>
+        )}
       </nav>
       <div className="border-t border-line px-4 py-4">
         <p className="truncate text-sm font-medium">{me.user.displayName}</p>

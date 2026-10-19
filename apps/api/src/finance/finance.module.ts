@@ -44,5 +44,6 @@ import { FinanceSettingsController } from './settings.controller';
     ReportsService,
     PdfRenderer,
   ],
+  exports: [RostersService, ReportsService, BudgetsService],
 })
 export class FinanceModule {}

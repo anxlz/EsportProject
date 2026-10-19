@@ -53,6 +53,10 @@ describe('invitations', () => {
     expect(acc.status).toBe(200);
     expect(acc.body.activeOrganization?.name).toBe('Riyadh Falcons');
     expect(acc.body.permissions.map((p) => p.key).sort()).toEqual([
+      // Phase 5: the general, formal-message and email assistants (no sending from the platform).
+      'assistants.email',
+      'assistants.formal_message',
+      'assistants.general',
       'departments.view',
       'games.view',
       // Phase 2: operations staff can see rosters and the tournament calendar (no pay data).

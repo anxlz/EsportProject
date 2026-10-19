@@ -69,6 +69,8 @@ const envSchema = z
     ANTHROPIC_MODEL: z.string().min(1).default('claude-sonnet-5-5'),
     ANTHROPIC_API_URL: z.url().default('https://api.anthropic.com'),
     ANTHROPIC_TIMEOUT_MS: z.coerce.number().int().min(5000).max(600000).default(120000),
+    /** Let the research-capable assistants search the web (Anthropic web search tool). */
+    ASSISTANT_WEB_SEARCH: z.enum(['on', 'off']).default('on'),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.MAIL_TRANSPORT === 'outbox') {

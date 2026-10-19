@@ -41,19 +41,28 @@ why, and whether it is easy to reverse.
 | Federation confirmation | Still unresolved. Phase 4 is built as specified (spec §7.8), with **no compliance claims** in product copy and a quiet note recommending confirmation with the Federation or counsel. |
 | Production credentials  | Still outstanding: SMTP, Supabase, Redis URL, `SESSION_SECRET`, hosting, Discord OAuth, product name, and now the Anthropic API key. Phase 4 is built against local stand-ins.        |
 
+## Decisions taken with the user (Phase 5, 18 Oct 2026)
+
+| Topic                  | Decision                                                                                                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| How to build and test  | Same approach as the clause assistant: all five assistants built and tested against a **fake provider** behind the existing provider interface. **No live Anthropic call has been made**; the summary separates fake-only from exercised. |
+| Anthropic API key      | Still not available; it blocks nothing. Without it every assistant page says it isn't set up and nothing can be sent.                                                                                                                     |
+| Section 8 hard rules   | Carried forward as stated: proposal-only, the invoking user's own permissions, citations + confidence labels + anti-fabrication on tool use, a tool-call log, Arabic/English per conversation.                                            |
+| Production credentials | Still outstanding: SMTP, Supabase, Redis URL, `SESSION_SECRET`, hosting, Discord OAuth, product name, Anthropic API key. Legal review and Federation confirmation stay outside this build.                                                |
+
 ## Still open — needs your input
 
-| Topic                           | Needed by                     | Notes                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Email provider (SMTP)           | Before production             | Invitations, password-reset emails and (Phase 4) emailed signing codes need one. The code is provider-neutral SMTP (Resend, Postmark, Amazon SES, Mailgun, Brevo all offer SMTP). Until configured, Owners can still copy invitation links, and signers can use access codes; password reset will not work in production. |
-| Railway vs Fly.io               | Deployment                    | Dockerfile is portable to both (and AWS).                                                                                                                                                                                                                                                                                 |
-| Supabase project + environments | Deployment                    | Whether you want separate dev/staging/prod projects pre-launch.                                                                                                                                                                                                                                                           |
-| Discord OAuth app               | When you want Discord sign-in | Client id/secret + redirect URL; feature is fully built and hidden until configured.                                                                                                                                                                                                                                      |
-| Product name                    | Any time                      | "Club Manager / إدارة النادي" is a placeholder in `apps/web/src/messages/*.json` (`app.name`).                                                                                                                                                                                                                            |
-| Anthropic API key               | To use the clause assistant   | Deferred (Phase 4 decision): not a blocker. Set `ANTHROPIC_API_KEY` on the API (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`). Without it the assistant says it isn't configured and everything else works. The live API has never been called from here.                                                      |
-| Contract wording review         | Before using real contracts   | Happening outside this build (confirmed in Phase 4). The default clause wording is sample text, not legal advice; "Governing law and disputes" is a placeholder. Owners can edit the templates. The signing consent statement (`consentText` in `packages/shared/src/contracts/i18n.ts`) is in the same position.         |
-| Federation confirmation         | Before relying on signatures  | Whether the Saudi Esports Federation accepts in-platform electronic signatures (and guardian consent) for registration is unconfirmed. The product makes no claim either way.                                                                                                                                             |
-| Docker image with Chromium      | Deployment                    | PDF export needs Chromium. The Dockerfile now installs Debian's `chromium`; the container could not be built here (no Docker daemon), so build it once before deploying. PDF rendering itself is tested against both the bundled and a standard Chromium build.                                                           |
+| Topic                           | Needed by                     | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Email provider (SMTP)           | Before production             | Invitations, password-reset emails and (Phase 4) emailed signing codes need one. The code is provider-neutral SMTP (Resend, Postmark, Amazon SES, Mailgun, Brevo all offer SMTP). Until configured, Owners can still copy invitation links, and signers can use access codes; password reset will not work in production.                                                                                                                      |
+| Railway vs Fly.io               | Deployment                    | Dockerfile is portable to both (and AWS).                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Supabase project + environments | Deployment                    | Whether you want separate dev/staging/prod projects pre-launch.                                                                                                                                                                                                                                                                                                                                                                                |
+| Discord OAuth app               | When you want Discord sign-in | Client id/secret + redirect URL; feature is fully built and hidden until configured.                                                                                                                                                                                                                                                                                                                                                           |
+| Product name                    | Any time                      | "Club Manager / إدارة النادي" is a placeholder in `apps/web/src/messages/*.json` (`app.name`).                                                                                                                                                                                                                                                                                                                                                 |
+| Anthropic API key               | To use any AI feature         | Not a blocker. Set `ANTHROPIC_API_KEY` on the API (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`). It powers the clause assistant and the five Phase 5 assistants. **The live API has never been called from here**; please run one live conversation per assistant first (spec §8.3). Web search is on unless an admin disabled it in the Claude Console; it costs extra per search (`ASSISTANT_WEB_SEARCH=off` turns it off here). |
+| Contract wording review         | Before using real contracts   | Happening outside this build (confirmed in Phase 4). The default clause wording is sample text, not legal advice; "Governing law and disputes" is a placeholder. Owners can edit the templates. The signing consent statement (`consentText` in `packages/shared/src/contracts/i18n.ts`) is in the same position.                                                                                                                              |
+| Federation confirmation         | Before relying on signatures  | Whether the Saudi Esports Federation accepts in-platform electronic signatures (and guardian consent) for registration is unconfirmed. The product makes no claim either way.                                                                                                                                                                                                                                                                  |
+| Docker image with Chromium      | Deployment                    | PDF export needs Chromium. The Dockerfile now installs Debian's `chromium`; the container could not be built here (no Docker daemon), so build it once before deploying. PDF rendering itself is tested against both the bundled and a standard Chromium build.                                                                                                                                                                                |
 
 ## Stack and runtime
 
@@ -513,3 +522,132 @@ budgets, and tax calculation (spec §6.7).
   visibility; downloading the signed PDF needs `contracts.export`.
 - The "Approved" view now includes contracts out for signature; the "Signed" view lists fully
   signed contracts with their signing date.
+
+## AI assistants (Phase 5)
+
+**Five assistants, one provider interface**
+
+- General Esports, Formal Message, Email, Offer Optimizer and Player Investment Analyst (spec
+  §8.2), each with its own sidebar entry and its own permission (`assistants.general`,
+  `assistants.formal_message`, `assistants.email`, `assistants.offer_optimizer`,
+  `assistants.player_analyst`; spec §4.2 "access per assistant"). Sending a reviewed email from the
+  platform is a separate permission, `assistants.send_email`. Head of Esports and Esports Manager
+  get all six; Esports Operations gets General, Formal Message and Email (migration 0009 adds them
+  to existing roles from those templates). None of them is scopable: what an assistant can _see_ is
+  scoped by the user's other permissions (below).
+- Everything goes through the single provider interface (`src/ai/ai.provider.ts`, now a global
+  `AiModule`). Two calls: `generateJson` (structured outputs, as in Phase 3) and a new `converse`
+  for tool use. No second provider and no framework (spec §17).
+- **Two steps per reply.** _Research_: the model may call the platform's read-only tools and
+  Anthropic's server-side web search (`web_search_20250305`, direct calls, up to 5 searches; at most
+  6 model calls and 10 tool runs per reply). _Compose_: a structured-output call with no tools
+  writes the answer in the assistant's own JSON shape from the evidence gathered. Two steps because
+  structured outputs and citations can't be combined in one call, and a fixed answer shape is what
+  lets code check it.
+- `pause_turn` is continued by sending the paused content back unchanged; a turn that mixes a web
+  search with a platform tool gets the tool results back in a message of only `tool_result` blocks
+  (the search then runs on the next call), as the Messages API requires.
+
+**Proposal only (spec §8.1)**
+
+- The assistants have **no tool that writes**. The model is offered only read-only lookups; a
+  request for any other tool is refused, logged as `unknown_tool`, flagged on the answer, and the
+  model is told it can't change, save or send anything.
+- The only two actions that change anything are separate, explicit requests from the person, each
+  behind a confirmation dialog: **send this email** (Email Assistant; the recipients, subject and
+  body are the ones on screen, edited or not) and **apply this alternative to a draft contract**
+  (Offer Optimizer; saved as a new contract version through the normal contract rules — only drafts
+  and contracts with requested changes, approval still required). Both are recorded on the message,
+  in an append-only table, and in the audit log (`assistant.email_sent`, `assistant.offer_applied`).
+- A test runs every assistant end to end and compares a checksum of every non-assistant table
+  before and after: nothing changes until one of those explicit requests is made.
+
+**The invoking user's own permissions**
+
+- Every lookup calls the same services the dashboard uses, with the user's own request context, so
+  scope rules apply unchanged: a team outside the user's scope is "not available", and the model is
+  told so instead of being given the data. Tools are only offered when the user holds the permission
+  they need (e.g. finance lookups need `finance.view`).
+- **Data minimization:** roster members and contract recipients are sent as name, role, position,
+  nationality and **age** — never date of birth, email, phone, address or ID number. Pay is included
+  only when the user may see pay on that team, as on the dashboard.
+- Conversations are private to the person who started them. The tool-call log is visible to
+  holders of `audit.view`.
+
+**Citations, confidence and anti-fabrication (spec §8.1 guardrails 1–3)**
+
+- Sources are registered by the platform when a lookup returns data: `P1…` platform records, `W1…`
+  web results, `U1…` context the user typed in. The model can only refer to those ids; an id that
+  wasn't registered is removed and flagged. Source titles, links and quoted text come from the
+  tools, never from the model.
+- Every claim has a confidence label. **"Confirmed" needs a cited source with content behind it**
+  (platform data, the user's own context, or a web result whose text was actually quoted);
+  otherwise it is shown as "uncertain" and flagged. Gaps are listed as such.
+- Links in the answer text that didn't come from a lookup or from the user are replaced with
+  "[link removed: not from a verified source]" and flagged. The removed address isn't shown.
+- Text from tools, web pages and the user's context is marked as data, not instructions, in the
+  prompt.
+- Player Analyst scenarios (and Offer Optimizer rationale) are checked for promise wording
+  ("guaranteed", "risk-free", "مضمون"…) and flagged. "Guaranteed pay / salary / minimum" is normal
+  contract vocabulary and isn't flagged.
+- Each reply shows its sources (web links open in a new tab, platform sources link to the
+  dashboard page), the checks that were applied, and what was looked up.
+
+**Tool-call log (guardrail 4)**
+
+- Every lookup is stored in `ai_tool_calls` (append-only by trigger): who asked, which assistant,
+  the tool or search query, the outcome (`ok`, `denied`, `not_found`, `error`, `unknown_tool`), a
+  short result summary (count, source ids) and the time taken. Audit → "Assistant lookups".
+
+**Languages**
+
+- Each conversation has a reply language: **Auto** (the language of each message: Arabic when it
+  has more Arabic than Latin letters), Arabic or English. Changing it applies from the next reply.
+  The answer is checked; if it's in the wrong language the compose step is retried once, and if it
+  still is, the answer is flagged. The model's text is shown with its own direction (an Arabic reply
+  reads right-to-left in the English interface), while labels follow the interface language.
+- Source names for platform data and the user's context are shown in the reader's language.
+
+**Replies run in the background**
+
+- Sending a message stores it and a pending reply, returns 202, and the page polls until the reply
+  is complete or failed. One pending reply per conversation (unique index); a second send gets
+  `assistant_busy`. A reply left pending for more than 4 minutes (e.g. after a restart) is marked
+  failed (`timeout`) and can be retried. Up to 20 earlier messages are sent along for context.
+- Limits: 60 replies and 20 sent emails per user per hour; messages up to 6 000 characters.
+
+**Offer Optimizer numbers**
+
+- Every amount next to an alternative is **calculated by the platform** from its terms
+  (`packages/shared/src/assistants/offer.ts`, exact decimals): monthly equivalent, pay over the
+  term, signing bonus, all listed bonuses, and an upper-bound total, plus the difference from both
+  sides' terms. Per-event pay and revenue shares can't be costed and are noted, not guessed. The
+  model is told not to state totals for its alternatives.
+- Applying an alternative fills only what it sets: salary, frequency, the end date from the start
+  date and duration, bonuses (a signing bonus becomes a "Signing bonus — paid on signing" entry),
+  revenue share and buyout. Everything else in the contract stays as it was.
+
+**Fallback context (spec §8.2)**
+
+- Offer Optimizer: both sides' terms (ours can be loaded from a contract the user can see), who
+  asked, notes. Player Analyst: a roster player (fetched through the same permission-checked
+  lookup) and/or a typed profile and evidence. Email: recipient, address, role, game or team,
+  purpose, tone. Formal message: recipient, sender, purpose. All of it is cited as the user's own
+  information.
+
+**Configuration**
+
+- `ANTHROPIC_API_KEY` (and the existing `ANTHROPIC_MODEL`) as in Phase 3. `ASSISTANT_WEB_SEARCH`
+  (`on` by default) switches web search off for the whole deployment. If the API account has web
+  search disabled, the reply is retried without it and says so.
+
+**What is verified, and how**
+
+- Built and tested against a fake provider that returns scripted model output in the documented
+  response shapes. The adapter's request building and response parsing are unit-tested against
+  those shapes with a mocked HTTP call. Everything on the platform side runs for real in the tests:
+  permissions and scoping, the lookups against Postgres, the source registry and guardrails, the
+  logging and database triggers, both explicit actions, and the email outbox.
+- **Not verified:** a real call to the Anthropic API, real web search results, and the quality of
+  real answers (whether the model follows the rules, cites well, writes good Arabic). These need
+  the API key; spec §8.3's early live test is still recommended.

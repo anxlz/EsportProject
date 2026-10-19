@@ -13,13 +13,16 @@ import { type Env, ENV } from '../config/env';
 import { DB, type Database } from '../db/client';
 import { devOutbox } from '../db/schema';
 
-export type MailTemplate = 'invitation' | 'password_reset' | 'signing_code';
+export type MailTemplate = 'invitation' | 'password_reset' | 'signing_code' | 'assistant_email';
 
 interface Message {
+  /** One address, or several separated by commas. */
   to: string;
   subject: string;
   text: string;
   template: MailTemplate;
+  cc?: string[];
+  replyTo?: string;
 }
 
 @Injectable()
@@ -48,11 +51,22 @@ export class MailService {
         await this.transporter.sendMail({
           from: this.env.MAIL_FROM,
           to: message.to,
+          ...(message.cc?.length ? { cc: message.cc } : {}),
+          ...(message.replyTo ? { replyTo: message.replyTo } : {}),
           subject: message.subject,
           text: message.text,
         });
       } else {
-        await this.db.insert(devOutbox).values(message);
+        const headers = [
+          message.cc?.length ? `Cc: ${message.cc.join(', ')}` : '',
+          message.replyTo ? `Reply-To: ${message.replyTo}` : '',
+        ].filter(Boolean);
+        await this.db.insert(devOutbox).values({
+          to: message.to,
+          subject: message.subject,
+          template: message.template,
+          text: headers.length ? `${headers.join('\n')}\n\n${message.text}` : message.text,
+        });
         if (this.env.NODE_ENV === 'development') {
           this.logger.log(
             `[outbox] to=${message.to} subject="${message.subject}"\n${message.text}`,

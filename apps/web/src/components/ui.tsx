@@ -391,6 +391,7 @@ export function ConfirmDialog({
   confirmLabel,
   danger,
   busy,
+  confirmDisabled,
   error,
   onConfirm,
   onClose,
@@ -402,6 +403,8 @@ export function ConfirmDialog({
   confirmLabel: string;
   danger?: boolean;
   busy?: boolean;
+  /** Keeps the confirm button disabled (e.g. until a required choice is made). */
+  confirmDisabled?: boolean;
   error?: unknown;
   onConfirm: () => void;
   onClose: () => void;
@@ -417,7 +420,11 @@ export function ConfirmDialog({
       footer={
         <>
           <Button onClick={onClose}>{t('cancel')}</Button>
-          <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} disabled={busy}>
+          <Button
+            variant={danger ? 'danger' : 'primary'}
+            onClick={onConfirm}
+            disabled={busy || confirmDisabled}
+          >
             {busy ? t('saving') : confirmLabel}
           </Button>
         </>

@@ -56,7 +56,8 @@
     "mainNavigation": "Main navigation",
     "finance": "Finance",
     "tournaments": "Tournaments",
-    "contracts": "Contracts"
+    "contracts": "Contracts",
+    "assistants": "AI assistants"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -172,7 +173,10 @@
     "verification_required": "Confirm it's you first: request or enter your code.",
     "email_unavailable": "No code can be emailed to this signer. Add an email address, or use an access code instead.",
     "not_your_turn": "The recipient has to sign first.",
-    "already_signed": "This signature has already been given."
+    "already_signed": "This signature has already been given.",
+    "assistant_busy": "The assistant is still working on the previous reply. Wait for it to finish, then send again.",
+    "assistant_not_allowed": "You don't have access to this assistant.",
+    "email_send_failed": "The email couldn't be sent, so nothing was delivered. Try again later."
   },
   "overview": {
     "greeting": "Welcome, {name}",
@@ -340,7 +344,8 @@
     "rosters": "Rosters",
     "tournaments": "Tournaments",
     "finance": "Finance",
-    "contracts": "Contracts"
+    "contracts": "Contracts",
+    "assistants": "AI assistants"
   },
   "permissions": {
     "org": {
@@ -414,6 +419,14 @@
       "approve": "Approve or reject contracts (approval authority)",
       "manage_templates": "Change contract types and clause templates",
       "send_for_signature": "Send approved contracts for signature, manage signing links and cancel signing"
+    },
+    "assistants": {
+      "general": "Use the General Esports Assistant",
+      "formal_message": "Use the Formal Message Assistant",
+      "email": "Use the Email Assistant to draft emails",
+      "offer_optimizer": "Use the Offer Optimizer and apply its alternatives to draft contracts they can edit",
+      "player_analyst": "Use the Player Investment Analyst",
+      "send_email": "Send reviewed assistant emails from the platform"
     }
   },
   "audit": {
@@ -557,7 +570,16 @@
       },
       "file": {
         "uploaded": "Uploaded a file"
+      },
+      "assistant": {
+        "email_sent": "Sent an assistant email",
+        "offer_applied": "Applied an Offer Optimizer alternative to a contract"
       }
+    },
+    "nav": {
+      "label": "Audit sections",
+      "activity": "Activity",
+      "toolCalls": "Assistant lookups"
     }
   },
   "notifications": {
@@ -1392,5 +1414,321 @@
     "unusable": "This link can't be used",
     "contactOrg": "If you think this is a mistake, contact the organization that sent it.",
     "revisitSigned": "You've already signed with this link. Confirm it's you to see the status or download the signed copy."
+  },
+  "assistants": {
+    "title": "AI assistants",
+    "lead": "Assistants that research, draft and compare for you. They only propose: nothing is saved, sent or changed until you choose to.",
+    "names": {
+      "general": "General Esports Assistant",
+      "formal_message": "Formal Message Assistant",
+      "email": "Email Assistant",
+      "offer_optimizer": "Offer Optimizer",
+      "player_analyst": "Player Investment Analyst"
+    },
+    "short": {
+      "general": "General",
+      "formal_message": "Formal message",
+      "email": "Email",
+      "offer_optimizer": "Offer Optimizer",
+      "player_analyst": "Player analyst"
+    },
+    "descriptions": {
+      "general": "Questions about esports, your teams, finances, contracts and tournaments. Answers cite where each point came from.",
+      "formal_message": "Turns your notes into a finished formal message, ready to copy.",
+      "email": "Drafts an email with recipients and a subject. You review and edit it, then copy it or send it.",
+      "offer_optimizer": "Compares your preferred terms with what the other side asked for and proposes alternatives with their cost, risk and trade-offs.",
+      "player_analyst": "Weighs performance, cost and risk for a player you're considering, as scenarios rather than predictions."
+    },
+    "open": "Open",
+    "noAccess": "No access",
+    "notAllowed": "You don't have access to this assistant. Ask an administrator if you need it.",
+    "unknown": "There's no assistant at this address.",
+    "notConfigured": "The assistants aren't set up for this workspace yet. An administrator needs to add an Anthropic API key to the server. You can look around and prepare context, but replies can't be generated until then.",
+    "provider": "Replies are prepared with {model}.",
+    "webSearchDisabled": "Web search is switched off for this workspace, so answers use platform data and your own context only.",
+    "rules": {
+      "title": "How the assistants work",
+      "proposalOnly": "They only propose. Sending an email or saving terms to a contract always takes a separate click from you.",
+      "yourData": "They see only the platform data your own permissions allow, and never contact details or ID numbers.",
+      "citations": "Points that rest on a lookup show their sources and a confidence label. Links that didn't come from a real lookup are removed.",
+      "language": "Each conversation replies in Arabic or English: the language you write in, or the one you choose.",
+      "log": "Every lookup is recorded with who asked and when."
+    },
+    "conversations": "Conversations",
+    "newConversation": "New conversation",
+    "noConversations": "No conversations yet.",
+    "noArchived": "No archived conversations.",
+    "showArchived": "Archived",
+    "showActive": "Active",
+    "archive": "Archive",
+    "unarchive": "Restore",
+    "archivedNote": "This conversation is archived. Restore it to continue.",
+    "untitled": "New conversation",
+    "pendingBadge": "Replying",
+    "settings": "Conversation settings",
+    "replyLanguage": "Reply language",
+    "languages": {
+      "auto": "Same as my message",
+      "ar": "العربية",
+      "en": "English"
+    },
+    "webSearch": "Search the web",
+    "webSearchHint": "Lets the assistant look up public information. Results are cited with their links.",
+    "context": "Context",
+    "contextLead": "Information the assistant should work from. It's treated as your information and cited as such.",
+    "editContext": "Context",
+    "saveContext": "Save context",
+    "contextSaved": "Context saved",
+    "message": "Your message",
+    "placeholder": {
+      "general": "Ask a question, in Arabic or English",
+      "formal_message": "What should the message say? Add any details it must include.",
+      "email": "What is the email about? Add the points it must cover.",
+      "offer_optimizer": "What should the alternatives aim for? For example: keep the total under our budget.",
+      "player_analyst": "What do you want to know about this player?"
+    },
+    "send": "Send",
+    "sendHint": "Ctrl+Enter sends",
+    "working": "Preparing a reply…",
+    "workingTools": "Looking things up and preparing a reply…",
+    "failed": "No reply this time.",
+    "retry": "Try again",
+    "failure": {
+      "timeout": "The reply took too long and was stopped."
+    },
+    "you": "You",
+    "nothingChanges": "Nothing is saved, sent or changed until you choose to.",
+    "replyIn": "Reply in {language}",
+    "model": "Prepared with {model}",
+    "confidence": {
+      "confirmed": "Confirmed",
+      "estimated": "Estimated",
+      "uncertain": "Uncertain"
+    },
+    "confidenceHelp": "Confirmed: supported by a cited source. Estimated: reasoned from the sources. Uncertain: not verified.",
+    "claims": "Key points",
+    "gaps": "Not known or not found",
+    "followUps": "You could ask next",
+    "sources": "Sources",
+    "sourceKinds": {
+      "platform": "Platform data",
+      "web": "Web",
+      "user": "Your context"
+    },
+    "sourceLabels": {
+      "teams": "Teams",
+      "roster": "Team roster",
+      "roster_member": "Roster player",
+      "finance_report": "Finance report",
+      "budgets": "Budgets",
+      "contracts": "Contracts",
+      "contract": "Contract",
+      "tournaments": "Tournament research",
+      "user_context": "Context you provided",
+      "user_email_brief": "Email brief you provided",
+      "user_terms": "Terms you provided",
+      "user_profile": "Profile and evidence you provided"
+    },
+    "retrieved": "Looked up {time}",
+    "provided": "Provided {time}",
+    "pageAge": "Page date: {age}",
+    "openSource": "Open source",
+    "citation": "Source {id}",
+    "lookups": "What was looked up ({count})",
+    "noLookups": "Nothing was looked up for this reply.",
+    "tools": {
+      "list_teams": "Teams",
+      "list_roster": "Team roster",
+      "get_roster_member": "Roster member",
+      "get_finance_summary": "Finance summary",
+      "list_budgets": "Budgets",
+      "list_contracts": "Contracts",
+      "get_contract_terms": "Contract terms",
+      "list_tournaments": "Tournaments",
+      "web_search": "Web search"
+    },
+    "outcomes": {
+      "ok": "Done",
+      "denied": "Not available to you",
+      "not_found": "Not found",
+      "error": "Failed",
+      "unknown_tool": "Refused: not an available tool"
+    },
+    "flagsTitle": "Checks applied to this answer",
+    "flags": {
+      "unknown_source_removed": "A citation that didn't match anything looked up was removed.",
+      "unsupported_confirmation": "A point marked confirmed had no supporting source, so it's shown as uncertain.",
+      "link_removed": "A link that didn't come from a lookup or from you was removed.",
+      "language_mismatch": "Parts of the reply may not be in the requested language.",
+      "guarantee_language": "The answer used wording that sounds like a promise. Treat every figure as an estimate.",
+      "tool_denied": "Some data isn't available with your permissions, so it wasn't used.",
+      "unknown_tool": "The assistant asked for an action it doesn't have. Nothing was changed.",
+      "web_search_unavailable": "Web search wasn't available, so this answer uses platform data and your context only."
+    },
+    "copy": "Copy",
+    "copied": "Copied",
+    "formal": {
+      "note": "Review and edit before using it. Nothing has been sent."
+    },
+    "email": {
+      "to": "To",
+      "cc": "Cc",
+      "subject": "Subject",
+      "body": "Message",
+      "recipientsHint": "Separate addresses with commas.",
+      "notes": "Check before sending",
+      "openInMail": "Open in mail app",
+      "send": "Send…",
+      "confirmTitle": "Send this email?",
+      "confirmBody": "It's sent from the platform, and replies go to {email}.",
+      "recipients": "Recipients",
+      "confirm": "Send email",
+      "sent": "Email sent",
+      "sentBy": "Sent by {name} on {time} to {recipients}",
+      "noSendPermission": "Copy the email or open it in your mail app. Sending from the platform needs the permission to send assistant emails.",
+      "invalid": "Check these addresses: {list}",
+      "needRecipient": "Add at least one recipient.",
+      "needContent": "Add a subject and a message.",
+      "edited": "Edited"
+    },
+    "offer": {
+      "summary": "Summary",
+      "costs": "Cost over the term",
+      "calcNote": "Amounts are calculated by the platform from the terms, never by the assistant. Totals assume every listed bonus is earned.",
+      "preferred": "Our preferred terms",
+      "requested": "Their requested terms",
+      "differences": "What differs",
+      "term": "Term",
+      "note": "Note",
+      "constraints": "Constraints",
+      "alternatives": "Alternatives",
+      "alternative": "Alternative {n}",
+      "risk": "Risk: {level}",
+      "risks": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "rationale": "Why this works",
+      "tradeoffs": "Trade-offs",
+      "impact": "Financial impact",
+      "riskExplanation": "Risk",
+      "terms": "Terms",
+      "monthly": "Per month",
+      "base": "Pay over the term",
+      "signing": "Signing bonus",
+      "bonusesMax": "Bonuses (all earned)",
+      "total": "Total (upper bound)",
+      "vsPreferred": "Against our preferred",
+      "vsRequested": "Against their request",
+      "notComputed": "Can't be calculated",
+      "recommendation": "Recommendation",
+      "apply": "Apply to a draft contract…",
+      "applyTitle": "Apply “{label}” to a contract",
+      "applyLead": "The terms are saved as a new version of the contract you choose. Its approval and signing steps still apply, and fields this alternative doesn't set stay as they are.",
+      "contract": "Contract",
+      "chooseContract": "Choose a contract",
+      "noDrafts": "There are no draft contracts you can edit.",
+      "applyConfirm": "Save as a new version",
+      "applied": "Saved to {number} as version {version}",
+      "unchanged": "{number} already has these terms, so nothing changed.",
+      "appliedBy": "{name} applied “{label}” to {number} (version {version}) on {time}",
+      "openContract": "Open contract",
+      "cannotApply": "Applying terms needs permission to edit draft contracts.",
+      "costNotes": {
+        "salary_unknown": "No salary is set, so the total can't be calculated.",
+        "duration_unknown": "No duration is set, so pay over the term can't be calculated.",
+        "per_event_not_projected": "Per-event pay isn't projected.",
+        "revenue_share_not_costed": "The revenue share isn't included: there's no revenue figure.",
+        "bonus_amount_unknown": "Bonuses without an amount aren't included."
+      },
+      "termsLine": {
+        "salary": "Salary {amount} ({frequency})",
+        "duration": "{months, plural, one {# month} other {# months}}",
+        "signing": "Signing bonus {amount}",
+        "bonus": "Bonus: {description}",
+        "bonusAmount": "Bonus: {description}, {amount}",
+        "revenueShare": "Revenue share {percent}%",
+        "buyout": "Buyout {amount}"
+      }
+    },
+    "analyst": {
+      "summary": "Summary",
+      "performance": "Performance",
+      "cost": "Cost",
+      "risk": "Risk",
+      "potentialReturn": "Potential return",
+      "scenarios": "Scenarios",
+      "scenarioNames": {
+        "conservative": "Conservative",
+        "base": "Base case",
+        "optimistic": "Optimistic"
+      },
+      "assumptions": "Assumptions",
+      "estimatedCost": "Estimated cost",
+      "keyRisks": "Key risks",
+      "caveat": "These are scenarios to support your decision, not predictions or guarantees."
+    },
+    "forms": {
+      "salary": "Salary",
+      "currency": "Currency",
+      "frequency": "Paid",
+      "duration": "Duration (months)",
+      "signingBonus": "Signing bonus",
+      "bonuses": "Bonuses",
+      "bonusDescription": "Bonus",
+      "bonusAmount": "Amount",
+      "addBonus": "Add bonus",
+      "revenueShare": "Revenue share (%)",
+      "buyout": "Buyout",
+      "otherTerms": "Other terms",
+      "counterparty": "Who asked (player, agent or club)",
+      "notes": "Notes for the assistant",
+      "loadFromContract": "Load our terms from a contract",
+      "loaded": "Loaded terms from {number}",
+      "invalidTerms": "Check the amounts: use digits only, for example 15000 or 15000.50.",
+      "team": "Team",
+      "member": "Roster player",
+      "noMember": "Not on our roster",
+      "memberHint": "The assistant looks up this player's details your permissions allow.",
+      "profile": "Player profile",
+      "profileHint": "Name, game, role, age, current team, asking salary — whatever you know.",
+      "evidence": "Evidence",
+      "evidenceHint": "Paste stats, results, links or scouting notes.",
+      "recipientName": "Recipient name",
+      "recipientEmail": "Recipient email",
+      "recipientRole": "Recipient role",
+      "gameOrTeam": "Game or team",
+      "purpose": "Purpose",
+      "tone": "Tone",
+      "anyTone": "Let the assistant choose",
+      "tones": {
+        "formal": "Formal",
+        "friendly": "Friendly",
+        "neutral": "Neutral",
+        "firm": "Firm",
+        "apologetic": "Apologetic",
+        "celebratory": "Celebratory"
+      },
+      "recipient": "Recipient",
+      "sender": "Sender"
+    },
+    "toolLog": {
+      "title": "Assistant lookups",
+      "lead": "Every lookup an assistant made, with who asked and when. Assistants can only look things up; they can't change anything.",
+      "allAssistants": "All assistants",
+      "filter": "Assistant",
+      "when": "When",
+      "who": "Asked by",
+      "assistant": "Assistant",
+      "lookup": "Lookup",
+      "input": "Query",
+      "outcome": "Outcome",
+      "result": "Result",
+      "duration": "Time",
+      "results": "{count, plural, one {# result} other {# results}}",
+      "ms": "{ms} ms",
+      "empty": "No lookups yet."
+    }
   }
 }

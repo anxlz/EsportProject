@@ -62,7 +62,11 @@ describe('AI provider', () => {
       );
     }) as typeof fetch;
     const out = await new AnthropicProvider(env, fake).generateJson(req);
-    expect(out).toEqual({ data: { ok: true }, model: 'claude-sonnet-5-5' });
+    expect(out).toEqual({
+      data: { ok: true },
+      model: 'claude-sonnet-5-5',
+      usage: { inputTokens: 0, outputTokens: 0, webSearchRequests: 0 },
+    });
     expect(seen!.url).toBe('https://api.anthropic.example/v1/messages');
     const headers = seen!.init.headers as Record<string, string>;
     expect(headers['x-api-key']).toBe('test-key-not-real');

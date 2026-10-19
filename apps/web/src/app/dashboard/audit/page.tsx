@@ -15,6 +15,7 @@ import {
   tdClass,
   thClass,
 } from '@/components/ui';
+import { AuditNav } from '@/components/audit-nav';
 import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 
@@ -57,6 +58,7 @@ export default function AuditPage() {
   return (
     <>
       <PageHeader title={t('title')} lead={t('lead')} />
+      <AuditNav />
       <Section
         title={t('title')}
         actions={

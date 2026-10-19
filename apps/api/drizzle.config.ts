@@ -4,7 +4,12 @@ import { defineConfig } from 'drizzle-kit';
 // Migrations are applied by src/db/migrate.ts, never by drizzle-kit push.
 export default defineConfig({
   dialect: 'postgresql',
-  schema: ['./src/db/schema.ts', './src/db/schema-finance.ts', './src/db/schema-contracts.ts'],
+  schema: [
+    './src/db/schema.ts',
+    './src/db/schema-finance.ts',
+    './src/db/schema-contracts.ts',
+    './src/db/schema-assistants.ts',
+  ],
   out: './drizzle',
   schemaFilter: ['app'],
   dbCredentials: { url: process.env.DATABASE_URL ?? '' },

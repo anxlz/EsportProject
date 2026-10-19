@@ -3,8 +3,6 @@
  * notifications, version history, file store, PDF engine) from SharedServicesModule.
  */
 import { Module } from '@nestjs/common';
-import { AI_PROVIDER, aiProviderFromEnv } from '../ai/ai.provider';
-import { type Env, ENV } from '../config/env';
 import { FilesController } from '../files/files.controller';
 import { ClauseAssistantService } from './clause-assistant.service';
 import { ContractSettingsController } from './contract-settings.controller';
@@ -27,7 +25,6 @@ import { SigningService } from './signing.service';
     PublicSigningController,
   ],
   providers: [
-    { provide: AI_PROVIDER, inject: [ENV], useFactory: (env: Env) => aiProviderFromEnv(env) },
     ContractTypesService,
     DocumentSettingsService,
     ContractsService,
@@ -35,5 +32,6 @@ import { SigningService } from './signing.service';
     SigningService,
     { provide: CLOCK, useValue: systemClock },
   ],
+  exports: [ContractsService],
 })
 export class ContractsModule {}

@@ -4,7 +4,8 @@ Multi-tenant platform for running esports organizations: people, custom roles wi
 department scoping, teams and games (Phase 1), followed by accounting and investment analysis,
 contracts with approvals and e-signatures, bilingual AI assistants, meetings and integrations.
 
-**Status: Phase 4 (Electronic Signature Workflow) complete.** See
+**Status: Phase 5 (AI Assistants) complete — built and tested against a fake AI provider; no
+live Anthropic call yet.** See [`docs/PHASE-5-SUMMARY.md`](docs/PHASE-5-SUMMARY.md),
 [`docs/PHASE-4-SUMMARY.md`](docs/PHASE-4-SUMMARY.md),
 [`docs/PHASE-3-SUMMARY.md`](docs/PHASE-3-SUMMARY.md),
 [`docs/PHASE-2-SUMMARY.md`](docs/PHASE-2-SUMMARY.md) and
@@ -25,6 +26,8 @@ apps/api         NestJS 12 on Bun. REST API, auth, authorization, all business l
                    electronic signatures (links, codes, signing, signature record)
   src/versioning   Append-only version history        src/files  File store (Postgres)
   src/pdf          Shared PDF engine (Chromium + pdf-lib underlay)   src/ai  AI provider interface
+  src/assistants   The five AI assistants: read-only lookups, guardrails, background replies,
+                   the explicit send-email / apply-offer actions, the lookup log
   assets/fonts     Saudi riyal sign font (OFL), embedded in PDFs (signature fonts come from @fontsource)
   test/            Integration tests (real Postgres + Redis) and unit tests
 apps/web         Next.js 16 dashboard, Arabic/English with right-to-left support
@@ -32,6 +35,7 @@ apps/web         Next.js 16 dashboard, Arabic/English with right-to-left support
 packages/shared  Permission catalog, request schemas, response types (used by both apps)
   src/finance      Money math, payroll projection, the report engine and export table model
   src/contracts    Contract schemas, labels, default clause templates, merge fields
+  src/assistants   Assistant catalog, request schemas, answer types, Offer Optimizer cost math
 docs/            Phase summaries and the generated permission matrix
 ```
 
@@ -88,7 +92,7 @@ bun run test            # shared + API integration tests + web catalog tests
 API tests need Postgres and Redis. The PDF tests also need Chromium (the bundled
 `@sparticuz/chromium` is used unless `CHROMIUM_EXECUTABLE_PATH` points to one) and `pdftotext` /
 `pdffonts` / `pdfimages` from poppler-utils. Tests never call the Anthropic API (a fake provider is
-injected). Set `TEST_LOGS=1` to see API error logs while debugging a test. They default to
+injected, for the clause assistant and the five AI assistants alike). Set `TEST_LOGS=1` to see API error logs while debugging a test. They default to
 `postgres://postgres:devpass@127.0.0.1:5432/esports_test` and `redis://127.0.0.1:6379/1`; override
 with `TEST_DATABASE_URL` / `TEST_REDIS_URL`. **They truncate that database**, so never point them at
 real data. CI (`.github/workflows/ci.yml`) runs all of the above plus the web build.
@@ -116,8 +120,10 @@ Production checklist:
 6. Exchange rates: the API can reach `FX_PROVIDER_URL` (Frankfurter, approved for commercial use).
 7. The API image includes Chromium for PDF exports (the Dockerfile installs it); try one PDF
    download after deploying.
-8. Optional: `ANTHROPIC_API_KEY` for the Custom Clause Assistant (the assistant shows "not
-   configured" without it).
+8. Optional: `ANTHROPIC_API_KEY` for the clause assistant and the five AI assistants (they show
+   "not configured" without it). Before relying on them, run one real conversation with each
+   assistant — this build has only been tested against a fake provider. `ASSISTANT_WEB_SEARCH=off`
+   turns web search off (it is billed per search).
 9. Have counsel review the default contract templates (and the signing statement) before using
    them for real contracts, and confirm the use of electronic signatures with the Saudi Esports
    Federation or counsel.

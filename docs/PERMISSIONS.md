@@ -55,4 +55,10 @@ editable and deletable by Owners, and Owners can create any number of custom rol
 | `contracts.approve` | Scopable | ✓ |  |  |  |
 | `contracts.manage_templates` | Owner-only | ✓ |  |  |  |
 | `contracts.send_for_signature` | Scopable | ✓ | ✓ | ✓ |  |
+| `assistants.general` | Org-level | ✓ | ✓ | ✓ | ✓ |
+| `assistants.formal_message` | Org-level | ✓ | ✓ | ✓ | ✓ |
+| `assistants.email` | Org-level | ✓ | ✓ | ✓ | ✓ |
+| `assistants.offer_optimizer` | Org-level | ✓ | ✓ | ✓ |  |
+| `assistants.player_analyst` | Org-level | ✓ | ✓ | ✓ |  |
+| `assistants.send_email` | Org-level | ✓ | ✓ | ✓ |  |
 | `audit.view` | Org-level | ✓ | ✓ |  |  |

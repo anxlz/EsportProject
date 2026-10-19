@@ -17,6 +17,60 @@ import { tournaments, tournamentTeams } from '../db/schema-finance';
 const strip = (v: string | null) =>
   v === null ? null : v.includes('.') ? v.replace(/\.?0+$/, '') : v;
 
+/** Tournament records of an organization (callers check `tournaments.view` first). */
+export async function listTournaments(
+  db: DbOrTx,
+  organizationId: string,
+  id?: string,
+): Promise<TournamentDto[]> {
+  const rows = await db
+    .select({ t: tournaments, gameName: games.name })
+    .from(tournaments)
+    .leftJoin(games, eq(games.id, tournaments.gameId))
+    .where(
+      and(eq(tournaments.organizationId, organizationId), id ? eq(tournaments.id, id) : undefined),
+    )
+    .orderBy(sql`${tournaments.startDate} desc nulls last`, desc(tournaments.createdAt));
+  const ids = rows.map((r) => r.t.id);
+  const links = ids.length
+    ? await db
+        .select({ tournamentId: tournamentTeams.tournamentId, id: teams.id, name: teams.name })
+        .from(tournamentTeams)
+        .innerJoin(teams, eq(teams.id, tournamentTeams.teamId))
+        .where(inArray(tournamentTeams.tournamentId, ids))
+        .orderBy(asc(teams.name))
+    : [];
+  return rows.map(({ t, gameName }) => ({
+    id: t.id,
+    name: t.name,
+    organizer: t.organizer,
+    gameId: t.gameId,
+    gameName,
+    region: t.region,
+    startDate: t.startDate,
+    endDate: t.endDate,
+    status: t.status as TournamentDto['status'],
+    eligibility: t.eligibility,
+    qualification: t.qualification,
+    entryFeeAmount: strip(t.entryFeeAmount),
+    entryFeeCurrency: t.entryFeeCurrency,
+    prizePoolAmount: strip(t.prizePoolAmount),
+    prizePoolCurrency: t.prizePoolCurrency,
+    placementRewards: t.placementRewards,
+    travelRequirements: t.travelRequirements,
+    historicalResults: t.historicalResults,
+    sponsorCoverage: t.sponsorCoverage,
+    sourceUrl: t.sourceUrl,
+    lastVerifiedOn: t.lastVerifiedOn,
+    notes: t.notes,
+    teams: links
+      .filter((l) => l.tournamentId === t.id)
+      .map(({ id: tid, name }) => ({ id: tid, name })),
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
+  }));
+}
+
 @ApiTags('tournaments')
 @Controller('tournaments')
 export class TournamentsController {
@@ -25,56 +79,8 @@ export class TournamentsController {
     private readonly audit: AuditService,
   ) {}
 
-  private async listFor(organizationId: string, id?: string): Promise<TournamentDto[]> {
-    const rows = await this.db
-      .select({ t: tournaments, gameName: games.name })
-      .from(tournaments)
-      .leftJoin(games, eq(games.id, tournaments.gameId))
-      .where(
-        and(
-          eq(tournaments.organizationId, organizationId),
-          id ? eq(tournaments.id, id) : undefined,
-        ),
-      )
-      .orderBy(sql`${tournaments.startDate} desc nulls last`, desc(tournaments.createdAt));
-    const ids = rows.map((r) => r.t.id);
-    const links = ids.length
-      ? await this.db
-          .select({ tournamentId: tournamentTeams.tournamentId, id: teams.id, name: teams.name })
-          .from(tournamentTeams)
-          .innerJoin(teams, eq(teams.id, tournamentTeams.teamId))
-          .where(inArray(tournamentTeams.tournamentId, ids))
-          .orderBy(asc(teams.name))
-      : [];
-    return rows.map(({ t, gameName }) => ({
-      id: t.id,
-      name: t.name,
-      organizer: t.organizer,
-      gameId: t.gameId,
-      gameName,
-      region: t.region,
-      startDate: t.startDate,
-      endDate: t.endDate,
-      status: t.status as TournamentDto['status'],
-      eligibility: t.eligibility,
-      qualification: t.qualification,
-      entryFeeAmount: strip(t.entryFeeAmount),
-      entryFeeCurrency: t.entryFeeCurrency,
-      prizePoolAmount: strip(t.prizePoolAmount),
-      prizePoolCurrency: t.prizePoolCurrency,
-      placementRewards: t.placementRewards,
-      travelRequirements: t.travelRequirements,
-      historicalResults: t.historicalResults,
-      sponsorCoverage: t.sponsorCoverage,
-      sourceUrl: t.sourceUrl,
-      lastVerifiedOn: t.lastVerifiedOn,
-      notes: t.notes,
-      teams: links
-        .filter((l) => l.tournamentId === t.id)
-        .map(({ id: tid, name }) => ({ id: tid, name })),
-      createdAt: t.createdAt.toISOString(),
-      updatedAt: t.updatedAt.toISOString(),
-    }));
+  private listFor(organizationId: string, id?: string): Promise<TournamentDto[]> {
+    return listTournaments(this.db, organizationId, id);
   }
 
   private async getOne(organizationId: string, id: string) {

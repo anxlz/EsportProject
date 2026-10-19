@@ -24,7 +24,12 @@ import {
 } from '@esports/shared';
 import { and, asc, eq } from 'drizzle-orm';
 import { PDFDocument } from 'pdf-lib';
-import type { AiJsonRequest, AiJsonResult, AiProvider } from '../src/ai/ai.provider';
+import type {
+  AiConverseResult,
+  AiJsonRequest,
+  AiJsonResult,
+  AiProvider,
+} from '../src/ai/ai.provider';
 import { auditLogs, notifications } from '../src/db/schema';
 import { approvalRequests, contractTypes, entityVersions } from '../src/db/schema-contracts';
 import { expense, financeOrg, withRole } from './finance-fixtures';
@@ -39,6 +44,9 @@ class FakeAi implements AiProvider {
   async generateJson(req: AiJsonRequest): Promise<AiJsonResult> {
     this.calls.push(req);
     return { data: this.next ?? DRAFT, model: 'fake-model' };
+  }
+  converse(): Promise<AiConverseResult> {
+    return Promise.reject(new Error('the clause assistant does not use tools'));
   }
 }
 const DRAFT = {

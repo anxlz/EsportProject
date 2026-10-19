@@ -57,6 +57,20 @@
       "when": 1792269304290,
       "tag": "0007_signatures_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792287716346,
+      "tag": "0008_assistants",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792287717103,
+      "tag": "0009_assistants_hardening",
+      "breakpoints": true
     }
   ]
 }

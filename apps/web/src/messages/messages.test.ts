@@ -1,10 +1,21 @@
 import { describe, expect, test } from 'bun:test';
 import { createTranslator } from 'next-intl';
 import {
+  ANALYST_SCENARIOS,
+  ASSISTANT_KEYS,
+  CONFIDENCE_LEVELS,
+  EMAIL_TONES,
   ERROR_CODES,
+  GUARDRAIL_CODES,
   NOTIFICATION_TYPES,
+  type OfferCostNote,
   PERMISSION_DOMAINS,
   PERMISSION_KEYS,
+  REPLY_LANGUAGES,
+  RISK_LEVELS,
+  SOURCE_KINDS,
+  SOURCE_LABELS,
+  TOOL_CALL_OUTCOMES,
 } from '@esports/shared';
 import ar from './ar.json';
 import en from './en.json';
@@ -83,6 +94,8 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
     'document_settings.updated',
     'approval_stamp.updated',
     'file.uploaded',
+    'assistant.email_sent',
+    'assistant.offer_applied',
   ];
   for (const [locale, messages] of [
     ['en', en],
@@ -114,4 +127,59 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
       for (const a of auditActions) resolved(`audit.actions.${a}`);
     });
   }
+});
+
+describe('assistant vocabularies all have labels', () => {
+  const groups: [string, readonly string[]][] = [
+    ['assistants.names', ASSISTANT_KEYS],
+    ['assistants.short', ASSISTANT_KEYS],
+    ['assistants.descriptions', ASSISTANT_KEYS],
+    ['assistants.placeholder', ASSISTANT_KEYS],
+    ['assistants.languages', REPLY_LANGUAGES],
+    ['assistants.confidence', CONFIDENCE_LEVELS],
+    ['assistants.sourceKinds', SOURCE_KINDS],
+    ['assistants.sourceLabels', SOURCE_LABELS],
+    ['assistants.outcomes', TOOL_CALL_OUTCOMES],
+    ['assistants.flags', GUARDRAIL_CODES],
+    ['assistants.offer.risks', RISK_LEVELS],
+    ['assistants.analyst.scenarioNames', ANALYST_SCENARIOS],
+    ['assistants.forms.tones', EMAIL_TONES],
+    [
+      'assistants.offer.costNotes',
+      [
+        'salary_unknown',
+        'duration_unknown',
+        'per_event_not_projected',
+        'revenue_share_not_costed',
+        'bonus_amount_unknown',
+      ] satisfies OfferCostNote[],
+    ],
+  ];
+  test('in English and Arabic', () => {
+    for (const [prefix, values] of groups)
+      for (const v of values) {
+        expect({ key: `${prefix}.${v}`, en: enLeaves.has(`${prefix}.${v}`) }).toEqual({
+          key: `${prefix}.${v}`,
+          en: true,
+        });
+        expect({ key: `${prefix}.${v}`, ar: arLeaves.has(`${prefix}.${v}`) }).toEqual({
+          key: `${prefix}.${v}`,
+          ar: true,
+        });
+      }
+  });
+  test('plural messages render in both languages', () => {
+    for (const [locale, messages] of [
+      ['en', en],
+      ['ar', ar],
+    ] as const) {
+      const t = createTranslator({ locale, messages: messages as never });
+      for (const n of [0, 1, 2, 3, 11, 100]) {
+        expect(
+          t('assistants.offer.termsLine.duration' as never, { months: n } as never),
+        ).not.toContain('{');
+        expect(t('assistants.toolLog.results' as never, { count: n } as never)).not.toContain('{');
+      }
+    }
+  });
 });

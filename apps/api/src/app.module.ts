@@ -24,6 +24,8 @@ import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { NotificationService } from './notifications/notification.service';
 import { ContractsModule } from './contracts/contracts.module';
+import { AiModule } from './ai/ai.module';
+import { AssistantsModule } from './assistants/assistants.module';
 import { FilesService } from './files/files.service';
 import { PdfService } from './pdf/pdf.service';
 import { VersioningService } from './versioning/versioning.service';
@@ -107,8 +109,10 @@ export class AppModule {
         OrganizationStructureModule,
         ActivityModule,
         PlatformModule,
+        AiModule,
         FinanceModule,
         ContractsModule,
+        AssistantsModule,
       ],
       providers: [
         // Guard order matters: CSRF origin check → rate limit → session/permission enforcement.

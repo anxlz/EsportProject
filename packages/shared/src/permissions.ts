@@ -25,6 +25,7 @@ export const PERMISSION_DOMAINS = [
   'tournaments',
   'finance',
   'contracts',
+  'assistants',
   'audit',
 ] as const;
 
@@ -123,6 +124,16 @@ export const PERMISSIONS = {
 
   // Audit log
   'audit.view': def('audit'),
+
+  // AI assistants (Phase 5) — access per assistant (spec §4.2). Not scopable: an assistant only
+  // ever sees what the invoking user's other permissions let them see.
+  'assistants.general': def('assistants'),
+  'assistants.formal_message': def('assistants'),
+  'assistants.email': def('assistants'),
+  'assistants.offer_optimizer': def('assistants'),
+  'assistants.player_analyst': def('assistants'),
+  /** Send an Email Assistant proposal from the platform, after reviewing it. */
+  'assistants.send_email': def('assistants'),
 } as const satisfies Record<string, PermissionDefinition>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -209,6 +220,12 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'contracts.edit',
       'contracts.export',
       'contracts.send_for_signature',
+      'assistants.general',
+      'assistants.formal_message',
+      'assistants.email',
+      'assistants.offer_optimizer',
+      'assistants.player_analyst',
+      'assistants.send_email',
     ],
   },
   {
@@ -238,6 +255,12 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'contracts.edit',
       'contracts.export',
       'contracts.send_for_signature',
+      'assistants.general',
+      'assistants.formal_message',
+      'assistants.email',
+      'assistants.offer_optimizer',
+      'assistants.player_analyst',
+      'assistants.send_email',
     ],
   },
   {
@@ -253,6 +276,9 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'games.view',
       'rosters.view',
       'tournaments.view',
+      'assistants.general',
+      'assistants.formal_message',
+      'assistants.email',
     ],
   },
 ];
