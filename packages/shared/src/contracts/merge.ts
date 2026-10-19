@@ -8,6 +8,7 @@ import { formatIsoDate, formatMoney, type MoneyFormatOptions } from '../finance/
 import { MERGE_FIELDS, type MergeField } from './catalog';
 import { cl, type ContractLocale, formatDuration } from './i18n';
 import type { ContractSnapshot } from './dto';
+import { isMinorOn } from './signing';
 
 export interface MergeContext {
   organizationName: string;
@@ -104,11 +105,24 @@ export const documentLocales = (
 
 /**
  * What still prevents submission: required values, placeholders without a value in included
- * clauses, and clause text missing for a document language.
+ * clauses, and clause text missing for a document language. The date of birth is required so the
+ * signing step can tell, without guessing, whether a parent or guardian must also sign; for a
+ * recipient under 18 (on `today`), the guardian's name, relationship and a contact are required.
  */
-export function completenessIssues(snapshot: ContractSnapshot, ctx: MergeContext): string[] {
+export function completenessIssues(
+  snapshot: ContractSnapshot,
+  ctx: MergeContext,
+  today: string = new Date().toISOString().slice(0, 10),
+): string[] {
   const issues = new Set<string>();
   const d = snapshot.details;
+  const minor = isMinorOn(d.recipient.dateOfBirth, today);
+  if (minor === null) issues.add('dateOfBirth');
+  if (minor) {
+    if (!d.guardian?.fullName) issues.add('guardianName');
+    if (!d.guardian?.relationship) issues.add('guardianRelationship');
+    if (!d.guardian?.email && !d.guardian?.phone) issues.add('guardianContact');
+  }
   const locales = documentLocales(d.language);
   for (const loc of locales) {
     const name =

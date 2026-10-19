@@ -8,6 +8,7 @@ import {
   DOCUMENT_LANGUAGES,
   formatDuration,
   type GameDto,
+  isMinorOn,
   MERGE_FIELDS,
   PAY_FREQUENCIES,
   RECIPIENT_KINDS,
@@ -19,7 +20,7 @@ import { useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import { Badge, Button, Checkbox, cx, SelectField, TextArea, TextField } from '@/components/ui';
 import { api } from '@/lib/api';
-import { ageOn, useContractLabels, useContractLocale } from '@/lib/contracts';
+import { useContractLabels, useContractLocale } from '@/lib/contracts';
 import { useFinanceLabels } from '@/lib/finance';
 import { useCan, useCovers } from '@/lib/session';
 
@@ -99,11 +100,8 @@ export function DetailsForm({
     d.startDate && d.endDate && d.startDate <= d.endDate
       ? contractLength(d.startDate, d.endDate)
       : null;
-  const minor = !!(
-    d.recipient.dateOfBirth &&
-    d.startDate &&
-    ageOn(d.recipient.dateOfBirth, d.startDate) < 18
-  );
+  // Same rule as the API: a guardian signs too when the recipient is under 18 today.
+  const minor = !!isMinorOn(d.recipient.dateOfBirth, new Date().toISOString().slice(0, 10));
   const showGuardian = minor || !!(d.guardian && Object.values(d.guardian).some(Boolean));
   const teamOptions = (teams.data ?? []).filter(
     (x) =>

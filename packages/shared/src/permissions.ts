@@ -118,6 +118,8 @@ export const PERMISSIONS = {
   /** Approve or reject approval requests. Owners hold it; delegate it by adding it to a role. */
   'contracts.approve': def('contracts', { scopable: true }),
   'contracts.manage_templates': def('contracts', { ownerOnly: true }),
+  /** Phase 4: start signing an approved contract, create/revoke signing links, cancel signing. */
+  'contracts.send_for_signature': def('contracts', { scopable: true }),
 
   // Audit log
   'audit.view': def('audit'),
@@ -206,6 +208,7 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'contracts.create',
       'contracts.edit',
       'contracts.export',
+      'contracts.send_for_signature',
     ],
   },
   {
@@ -234,6 +237,7 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'contracts.create',
       'contracts.edit',
       'contracts.export',
+      'contracts.send_for_signature',
     ],
   },
   {

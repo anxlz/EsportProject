@@ -9,6 +9,9 @@ import type {
   DocumentLanguage,
   MergeField,
   RecipientKind,
+  SignatureMethod,
+  SignerRole,
+  VerificationMethod,
 } from './catalog';
 
 export type ContractLocale = 'ar' | 'en';
@@ -19,6 +22,8 @@ const en = {
     pending_approval: 'Awaiting approval',
     changes_requested: 'Changes requested',
     approved: 'Approved',
+    awaiting_signatures: 'Awaiting signatures',
+    signed: 'Signed',
     cancelled: 'Cancelled',
   } as Record<ContractStatus, string>,
   requestStatus: {
@@ -53,6 +58,22 @@ const en = {
     salary: 'Salary',
     paymentFrequency: 'Payment frequency',
   } as Record<MergeField, string>,
+  /** Submission requirements that aren't merge fields. */
+  requirement: {
+    dateOfBirth: "Recipient's date of birth (decides whether a guardian must also sign)",
+    guardianName: "Parent or guardian's name (the recipient is under 18)",
+    guardianRelationship: "Parent or guardian's relationship to the recipient",
+    guardianContact: "Parent or guardian's email or phone",
+  } as Record<string, string>,
+  signerRole: { recipient: 'Recipient', guardian: 'Parent or guardian' } as Record<
+    SignerRole,
+    string
+  >,
+  verification: {
+    email_code: 'Code sent by email',
+    access_code: 'Access code given by the organization',
+  } as Record<VerificationMethod, string>,
+  signatureMethod: { typed: 'Typed', drawn: 'Drawn' } as Record<SignatureMethod, string>,
   frequencyPhrase: {
     weekly: 'per week',
     biweekly: 'every two weeks',
@@ -107,6 +128,30 @@ const en = {
     page: 'Page',
     missing: 'missing',
   },
+  certificate: {
+    title: 'Signature record',
+    lead: 'Electronic signatures collected for this contract through the platform.',
+    contract: 'Contract',
+    approvedDocument: 'Approved document (SHA-256)',
+    signer: 'Signer',
+    role: 'Role',
+    signature: 'Signature',
+    method: 'Method',
+    signedAt: 'Signed at (UTC)',
+    verification: 'Identity check',
+    verifiedAt: 'Checked at (UTC)',
+    contact: 'Code sent to',
+    ipAddress: 'IP address',
+    device: 'Browser',
+    consent: 'Statement agreed to',
+    completedAt: 'All signatures collected (UTC)',
+    onBehalfOf: 'on behalf of',
+    approvedVersion: 'Approved version',
+    approvedBy: 'Approved by',
+    recordHash: 'Signature record fingerprint (SHA-256)',
+    accessCode: 'Access code handed over by the organization',
+    note: 'This page records how each signature was given. The approved document above is unchanged; its fingerprint lets anyone check that.',
+  },
 };
 
 const ar: typeof en = {
@@ -115,6 +160,8 @@ const ar: typeof en = {
     pending_approval: 'بانتظار الاعتماد',
     changes_requested: 'مطلوب تعديلات',
     approved: 'معتمد',
+    awaiting_signatures: 'بانتظار التوقيعات',
+    signed: 'موقّع',
     cancelled: 'ملغى',
   },
   requestStatus: {
@@ -149,6 +196,18 @@ const ar: typeof en = {
     salary: 'الراتب',
     paymentFrequency: 'دورية الدفع',
   },
+  requirement: {
+    dateOfBirth: 'تاريخ ميلاد الطرف الثاني (يحدد ما إذا كان يلزم توقيع وليّ الأمر)',
+    guardianName: 'اسم وليّ الأمر (الطرف الثاني دون 18 عامًا)',
+    guardianRelationship: 'صلة قرابة وليّ الأمر بالطرف الثاني',
+    guardianContact: 'البريد الإلكتروني أو الهاتف لوليّ الأمر',
+  },
+  signerRole: { recipient: 'الطرف الثاني', guardian: 'وليّ الأمر' },
+  verification: {
+    email_code: 'رمز يُرسل بالبريد الإلكتروني',
+    access_code: 'رمز دخول تقدّمه المنظمة',
+  },
+  signatureMethod: { typed: 'مكتوب', drawn: 'مرسوم' },
   frequencyPhrase: {
     weekly: 'أسبوعيًا',
     biweekly: 'كل أسبوعين',
@@ -203,6 +262,30 @@ const ar: typeof en = {
     page: 'صفحة',
     missing: 'غير محدد',
   },
+  certificate: {
+    title: 'سجل التوقيعات',
+    lead: 'التوقيعات الإلكترونية التي جُمعت لهذا العقد عبر المنصة.',
+    contract: 'العقد',
+    approvedDocument: 'المستند المعتمد (SHA-256)',
+    signer: 'الموقّع',
+    role: 'الصفة',
+    signature: 'التوقيع',
+    method: 'الطريقة',
+    signedAt: 'وقت التوقيع (UTC)',
+    verification: 'التحقق من الهوية',
+    verifiedAt: 'وقت التحقق (UTC)',
+    contact: 'أُرسل الرمز إلى',
+    ipAddress: 'عنوان IP',
+    device: 'المتصفح',
+    consent: 'الإقرار الذي وافق عليه',
+    completedAt: 'اكتمال التوقيعات (UTC)',
+    onBehalfOf: 'نيابةً عن',
+    approvedVersion: 'النسخة المعتمدة',
+    approvedBy: 'اعتمده',
+    recordHash: 'بصمة سجل التوقيع (SHA-256)',
+    accessCode: 'رمز دخول سلّمته الجهة',
+    note: 'تسجّل هذه الصفحة كيفية إعطاء كل توقيع. المستند المعتمد أعلاه لم يتغير، وتتيح بصمته لأي شخص التحقق من ذلك.',
+  },
 };
 
 export const CONTRACT_LABELS: Record<ContractLocale, typeof en> = { en, ar };
@@ -225,4 +308,30 @@ export function formatDuration(months: number, days: number, locale: ContractLoc
   const parts = [months ? part(months, 'm') : '', days ? part(days, 'd') : ''].filter(Boolean);
   if (!parts.length) return part(0, 'd');
   return parts.join(locale === 'en' ? ' ' : ' و');
+}
+
+/**
+ * The statement each signer agrees to before signing. Stored verbatim (with its version and
+ * language) next to every signature, so the record shows exactly what was agreed. Worded
+ * neutrally: it records consent and identity, and makes no claim about legal effect.
+ */
+export const CONSENT_VERSION = 'v1';
+export function consentText(
+  role: SignerRole,
+  locale: ContractLocale,
+  p: {
+    signerName: string;
+    recipientName: string;
+    contractNumber: string;
+    organizationName: string;
+  },
+): string {
+  if (locale === 'ar') {
+    return role === 'guardian'
+      ? `أقرّ بأنني ${p.signerName}، وليّ أمر ${p.recipientName}، وأنني قرأت العقد ${p.contractNumber} مع ${p.organizationName}، وأوافق عليه نيابةً عنه، وأوافق على التوقيع إلكترونيًا.`
+      : `أقرّ بأنني ${p.signerName}، وأنني قرأت العقد ${p.contractNumber} مع ${p.organizationName}، وأوافق على التوقيع عليه إلكترونيًا.`;
+  }
+  return role === 'guardian'
+    ? `I confirm that I am ${p.signerName}, parent or guardian of ${p.recipientName}; that I have read contract ${p.contractNumber} with ${p.organizationName}; that I consent to it on their behalf; and that I agree to sign it electronically.`
+    : `I confirm that I am ${p.signerName}, that I have read contract ${p.contractNumber} with ${p.organizationName}, and that I agree to sign it electronically.`;
 }

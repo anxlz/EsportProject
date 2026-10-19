@@ -6,7 +6,13 @@ import type {
   ContractStatus,
   DocumentLanguage,
   LogoPosition,
+  SignatureFontKey,
+  SignatureMethod,
+  SignerRole,
+  SignerStatus,
+  SigningRoundStatus,
   StampPosition,
+  VerificationMethod,
 } from './catalog';
 import type { ContractDetailsInput } from './schemas';
 
@@ -85,6 +91,8 @@ export interface ContractSummaryDto {
   createdBy: { id: string; displayName: string } | null;
   updatedAt: string;
   approvedAt: string | null;
+  /** When the last required signature was collected (status `signed`). */
+  signedAt: string | null;
 }
 
 export interface ContractDto extends ContractSummaryDto {
@@ -199,4 +207,124 @@ export interface AssistantStatusDto {
   configured: boolean;
   provider: string | null;
   model: string | null;
+}
+
+// ---------- Electronic signatures (Phase 4) ----------
+
+export type SigningLinkState = 'none' | 'active' | 'expired' | 'revoked' | 'used' | 'locked';
+
+export interface SignerDto {
+  id: string;
+  role: SignerRole;
+  order: number;
+  nameEn: string | null;
+  nameAr: string | null;
+  email: string | null;
+  phone: string | null;
+  relationship: string | null;
+  status: SignerStatus;
+  /** Earlier signers have all signed, so this one can sign now. */
+  turn: boolean;
+  link: {
+    state: SigningLinkState;
+    method: VerificationMethod | null;
+    /** Masked address the email code goes to. */
+    destination: string | null;
+    createdAt: string | null;
+    expiresAt: string | null;
+    createdBy: { id: string; displayName: string } | null;
+  };
+  signature: {
+    method: SignatureMethod;
+    typedName: string | null;
+    fontKey: SignatureFontKey | null;
+    /** Drawn signatures: the strokes on the DRAW_CANVAS grid. */
+    strokes: [number, number][][] | null;
+    signedAt: string;
+    verification: VerificationMethod;
+    verifiedAt: string;
+    ip: string | null;
+    userAgent: string | null;
+    consentLocale: 'ar' | 'en';
+    consentText: string;
+    documentSha256: string;
+  } | null;
+}
+
+export interface SigningRoundDto {
+  id: string;
+  status: SigningRoundStatus;
+  /** A guardian signs too because the recipient was under 18 on this date. */
+  minor: boolean;
+  minorOn: string;
+  approvedDocumentSha256: string;
+  startedAt: string;
+  startedBy: { id: string; displayName: string } | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  cancelledBy: { id: string; displayName: string } | null;
+  cancelReason: string | null;
+  signedDocument: { sha256: string; sizeBytes: number; verified: boolean } | null;
+  signers: SignerDto[];
+}
+
+export interface ContractSigningDto {
+  /** Newest first; at most one is in progress. */
+  rounds: SigningRoundDto[];
+  can: { start: boolean; manageLinks: boolean; cancel: boolean; download: boolean };
+}
+
+/** Returned once when a link is created: the link (and access code) are never shown again. */
+export interface SigningLinkCreatedDto {
+  signerId: string;
+  url: string;
+  expiresAt: string;
+  method: VerificationMethod;
+  /** Only for the access-code method: the code to pass on through another channel. */
+  accessCode: string | null;
+  destination: string | null;
+}
+
+export type PublicSigningState = 'verify' | 'waiting' | 'ready' | 'signed' | 'completed';
+
+/** What an unverified visitor of a signing link sees: no contract content, no personal data. */
+export interface PublicSigningInfo {
+  state: PublicSigningState;
+  organizationName: string;
+  contractNumber: string;
+  signerRole: SignerRole;
+  method: VerificationMethod;
+  destination: string | null;
+  expiresAt: string;
+}
+
+/** After the code check: what the signer needs to review and sign. */
+export interface PublicSigningSession {
+  state: PublicSigningState;
+  organizationName: string;
+  contractNumber: string;
+  contractTitle: { en: string; ar: string };
+  documentLanguage: DocumentLanguage;
+  /** SHA-256 of the approved PDF being signed (shown so the signer can check their copy). */
+  documentSha256: string;
+  signer: {
+    role: SignerRole;
+    nameEn: string | null;
+    nameAr: string | null;
+    relationship: string | null;
+  };
+  recipientName: { en: string | null; ar: string | null };
+  /** The statement to agree to, in both languages (stored verbatim in the one used). */
+  consent: { version: string; en: string; ar: string };
+  /** Every required signer of this contract, in signing order (no contact details). */
+  signers: { role: SignerRole; status: SignerStatus; signedAt: string | null }[];
+  /** This person's own signature once given. */
+  signedAt: string | null;
+  sessionExpiresAt: string;
+}
+
+/** Returned by a successful code check; the token goes in the `x-signing-session` header. */
+export interface PublicSigningVerified {
+  sessionToken: string;
+  session: PublicSigningSession;
 }

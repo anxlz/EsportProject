@@ -5,10 +5,19 @@ import {
   BACKGROUND_KINDS,
   CLAUSE_SOURCES,
   DOCUMENT_LANGUAGES,
+  DRAW_CANVAS,
+  MIN_DRAWN_LENGTH,
   LOGO_POSITIONS,
   RECIPIENT_KINDS,
+  SIGNATURE_FONT_KEYS,
+  SIGNATURE_METHODS,
+  SIGNING_LINK_DEFAULT_DAYS,
+  SIGNING_LINK_MAX_DAYS,
+  signatureFontsFor,
   STAMP_POSITIONS,
+  VERIFICATION_METHODS,
 } from './catalog';
+import { CONSENT_VERSION } from './i18n';
 
 const text = (max: number) => z.string().trim().max(max);
 const optText = (max: number) => text(max).nullable().optional();
@@ -224,3 +233,77 @@ export const clauseProposalAcceptSchema = z.object({
   /** Insert before the clause with this id; omit to append at the end. */
   beforeClauseId: optUuid,
 });
+
+// ---------- Electronic signatures (spec §7.7, Phase 4) ----------
+
+export const cancelSigningSchema = z.object({ reason: text(500).min(3) });
+
+/** A signing link for one signer. The previous link of that signer, if any, stops working. */
+export const createSigningLinkSchema = z.object({
+  method: z.enum(VERIFICATION_METHODS),
+  /** Where the email code goes; defaults to the address in the approved contract. */
+  email: z.email().max(254).nullable().optional(),
+  expiresInDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(SIGNING_LINK_MAX_DAYS)
+    .default(SIGNING_LINK_DEFAULT_DAYS),
+});
+export type CreateSigningLinkInput = z.infer<typeof createSigningLinkSchema>;
+
+export const verifySigningCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'code_format'),
+});
+
+const point = z.tuple([
+  z.number().min(0).max(DRAW_CANVAS.width),
+  z.number().min(0).max(DRAW_CANVAS.height),
+]);
+const strokesSchema = z
+  .array(z.array(point).min(1).max(2000))
+  .min(1)
+  .max(60)
+  .refine((s) => s.reduce((n, st) => n + st.length, 0) <= 6000, 'too_many_points')
+  .refine((s) => strokeLength(s) >= MIN_DRAWN_LENGTH, 'signature_too_short');
+
+/** Total drawn path length, in canvas units (a dot or a tiny scribble isn't a signature). */
+export function strokeLength(strokes: [number, number][][]): number {
+  let total = 0;
+  for (const st of strokes)
+    for (let i = 1; i < st.length; i++)
+      total += Math.hypot(st[i]![0] - st[i - 1]![0], st[i]![1] - st[i - 1]![1]);
+  return total;
+}
+
+export const signSchema = z
+  .object({
+    method: z.enum(SIGNATURE_METHODS),
+    typedName: text(120).nullable().optional(),
+    fontKey: z.enum(SIGNATURE_FONT_KEYS).nullable().optional(),
+    strokes: strokesSchema.nullable().optional(),
+    /** Language the consent statement was shown in; it is stored verbatim in that language. */
+    locale: z.enum(['ar', 'en']),
+    consentVersion: z.literal(CONSENT_VERSION),
+    /** The signer ticked the consent statement… */
+    consent: z.literal(true),
+    /** …and confirmed the final "sign" step after seeing the preview. */
+    confirm: z.literal(true),
+  })
+  .refine(
+    (v) => v.method !== 'typed' || (!!v.typedName && v.typedName.length >= 2 && !!v.fontKey),
+    'typed_needs_name_and_font',
+  )
+  .refine(
+    (v) =>
+      v.method !== 'typed' ||
+      !v.typedName ||
+      !v.fontKey ||
+      signatureFontsFor(v.typedName).some((f) => f.key === v.fontKey),
+    'font_script_mismatch',
+  )
+  .refine((v) => v.method !== 'drawn' || !!v.strokes, 'drawn_needs_strokes');
+export type SignInput = z.infer<typeof signSchema>;

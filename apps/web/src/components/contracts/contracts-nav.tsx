@@ -69,6 +69,8 @@ const STATUS_TONE: Record<ContractStatus, 'neutral' | 'turf' | 'amber' | 'brick'
   pending_approval: 'amber',
   changes_requested: 'brick',
   approved: 'turf',
+  awaiting_signatures: 'amber',
+  signed: 'turf',
   cancelled: 'neutral',
 };
 

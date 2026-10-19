@@ -40,6 +40,11 @@ export const RATE_LIMIT_POLICIES = {
   publicToken: [{ by: 'ip', limit: 30, windowSeconds: 900 }],
   oauth: [{ by: 'ip', limit: 30, windowSeconds: 900 }],
   changePassword: [{ by: 'ip', limit: 10, windowSeconds: 900 }],
+  // Public signing pages (spec §11): reading, requesting a code, checking it, signing.
+  signingView: [{ by: 'ip', limit: 120, windowSeconds: 900 }],
+  signingCode: [{ by: 'ip', limit: 10, windowSeconds: 3600 }],
+  signingVerify: [{ by: 'ip', limit: 20, windowSeconds: 900 }],
+  signingSign: [{ by: 'ip', limit: 10, windowSeconds: 900 }],
 } satisfies Record<string, Rule[]>;
 
 export type RateLimitPolicy = keyof typeof RATE_LIMIT_POLICIES;

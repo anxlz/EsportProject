@@ -43,6 +43,20 @@
       "when": 1792236971598,
       "tag": "0005_contracts_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792269299812,
+      "tag": "0006_signatures",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792269304290,
+      "tag": "0007_signatures_hardening",
+      "breakpoints": true
     }
   ]
 }

@@ -13,7 +13,7 @@ import { type Env, ENV } from '../config/env';
 import { DB, type Database } from '../db/client';
 import { devOutbox } from '../db/schema';
 
-export type MailTemplate = 'invitation' | 'password_reset';
+export type MailTemplate = 'invitation' | 'password_reset' | 'signing_code';
 
 interface Message {
   to: string;
@@ -88,6 +88,30 @@ export class MailService {
         p.url,
         '',
         'If you were not expecting this invitation, you can ignore this email.',
+      ].join('\n'),
+    });
+  }
+
+  /** The one-time code that opens a contract for signing. Contains no link and no contract text. */
+  sendSigningCode(
+    to: string,
+    p: { organizationName: string; contractNumber: string; code: string; minutes: number },
+  ) {
+    return this.send({
+      to,
+      template: 'signing_code',
+      subject: `رمز التحقق لتوقيع العقد ${p.contractNumber} | Signing code for contract ${p.contractNumber}`,
+      text: [
+        `رمز التحقق لفتح العقد ${p.contractNumber} من ${p.organizationName} للتوقيع:`,
+        p.code,
+        `صالح لمدة ${p.minutes} دقائق. لا تشارك هذا الرمز مع أحد.`,
+        '',
+        '—',
+        '',
+        `Your code to open contract ${p.contractNumber} from ${p.organizationName} for signing:`,
+        p.code,
+        `It is valid for ${p.minutes} minutes. Do not share it with anyone.`,
+        'If you did not request this code, you can ignore this email.',
       ].join('\n'),
     });
   }

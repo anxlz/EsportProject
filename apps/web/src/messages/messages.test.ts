@@ -73,6 +73,12 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
     'contract.approved',
     'contract.rejected',
     'contract.clause_accepted',
+    'contract.signing_started',
+    'contract.signing_link_created',
+    'contract.signer_verification_failed',
+    'contract.signed',
+    'contract.fully_signed',
+    'contract.signing_cancelled',
     'contract_type.template_updated',
     'document_settings.updated',
     'approval_stamp.updated',
@@ -103,6 +109,7 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
           approvedBy: 'A',
           rejectedBy: 'J',
           reason: 'Why',
+          signerName: 'S',
         });
       for (const a of auditActions) resolved(`audit.actions.${a}`);
     });

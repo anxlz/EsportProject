@@ -4,17 +4,20 @@
  */
 
 /**
- * Lifecycle in Phase 3. Phase 4 (signatures) adds the signing states after `approved`.
- *   draft ──submit──▶ pending_approval ──approve──▶ approved
- *     ▲                 │        │
- *     └────withdraw─────┘        └──reject (reason required)──▶ changes_requested ──submit──▶ …
- *   draft / changes_requested ──cancel──▶ cancelled
+ * Lifecycle.
+ *   draft ──submit──▶ pending_approval ──approve──▶ approved ──start signing──▶ awaiting_signatures
+ *     ▲                 │        │                     ▲                          │        │
+ *     └────withdraw─────┘        │                     └──────cancel signing──────┘        │
+ *                                └──reject (reason)──▶ changes_requested ──submit──▶ …     │
+ *   draft / changes_requested ──cancel──▶ cancelled           all required signers signed ─┴─▶ signed
  */
 export const CONTRACT_STATUSES = [
   'draft',
   'pending_approval',
   'changes_requested',
   'approved',
+  'awaiting_signatures',
+  'signed',
   'cancelled',
 ] as const;
 export type ContractStatus = (typeof CONTRACT_STATUSES)[number];
@@ -77,3 +80,69 @@ export const FILE_LIMITS: Record<FileKind, { maxBytes: number; types: readonly s
   stamp: { maxBytes: 2 * 1024 * 1024, types: IMAGE_TYPES },
   background: { maxBytes: 5 * 1024 * 1024, types: [...IMAGE_TYPES, 'application/pdf'] },
 };
+
+// ---------- Electronic signatures (spec §7.7, Phase 4) ----------
+
+/**
+ * Who signs. The recipient always; a parent or guardian too when the recipient is under 18 on
+ * the day signing starts — a second, separate signing step after the recipient's.
+ */
+export const SIGNER_ROLES = ['recipient', 'guardian'] as const;
+export type SignerRole = (typeof SIGNER_ROLES)[number];
+export const ADULT_AGE = 18;
+
+export const SIGNING_ROUND_STATUSES = ['in_progress', 'completed', 'cancelled'] as const;
+export type SigningRoundStatus = (typeof SIGNING_ROUND_STATUSES)[number];
+
+export const SIGNER_STATUSES = ['pending', 'signed'] as const;
+export type SignerStatus = (typeof SIGNER_STATUSES)[number];
+
+/**
+ * How the person opening a link proves they are the signer, before seeing the contract:
+ * - `email_code`: a 6-digit code emailed to the signer's address (needs a mail transport);
+ * - `access_code`: a 6-digit code shown once to the manager, who passes it on through a
+ *   different channel than the link (phone, in person).
+ */
+export const VERIFICATION_METHODS = ['email_code', 'access_code'] as const;
+export type VerificationMethod = (typeof VERIFICATION_METHODS)[number];
+
+export const SIGNATURE_METHODS = ['typed', 'drawn'] as const;
+export type SignatureMethod = (typeof SIGNATURE_METHODS)[number];
+
+/** Typed signatures are drawn in this blue (spec: "rendered in blue"). Drawn ones use it too. */
+export const SIGNATURE_INK = '#1d3fa8';
+
+/** Fonts for typed signatures (all SIL OFL, bundled from @fontsource). */
+export const SIGNATURE_FONTS = [
+  { key: 'dancing-script', family: 'Dancing Script', scripts: ['latin'] },
+  { key: 'great-vibes', family: 'Great Vibes', scripts: ['latin'] },
+  { key: 'caveat', family: 'Caveat', scripts: ['latin'] },
+  { key: 'aref-ruqaa', family: 'Aref Ruqaa', scripts: ['arabic', 'latin'] },
+  { key: 'amiri', family: 'Amiri', scripts: ['arabic', 'latin'] },
+] as const;
+export type SignatureFontKey = (typeof SIGNATURE_FONTS)[number]['key'];
+export const SIGNATURE_FONT_KEYS = SIGNATURE_FONTS.map((f) => f.key) as [
+  SignatureFontKey,
+  ...SignatureFontKey[],
+];
+const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+/** The script a typed signature is written in (Arabic if it contains any Arabic letter). */
+export const scriptOf = (text: string): 'arabic' | 'latin' =>
+  ARABIC_RE.test(text) ? 'arabic' : 'latin';
+/** Fonts that can draw a typed signature in that script. */
+export const signatureFontsFor = (text: string) =>
+  SIGNATURE_FONTS.filter((f) => (f.scripts as readonly string[]).includes(scriptOf(text)));
+
+/** Drawn signatures are vector strokes on a fixed canvas (coordinates in these units). */
+export const DRAW_CANVAS = { width: 600, height: 200 } as const;
+/** A drawn signature's minimum total path length, in canvas units (a dot isn't a signature). */
+export const MIN_DRAWN_LENGTH = 60;
+
+export const SIGNING_LINK_DEFAULT_DAYS = 7;
+export const SIGNING_LINK_MAX_DAYS = 30;
+/** Wrong codes allowed per link before it locks (a new link is then needed). */
+export const VERIFY_MAX_ATTEMPTS = 5;
+/** An emailed code is valid this long. */
+export const EMAIL_CODE_MINUTES = 10;
+/** After verifying, the signer has this long to review and sign before verifying again. */
+export const SIGNING_SESSION_MINUTES = 30;

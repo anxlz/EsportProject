@@ -151,7 +151,7 @@ function ContractRows({ rows, view }: { rows: ContractSummaryDto[]; view: View }
               <th className={thClass}>{t('col.contract')}</th>
               <th className={thClass}>{t('col.team')}</th>
               <th className={thClass}>{t('col.status')}</th>
-              <th className={thClass}>{t('col.updated')}</th>
+              <th className={thClass}>{view === 'signed' ? t('col.signed') : t('col.updated')}</th>
             </tr>
           </thead>
           <tbody>
@@ -184,7 +184,7 @@ function ContractRows({ rows, view }: { rows: ContractSummaryDto[]; view: View }
                   </span>
                 </td>
                 <td className={cx(tdClass, 'whitespace-nowrap text-muted')}>
-                  {formatDate(c.updatedAt, loc)}
+                  {formatDate(view === 'signed' ? c.signedAt : c.updatedAt, loc)}
                 </td>
               </tr>
             ))}
@@ -236,9 +236,8 @@ export default function ContractsPage() {
   const list = useQuery({
     queryKey: ['contracts', 'list', params],
     queryFn: () => api<ContractSummaryDto[]>(`/contracts?${params}`),
-    enabled: view !== 'signed',
   });
-  const rows = view === 'signed' ? [] : (list.data ?? []);
+  const rows = list.data ?? [];
 
   return (
     <>

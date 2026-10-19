@@ -54,4 +54,5 @@ editable and deletable by Owners, and Owners can create any number of custom rol
 | `contracts.export` | Scopable | ✓ | ✓ | ✓ |  |
 | `contracts.approve` | Scopable | ✓ |  |  |  |
 | `contracts.manage_templates` | Owner-only | ✓ |  |  |  |
+| `contracts.send_for_signature` | Scopable | ✓ | ✓ | ✓ |  |
 | `audit.view` | Org-level | ✓ | ✓ |  |  |

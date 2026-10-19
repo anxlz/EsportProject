@@ -4,7 +4,8 @@ Multi-tenant platform for running esports organizations: people, custom roles wi
 department scoping, teams and games (Phase 1), followed by accounting and investment analysis,
 contracts with approvals and e-signatures, bilingual AI assistants, meetings and integrations.
 
-**Status: Phase 3 (Contract Builder & Approval) complete.** See
+**Status: Phase 4 (Electronic Signature Workflow) complete.** See
+[`docs/PHASE-4-SUMMARY.md`](docs/PHASE-4-SUMMARY.md),
 [`docs/PHASE-3-SUMMARY.md`](docs/PHASE-3-SUMMARY.md),
 [`docs/PHASE-2-SUMMARY.md`](docs/PHASE-2-SUMMARY.md) and
 [`docs/PHASE-1-SUMMARY.md`](docs/PHASE-1-SUMMARY.md) for what was built and what's deferred,
@@ -20,12 +21,14 @@ apps/api         NestJS 12 on Bun. REST API, auth, authorization, all business l
   src/db           Drizzle schema, migration runner     drizzle/  SQL migrations
   src/finance      Ledger, exchange rates, budgets + alerts, reports, exports (PDF/CSV/XLSX/TXT)
   src/rosters      Team rosters and pay terms         src/tournaments  Tournament research
-  src/contracts    Contract types/templates, document setup, drafting, approval, clause assistant
+  src/contracts    Contract types/templates, document setup, drafting, approval, clause assistant,
+                   electronic signatures (links, codes, signing, signature record)
   src/versioning   Append-only version history        src/files  File store (Postgres)
   src/pdf          Shared PDF engine (Chromium + pdf-lib underlay)   src/ai  AI provider interface
-  assets/fonts     Saudi riyal sign font (OFL), embedded in PDFs
+  assets/fonts     Saudi riyal sign font (OFL), embedded in PDFs (signature fonts come from @fontsource)
   test/            Integration tests (real Postgres + Redis) and unit tests
 apps/web         Next.js 16 dashboard, Arabic/English with right-to-left support
+  src/app/sign     The public signing page (/sign/<token>, no account needed)
 packages/shared  Permission catalog, request schemas, response types (used by both apps)
   src/finance      Money math, payroll projection, the report engine and export table model
   src/contracts    Contract schemas, labels, default clause templates, merge fields
@@ -60,8 +63,9 @@ MAIL_TRANSPORT=outbox
 ```
 
 Open http://localhost:3000, choose **Create one** to register the first organization. In
-development, invitation and reset emails are printed to the API console and stored in
-`app.dev_outbox`; the invite dialog also shows the link to copy.
+development, invitation, reset and signing-code emails are printed to the API console and stored
+in `app.dev_outbox`; the invite dialog also shows the link to copy. Signing links are shown once
+when created (contract → Signatures); with the "access code" method no email is needed at all.
 
 ### Platform admin
 
@@ -114,7 +118,10 @@ Production checklist:
    download after deploying.
 8. Optional: `ANTHROPIC_API_KEY` for the Custom Clause Assistant (the assistant shows "not
    configured" without it).
-9. Have counsel review the default contract templates before using them for real contracts.
+9. Have counsel review the default contract templates (and the signing statement) before using
+   them for real contracts, and confirm the use of electronic signatures with the Saudi Esports
+   Federation or counsel.
+10. Signing codes by email need the SMTP provider; until then use the access-code method.
 
 The browser only talks to the web origin; Next.js forwards `/api/*` to the API, which keeps the
 session cookie first-party. Don't expose the API's own URL to users.

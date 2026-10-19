@@ -52,6 +52,7 @@ import {
   contracts,
   contractCounters,
   contractTypes,
+  signingRounds,
   storedFiles,
 } from '../db/schema-contracts';
 import { rosterMembers } from '../db/schema-finance';
@@ -78,6 +79,12 @@ import { renderGuard } from './http';
 
 export const CONTRACT_ENTITY = 'contract';
 const APPROVED_DOCUMENT_KIND = 'contract_approved';
+/** Statuses that have an approved document (approval stays in force while signing). */
+export const APPROVED_STATUSES: readonly ContractStatus[] = [
+  'approved',
+  'awaiting_signatures',
+  'signed',
+];
 
 type ContractRow = typeof contracts.$inferSelect;
 type RequestRow = typeof approvalRequests.$inferSelect;
@@ -935,35 +942,103 @@ export class ContractsService {
     return { pdf, filename: `${c.row.number}-v${v.version}${approval ? '' : '-draft'}.pdf` };
   }
 
-  /** The stamped PDF exactly as stored at approval, after checking its hash. */
+  /**
+   * The stamped approved PDF of an approval request, exactly as stored, after checking its hash.
+   * Kept unchanged through signing: the signed document is a separate file (spec §7.7).
+   */
+  async approvedFile(
+    organizationId: string,
+    requestId: string,
+    number: string,
+    db: DbOrTx = this.db,
+  ): Promise<{
+    data: Buffer;
+    sha256: string;
+    version: number;
+    versionId: string;
+    decidedAt: Date;
+    deciderName: string;
+  }> {
+    const decider = alias(users, 'decider');
+    const [r] = await db
+      .select({ r: approvalRequests, deciderName: decider.displayName })
+      .from(approvalRequests)
+      .leftJoin(decider, eq(decider.id, approvalRequests.decidedByUserId))
+      .where(
+        and(
+          eq(approvalRequests.id, requestId),
+          eq(approvalRequests.organizationId, organizationId),
+          eq(approvalRequests.status, 'approved'),
+        ),
+      );
+    const f = r?.r.documentFileId
+      ? await this.files.get(organizationId, r.r.documentFileId, db)
+      : null;
+    if (!r || !f || !r.r.decidedAt) throw Errors.notFound('Approved document');
+    if (sha256Hex(f.data) !== r.r.documentSha256) {
+      this.logger.error(`Integrity check failed for ${number} (file ${f.id})`);
+      throw new AppError('internal_error', 500, 'The stored document failed its integrity check');
+    }
+    return {
+      data: f.data,
+      sha256: r.r.documentSha256,
+      version: r.r.version,
+      versionId: r.r.versionId,
+      decidedAt: r.r.decidedAt,
+      deciderName: r.deciderName ?? '',
+    };
+  }
+
+  /** Screen rendering (HTML) of the approved version, with its approval details. */
+  async approvedHtml(
+    organizationId: string,
+    contractId: string,
+    requestId: string,
+    number: string,
+  ) {
+    const f = await this.approvedFile(organizationId, requestId, number);
+    const v = await this.versions.get<ContractSnapshot>(
+      organizationId,
+      CONTRACT_ENTITY,
+      contractId,
+      f.version,
+    );
+    if (!v || v.id !== f.versionId) throw Errors.notFound('Approved version');
+    const { input } = await this.renderInput(
+      organizationId,
+      number,
+      v.snapshot,
+      {
+        approverName: f.deciderName,
+        approvedAt: f.decidedAt,
+        version: v.version,
+        sha256: v.sha256,
+      },
+      'screen',
+    );
+    return contractHtml(input);
+  }
+
+  /** The stamped PDF exactly as stored at approval (also while and after it is signed). */
   async approvedPdf(
     ctx: TenantContext,
     id: string,
   ): Promise<{ pdf: Buffer; filename: string; sha256: string }> {
     const c = await this.loadVisible(ctx, id);
     if (!coversRecord(ctx.access, 'contracts.export', c.team)) throw Errors.forbidden();
-    if (c.row.status !== 'approved' || !c.row.approvedRequestId)
+    if (!APPROVED_STATUSES.includes(c.row.status as ContractStatus) || !c.row.approvedRequestId)
       throw Errors.notFound('Approved document');
-    const [r] = await this.db
-      .select()
-      .from(approvalRequests)
-      .where(eq(approvalRequests.id, c.row.approvedRequestId));
-    const f = r?.documentFileId ? await this.files.get(ctx.organizationId, r.documentFileId) : null;
-    if (!r || !f) throw Errors.notFound('Approved document');
-    if (sha256Hex(f.data) !== r.documentSha256) {
-      this.logger.error(`Integrity check failed for ${c.row.number} (file ${f.id})`);
-      throw new AppError('internal_error', 500, 'The stored document failed its integrity check');
-    }
+    const f = await this.approvedFile(ctx.organizationId, c.row.approvedRequestId, c.row.number);
     await this.audit.fromCtx(
       ctx,
       'contract.exported',
       { type: 'contract', id },
-      { number: c.row.number, version: r.version, kind: 'approved', sha256: r.documentSha256 },
+      { number: c.row.number, version: f.version, kind: 'approved', sha256: f.sha256 },
     );
     return {
       pdf: f.data,
-      filename: `${c.row.number}-v${r.version}-approved.pdf`,
-      sha256: r.documentSha256!,
+      filename: `${c.row.number}-v${f.version}-approved.pdf`,
+      sha256: f.sha256,
     };
   }
 
@@ -1038,15 +1113,16 @@ export class ContractsService {
       limit: number;
     },
   ): Promise<ContractSummaryDto[]> {
-    // Signatures arrive in Phase 4; nothing is signed yet.
-    if (q.view === 'signed') return [];
     const conds: (SQL | undefined)[] = [
       eq(contracts.organizationId, ctx.organizationId),
       visibleCondition(ctx.access),
     ];
     if (q.view === 'drafts') conds.push(inArray(contracts.status, ['draft', 'changes_requested']));
     if (q.view === 'approvals') conds.push(eq(contracts.status, 'pending_approval'));
-    if (q.view === 'approved') conds.push(eq(contracts.status, 'approved'));
+    // Approved and not yet fully signed (including those out for signature).
+    if (q.view === 'approved')
+      conds.push(inArray(contracts.status, ['approved', 'awaiting_signatures']));
+    if (q.view === 'signed') conds.push(eq(contracts.status, 'signed'));
     if (q.status) conds.push(eq(contracts.status, q.status));
     if (q.teamId === 'none') conds.push(sql`${contracts.teamId} is null`);
     else if (q.teamId) conds.push(eq(contracts.teamId, q.teamId));
@@ -1079,6 +1155,7 @@ export class ContractsService {
         creatorName: creator.displayName,
         pendingId: approvalRequests.id,
         pendingBy: approvalRequests.requestedByUserId,
+        signedAt: signingRounds.completedAt,
       })
       .from(contracts)
       .leftJoin(teams, eq(teams.id, contracts.teamId))
@@ -1087,6 +1164,10 @@ export class ContractsService {
       .leftJoin(
         approvalRequests,
         and(eq(approvalRequests.contractId, contracts.id), eq(approvalRequests.status, 'pending')),
+      )
+      .leftJoin(
+        signingRounds,
+        and(eq(signingRounds.contractId, contracts.id), eq(signingRounds.status, 'completed')),
       );
   }
 
@@ -1101,6 +1182,7 @@ export class ContractsService {
       creatorName: string | null;
       pendingId: string | null;
       pendingBy: string | null;
+      signedAt: Date | null;
     },
   ): ContractSummaryDto {
     const team = r.c.teamId ? { id: r.c.teamId, departmentId: r.teamDepartmentId } : null;
@@ -1123,6 +1205,7 @@ export class ContractsService {
         : null,
       updatedAt: r.c.updatedAt.toISOString(),
       approvedAt: r.c.approvedAt?.toISOString() ?? null,
+      signedAt: r.signedAt?.toISOString() ?? null,
     };
   }
 

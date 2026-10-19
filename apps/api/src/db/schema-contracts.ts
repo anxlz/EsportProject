@@ -365,3 +365,157 @@ export const clauseProposals = appSchema.table(
 );
 
 export type ContractSnapshotJson = ContractSnapshot;
+
+// ---------- Electronic signatures (Phase 4, spec §7.7) ----------
+
+/**
+ * One attempt at collecting every required signature on an approved contract. The required
+ * signers are fixed when the round starts (recipient; guardian too if the recipient is a minor
+ * that day). Cancelling a round revokes its links; a new round starts from scratch.
+ */
+export const signingRounds = appSchema.table(
+  'signing_rounds',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id').notNull(),
+    contractId: uuid('contract_id').notNull(),
+    approvalRequestId: uuid('approval_request_id').notNull(),
+    status: text('status').notNull().default('in_progress'),
+    minor: boolean('minor').notNull(),
+    minorOn: text('minor_on').notNull(),
+    /** SHA-256 of the stamped approved PDF every signer signs. */
+    approvedDocumentSha256: text('approved_document_sha256').notNull(),
+    startedByUserId: uuid('started_by_user_id').references(() => users.id),
+    startedAt: tstz('started_at').notNull().defaultNow(),
+    completedAt: tstz('completed_at'),
+    cancelledAt: tstz('cancelled_at'),
+    cancelledByUserId: uuid('cancelled_by_user_id').references(() => users.id),
+    cancelReason: text('cancel_reason'),
+    signedDocumentFileId: uuid('signed_document_file_id'),
+    signedDocumentSha256: text('signed_document_sha256'),
+  },
+  (t) => [
+    unique('signing_rounds_org_id_unique').on(t.organizationId, t.id),
+    uniqueIndex('signing_rounds_one_open')
+      .on(t.contractId)
+      .where(sql`${t.status} = 'in_progress'`),
+    check(
+      'signing_rounds_completed_document',
+      sql`${t.status} <> 'completed' or (${t.signedDocumentFileId} is not null and ${t.completedAt} is not null)`,
+    ),
+    check(
+      'signing_rounds_cancel_reason',
+      sql`${t.status} <> 'cancelled' or (${t.cancelReason} is not null and length(trim(${t.cancelReason})) > 0)`,
+    ),
+    foreignKey({
+      name: 'signing_rounds_contract_fk',
+      columns: [t.organizationId, t.contractId],
+      foreignColumns: [contracts.organizationId, contracts.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'signing_rounds_approval_fk',
+      columns: [t.organizationId, t.approvalRequestId],
+      foreignColumns: [approvalRequests.organizationId, approvalRequests.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'signing_rounds_document_fk',
+      columns: [t.organizationId, t.signedDocumentFileId],
+      foreignColumns: [storedFiles.organizationId, storedFiles.id],
+    }).onDelete('restrict'),
+  ],
+);
+
+/**
+ * A required signer and, once given, their signature with its consent record. A signed row can
+ * never change (trigger in migration 0007).
+ */
+export const contractSigners = appSchema.table(
+  'contract_signers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id').notNull(),
+    roundId: uuid('round_id').notNull(),
+    role: text('role').notNull(),
+    signOrder: integer('sign_order').notNull(),
+    nameEn: text('name_en'),
+    nameAr: text('name_ar'),
+    email: text('email'),
+    phone: text('phone'),
+    relationship: text('relationship'),
+    status: text('status').notNull().default('pending'),
+    // The signature and its record (null until signed).
+    signedAt: tstz('signed_at'),
+    signedViaLinkId: uuid('signed_via_link_id'),
+    verificationMethod: text('verification_method'),
+    verificationDestination: text('verification_destination'),
+    verifiedAt: tstz('verified_at'),
+    signatureMethod: text('signature_method'),
+    typedName: text('typed_name'),
+    fontKey: text('font_key'),
+    strokes: jsonb('strokes').$type<[number, number][][]>(),
+    consentVersion: text('consent_version'),
+    consentLocale: text('consent_locale'),
+    consentText: text('consent_text'),
+    /** SHA-256 of the approved PDF this person signed. */
+    documentSha256: text('document_sha256'),
+    /** SHA-256 over the canonical signature record (who, what, when, how). */
+    recordSha256: text('record_sha256'),
+    ip: text('ip'),
+    userAgent: text('user_agent'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('contract_signers_org_id_unique').on(t.organizationId, t.id),
+    unique('contract_signers_round_role_unique').on(t.roundId, t.role),
+    check(
+      'contract_signers_signed_record',
+      sql`${t.status} <> 'signed' or (${t.signedAt} is not null and ${t.signatureMethod} is not null and ${t.consentText} is not null and ${t.documentSha256} is not null and ${t.verifiedAt} is not null and ${t.recordSha256} is not null)`,
+    ),
+    foreignKey({
+      name: 'contract_signers_round_fk',
+      columns: [t.organizationId, t.roundId],
+      foreignColumns: [signingRounds.organizationId, signingRounds.id],
+    }).onDelete('restrict'),
+  ],
+);
+
+/**
+ * Signing links. Only a hash of the token is stored. A signer has at most one usable link: a
+ * new one replaces the old. Codes (emailed or handed over) are stored as keyed hashes.
+ */
+export const signingLinks = appSchema.table(
+  'signing_links',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id').notNull(),
+    signerId: uuid('signer_id').notNull(),
+    tokenHash: text('token_hash').notNull(),
+    method: text('method').notNull(),
+    destination: text('destination'),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id),
+    createdAt: createdAt(),
+    expiresAt: tstz('expires_at').notNull(),
+    revokedAt: tstz('revoked_at'),
+    revokedByUserId: uuid('revoked_by_user_id').references(() => users.id),
+    revokeReason: text('revoke_reason'),
+    usedAt: tstz('used_at'),
+    lockedAt: tstz('locked_at'),
+    failedAttempts: integer('failed_attempts').notNull().default(0),
+    accessCodeHash: text('access_code_hash'),
+    emailCodeHash: text('email_code_hash'),
+    emailCodeExpiresAt: tstz('email_code_expires_at'),
+    emailCodesSent: integer('email_codes_sent').notNull().default(0),
+    lastCodeSentAt: tstz('last_code_sent_at'),
+    openedAt: tstz('opened_at'),
+    verifiedAt: tstz('verified_at'),
+  },
+  (t) => [
+    unique('signing_links_token_unique').on(t.tokenHash),
+    index('signing_links_signer_idx').on(t.signerId),
+    foreignKey({
+      name: 'signing_links_signer_fk',
+      columns: [t.organizationId, t.signerId],
+      foreignColumns: [contractSigners.organizationId, contractSigners.id],
+    }).onDelete('restrict'),
+  ],
+);

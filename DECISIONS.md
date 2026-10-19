@@ -32,18 +32,28 @@ why, and whether it is easy to reverse.
 | Reuse                      | Contracts reuse the audit log, notification service and permission/scope guards; the version history, file store and PDF engine are new shared services.                                          |
 | Production credentials     | Still outstanding; Phase 3 is built against local equivalents (see below). The Anthropic API key joins the list.                                                                                  |
 
+## Decisions taken with the user (Phase 4, 17 Oct 2026)
+
+| Topic                   | Decision                                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anthropic API key       | Not available yet. The **live API test is deferred**; the clause assistant's fake-provider tests stand as sufficient for now, and the missing key blocks nothing going forward.       |
+| Clause wording          | Proceed with the current placeholder text: **legal review happens outside this build** (confirmed by the user).                                                                       |
+| Federation confirmation | Still unresolved. Phase 4 is built as specified (spec §7.8), with **no compliance claims** in product copy and a quiet note recommending confirmation with the Federation or counsel. |
+| Production credentials  | Still outstanding: SMTP, Supabase, Redis URL, `SESSION_SECRET`, hosting, Discord OAuth, product name, and now the Anthropic API key. Phase 4 is built against local stand-ins.        |
+
 ## Still open — needs your input
 
-| Topic                           | Needed by                     | Notes                                                                                                                                                                                                                                                                  |
-| ------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Email provider (SMTP)           | Before production             | Invitations and password-reset emails need one. The code is provider-neutral SMTP (Resend, Postmark, Amazon SES, Mailgun, Brevo all offer SMTP). Until configured, Owners can still copy invitation links from the UI; password reset will not work in production.     |
-| Railway vs Fly.io               | Deployment                    | Dockerfile is portable to both (and AWS).                                                                                                                                                                                                                              |
-| Supabase project + environments | Deployment                    | Whether you want separate dev/staging/prod projects pre-launch.                                                                                                                                                                                                        |
-| Discord OAuth app               | When you want Discord sign-in | Client id/secret + redirect URL; feature is fully built and hidden until configured.                                                                                                                                                                                   |
-| Product name                    | Any time                      | "Club Manager / إدارة النادي" is a placeholder in `apps/web/src/messages/*.json` (`app.name`).                                                                                                                                                                         |
-| Anthropic API key               | To use the clause assistant   | Set `ANTHROPIC_API_KEY` on the API (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`). Without it the assistant says it isn't configured and everything else works. The live API was never called from here (no key, and the build environment can't reach it). |
-| Contract wording review         | Before using real contracts   | The default clause wording is sample text written for this build, not legal advice; "Governing law and disputes" is a placeholder. Have counsel review the templates (Owners can edit them).                                                                           |
-| Docker image with Chromium      | Deployment                    | PDF export needs Chromium. The Dockerfile now installs Debian's `chromium`; the container could not be built here (no Docker daemon), so build it once before deploying. PDF rendering itself is tested against both the bundled and a standard Chromium build.        |
+| Topic                           | Needed by                     | Notes                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Email provider (SMTP)           | Before production             | Invitations, password-reset emails and (Phase 4) emailed signing codes need one. The code is provider-neutral SMTP (Resend, Postmark, Amazon SES, Mailgun, Brevo all offer SMTP). Until configured, Owners can still copy invitation links, and signers can use access codes; password reset will not work in production. |
+| Railway vs Fly.io               | Deployment                    | Dockerfile is portable to both (and AWS).                                                                                                                                                                                                                                                                                 |
+| Supabase project + environments | Deployment                    | Whether you want separate dev/staging/prod projects pre-launch.                                                                                                                                                                                                                                                           |
+| Discord OAuth app               | When you want Discord sign-in | Client id/secret + redirect URL; feature is fully built and hidden until configured.                                                                                                                                                                                                                                      |
+| Product name                    | Any time                      | "Club Manager / إدارة النادي" is a placeholder in `apps/web/src/messages/*.json` (`app.name`).                                                                                                                                                                                                                            |
+| Anthropic API key               | To use the clause assistant   | Deferred (Phase 4 decision): not a blocker. Set `ANTHROPIC_API_KEY` on the API (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`). Without it the assistant says it isn't configured and everything else works. The live API has never been called from here.                                                      |
+| Contract wording review         | Before using real contracts   | Happening outside this build (confirmed in Phase 4). The default clause wording is sample text, not legal advice; "Governing law and disputes" is a placeholder. Owners can edit the templates. The signing consent statement (`consentText` in `packages/shared/src/contracts/i18n.ts`) is in the same position.         |
+| Federation confirmation         | Before relying on signatures  | Whether the Saudi Esports Federation accepts in-platform electronic signatures (and guardian consent) for registration is unconfirmed. The product makes no claim either way.                                                                                                                                             |
+| Docker image with Chromium      | Deployment                    | PDF export needs Chromium. The Dockerfile now installs Debian's `chromium`; the container could not be built here (no Docker daemon), so build it once before deploying. PDF rendering itself is tested against both the bundled and a standard Chromium build.                                                           |
 
 ## Stack and runtime
 
@@ -207,6 +217,11 @@ why, and whether it is easy to reverse.
   in-platform contracts for player registration. Phase 3 repeats it on the contract Document setup
   page, labels the default clause wording as a starting point that is not legal advice, and shows
   a non-legal-advice caveat with every Custom Clause Assistant output.
+- Phase 4 puts the same quiet note on the Signatures tab (electronic signatures and a guardian's
+  consent for players under 18 should be confirmed with the Federation or counsel). The statement
+  signers agree to records identity, reading and consent to sign electronically; it does not say
+  the signature is legally binding or compliant (a unit test checks the wording), and neither
+  does the signature record page in the signed PDF.
 
 ## Accounting and investment analysis (Phase 2)
 
@@ -370,9 +385,8 @@ budgets, and tax calculation (spec §6.7).
   (image, position, width), the approver's name, date, version and the version's SHA-256
   fingerprint, and stored with the PDF's own SHA-256. The stored file is served as stored, after
   checking its hash; the contract page shows whether the check passed.
-- **Approved contracts are final in Phase 3** (no amendments): changing one would need a new
-  contract. Signing (Phase 4) starts from the approved document.
-- The "Signed" view exists and is empty until Phase 4 adds signatures.
+- **Approved contracts are final** (no amendments): changing one would need a new contract.
+  Signing (Phase 4) starts from the approved document.
 - Approvers are notified in-app when a contract is submitted (`contract.approval_requested`, to
   every holder of `contracts.approve` covering the team, except the requester); the requester is
   notified of approval or rejection (with the reason).
@@ -408,3 +422,94 @@ budgets, and tax calculation (spec §6.7).
 
 - Empty values in `.env` (`KEY=`) now count as unset, so optional settings fall back to their
   defaults instead of failing validation.
+
+## Electronic signatures (Phase 4)
+
+**Who signs**
+
+- The required signers are fixed when signing starts, from the **approved version**: the
+  recipient, plus a parent or guardian when the recipient is **under 18 on that day** (UTC
+  calendar date, the same clock as Phase 2). The guardian signs **second**, as a separate step;
+  the API refuses a guardian signature before the recipient's (`not_your_turn`).
+- So that nobody has to guess, the recipient's **date of birth is now required to submit** a
+  contract, and for a minor the guardian's name, relationship and an email or phone. Contracts
+  approved before Phase 4 without a date of birth can't start signing (`date_of_birth_required`);
+  since approved contracts can't be edited, they need a new contract. Easy to relax later.
+- The details form shows the guardian fields by the same rule (under 18 today), not the start date.
+
+**Links and identity**
+
+- One link per signer: a 256-bit random token in the URL, stored only as a SHA-256 hash. Default
+  validity 7 days (1–30 selectable). Creating a new link revokes the signer's previous one; links
+  can be withdrawn; cancelling signing withdraws all open links. The full link is shown once.
+- Before anything about the contract is shown, the person opening the link proves who they are
+  with a 6-digit code, chosen per link by the manager:
+  - **email code** — sent to the address in the contract (or one the manager enters), valid 10
+    minutes, single use, at most one per minute and 5 per link;
+  - **access code** — shown once to the manager, who passes it on through another channel (phone,
+    in person). This works without an email provider.
+    Codes are stored as HMAC-SHA-256 keyed with `SESSION_SECRET`. **5 wrong codes lock the link**;
+    an attempt is reserved atomically before the comparison, so parallel guesses can't exceed it.
+- A correct code opens a 30-minute signing session (random token in Redis, sent by the page in an
+  `x-signing-session` header, kept in the tab's sessionStorage). Every request re-checks the link
+  (withdrawn, locked, expired, round cancelled) and that the session belongs to that link.
+- Before verification the page shows only the organization, the contract number, the signer's
+  role and the masked email (`s•••@example.com`). After it: this contract and this signer only.
+- Public routes are rate limited per IP (viewing 120 / 15 min, code requests 10 / hour, code checks
+  20 / 15 min, signing 10 / 15 min), validated with zod, and sent `Cache-Control: no-store`,
+  `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`. The page itself has no-referrer and
+  noindex metadata. The app never logs the token (a hosting provider's access logs may record URLs, as for invitation links).
+
+**Signing**
+
+- **Typed** signatures are drawn in blue (`#1d3fa8`) in a font the signer picks: Dancing Script,
+  Great Vibes or Caveat for Latin names; Aref Ruqaa or Amiri (which also cover Latin) for Arabic
+  names. A font that can't write the name's script is refused. All five are SIL OFL, from
+  `@fontsource`, embedded in the PDF.
+- **Drawn** signatures are vector strokes on a fixed 600×200 grid (bounded: 60 strokes, 6 000
+  points, a minimum path length so a dot isn't a signature), redrawn as SVG in the same blue.
+- The signer previews the signature, ticks the statement and then confirms in a dialog ("final
+  once given"); the API requires both `consent: true` and `confirm: true` and the current
+  statement version.
+- The statement is generated by the server for the signer's role and the page language, and
+  **stored verbatim** with its version and language next to the signature, together with the time,
+  IP address, browser, verification method, masked destination and verification time, the
+  **SHA-256 of the approved PDF** they signed, and a SHA-256 over the whole signature record.
+- A signature is recorded with conditional updates inside a transaction that locks the round: the
+  link must be unused and the signer still pending, so a link can't sign twice and a cancelled
+  round can't receive signatures. Before accepting it, the stored approved PDF is re-hashed.
+- The database refuses any change to a recorded signature, any change to a completed or cancelled
+  round, reopening a used or withdrawn link, and deleting any signer, round or link (triggers in
+  migration 0007). At most one open round and one completed round per contract (unique indexes).
+
+**Completion**
+
+- When the last required signature is in, the **signed PDF** is built: the stamped approved PDF,
+  page for page, followed by a **signature record** (contract, legal names, approved version and
+  approver, approved-document SHA-256, then per signer the signature, role, method, times, identity
+  check, IP, browser, statement and record fingerprint), in the document's language(s). It is
+  stored as a new file with its SHA-256; the contract becomes `signed`.
+- **Both versions are kept**: the approved PDF is untouched and still downloadable; the signed PDF
+  is a separate file. Both are served only after their hashes are re-checked.
+- If building the signed PDF fails, the signatures stay recorded and it is retried the next time
+  the contract's Signatures tab is opened (idempotent).
+- Notifications (in-app): `contract.signature_received` on each signature to whoever started
+  signing, requested the approval or created a link; `contract.fully_signed` to them and to every
+  Owner. Signers can download the signed copy from their link (after the code check) until it
+  expires.
+- Audit: signing started, link created/withdrawn, code emailed, identity confirmed, wrong code
+  (with attempt count and lock), signed (per signer), fully signed, signing cancelled, signed PDF
+  downloaded. Public actions are logged as `anonymous` with the signer's id and role, IP and
+  browser; completion as `system`.
+
+**Lifecycle and permissions**
+
+- Contract states: … → approved → **awaiting signatures** → **signed**. Cancelling signing (with a
+  reason) returns the contract to approved; signatures given in the cancelled round stay on record
+  but don't carry over. A fully signed round can't be cancelled.
+- New permission `contracts.send_for_signature` (team-scopable): start signing, create or withdraw
+  links, cancel signing. Added to the Head of Esports and Esports Manager templates (migration 0007
+  adds it to existing roles from those templates). Seeing the signing status follows contract
+  visibility; downloading the signed PDF needs `contracts.export`.
+- The "Approved" view now includes contracts out for signature; the "Signed" view lists fully
+  signed contracts with their signing date.

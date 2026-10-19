@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Download,
   FileCheck2,
+  PenLine,
   Send,
   ShieldAlert,
   Undo2,
@@ -24,6 +25,7 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { ClauseAssistantDialog } from '@/components/contracts/clause-assistant';
 import { ClauseList, DetailsForm, type Draft } from '@/components/contracts/contract-forms';
 import { ContractStatusBadge, DocumentFrame } from '@/components/contracts/contracts-nav';
+import { SigningPanel } from '@/components/contracts/signing-panel';
 import {
   Badge,
   Button,
@@ -49,7 +51,9 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { useAction } from '@/lib/mutation';
 import { useMe } from '@/lib/session';
 
-type Tab = 'details' | 'clauses' | 'preview' | 'history';
+type Tab = 'details' | 'clauses' | 'preview' | 'history' | 'signatures';
+const TABS: Tab[] = ['details', 'clauses', 'preview', 'history', 'signatures'];
+const SIGNING_STATUSES = ['approved', 'awaiting_signatures', 'signed'];
 
 const toDraft = (s: ContractSnapshot): Draft => ({
   teamId: s.teamId,
@@ -115,7 +119,17 @@ function StatusBanners({ c }: { c: ContractDto }) {
           </p>
         </Banner>
       )}
-      {c.status === 'approved' && approved && (
+      {c.status === 'awaiting_signatures' && (
+        <Banner tone="amber" icon={<PenLine className="size-4" aria-hidden="true" />}>
+          {t('awaitingBanner', { date: formatDate(c.updatedAt, loc) })}
+        </Banner>
+      )}
+      {c.status === 'signed' && (
+        <Banner tone="turf" icon={<PenLine className="size-4 text-turf" aria-hidden="true" />}>
+          <p className="font-medium">{t('signedBanner', { date: formatDate(c.signedAt, loc) })}</p>
+        </Banner>
+      )}
+      {SIGNING_STATUSES.includes(c.status) && approved && (
         <Banner tone="turf" icon={<CheckCircle2 className="size-4 text-turf" aria-hidden="true" />}>
           <p className="font-medium">
             {t('approvedBanner', {
@@ -155,7 +169,7 @@ function MissingList({ c }: { c: ContractDto }) {
         language: L.language[clause[1] as 'ar' | 'en'],
       });
     }
-    return (L.field as Record<string, string>)[m] ?? m;
+    return (L.field as Record<string, string>)[m] ?? L.requirement[m] ?? m;
   };
   return (
     <Banner tone="amber" icon={<ShieldAlert className="size-4" aria-hidden="true" />}>
@@ -356,8 +370,16 @@ function Editor({ c }: { c: ContractDto }) {
   const me = useMe();
   const saved = useMemo(() => toDraft(c.snapshot), [c.snapshot]);
   const [draft, setDraft] = useState<Draft>(saved);
-  // Drafts open on the form; everything else (under review, approved, read-only) on the document.
-  const [tab, setTab] = useState<Tab>(c.can.edit ? 'details' : 'preview');
+  const signable = SIGNING_STATUSES.includes(c.status);
+  const tabs = TABS.filter((k) => k !== 'signatures' || signable);
+  // Drafts open on the form; contracts out for signature (or signed) on the signatures; the rest
+  // on the document. A notification link can ask for a tab (?tab=signatures).
+  const [tab, setTab] = useState<Tab>(() => {
+    const asked = new URLSearchParams(window.location.search).get('tab') as Tab | null;
+    if (asked && tabs.includes(asked)) return asked;
+    if (c.can.edit) return 'details';
+    return c.status === 'awaiting_signatures' || c.status === 'signed' ? 'signatures' : 'preview';
+  });
   const [previewVersion, setPreviewVersion] = useState(c.currentVersion);
   const [dialog, setDialog] = useState<
     null | 'submit' | 'withdraw' | 'cancel' | 'approve' | 'reject' | 'assistant'
@@ -506,7 +528,7 @@ function Editor({ c }: { c: ContractDto }) {
           )}
           {c.approvedDocument && c.can.export && (
             <Button
-              variant="primary"
+              variant={c.status === 'signed' ? 'secondary' : 'primary'}
               onClick={() => {
                 setDlError(null);
                 downloadGet(`/contracts/${c.id}/approved.pdf`).catch(setDlError);
@@ -514,6 +536,18 @@ function Editor({ c }: { c: ContractDto }) {
             >
               <Download className="size-4" aria-hidden="true" />
               {t('downloadApproved')}
+            </Button>
+          )}
+          {c.status === 'signed' && c.can.export && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setDlError(null);
+                downloadGet(`/contracts/${c.id}/signed.pdf`).catch(setDlError);
+              }}
+            >
+              <Download className="size-4" aria-hidden="true" />
+              {t('downloadSigned')}
             </Button>
           )}
           {c.can.cancel && (
@@ -543,7 +577,7 @@ function Editor({ c }: { c: ContractDto }) {
         aria-label={title}
         className="mb-5 flex gap-1 overflow-x-auto border-b border-line"
       >
-        {(['details', 'clauses', 'preview', 'history'] as Tab[]).map((k) => (
+        {tabs.map((k) => (
           <button
             key={k}
             type="button"
@@ -585,6 +619,7 @@ function Editor({ c }: { c: ContractDto }) {
       {tab === 'preview' && (
         <PreviewTab c={c} version={previewVersion} setVersion={setPreviewVersion} dirty={dirty} />
       )}
+      {tab === 'signatures' && <SigningPanel c={c} />}
       {tab === 'history' && (
         <HistoryTab
           c={c}

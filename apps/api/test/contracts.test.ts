@@ -1115,17 +1115,17 @@ describe('without an Anthropic API key', () => {
 });
 
 describe('structural checks', () => {
-  test('migration 0005 grants existing roles exactly the Phase 3 template permissions', () => {
-    const sqlText = readFileSync(
-      join(import.meta.dir, '../drizzle/0005_contracts_hardening.sql'),
-      'utf8',
-    );
-    const blocks = [
-      ...sqlText.matchAll(/unnest\(ARRAY\[([\s\S]*?)\]\)[\s\S]*?template_key = '(\w+)'/g),
-    ];
-    const fromSql = Object.fromEntries(
-      blocks.map((m) => [m[2]!, [...m[1]!.matchAll(/'([\w.]+)'/g)].map((x) => x[1]!).sort()]),
-    );
+  test('migrations 0005 + 0007 grant existing roles exactly the template contract permissions', () => {
+    const fromSql: Record<string, string[]> = {};
+    for (const file of ['0005_contracts_hardening.sql', '0007_signatures_hardening.sql']) {
+      const sqlText = readFileSync(join(import.meta.dir, '../drizzle', file), 'utf8');
+      for (const m of sqlText.matchAll(
+        /unnest\(ARRAY\[([\s\S]*?)\]\)[\s\S]*?template_key = '(\w+)'/g,
+      )) {
+        const keys = [...m[1]!.matchAll(/'([\w.]+)'/g)].map((x) => x[1]!);
+        fromSql[m[2]!] = [...(fromSql[m[2]!] ?? []), ...keys].sort();
+      }
+    }
     const fromTemplates = Object.fromEntries(
       DEFAULT_ROLE_TEMPLATES.filter((r) => r.templateKey !== 'owner')
         .map(

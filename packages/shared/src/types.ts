@@ -50,6 +50,20 @@ export const ERROR_CODES = [
   'unsupported_file_type',
   'ai_not_configured',
   'ai_unavailable',
+  'date_of_birth_required',
+  'guardian_required',
+  'signing_in_progress',
+  'not_signing',
+  'link_invalid',
+  'link_expired',
+  'link_revoked',
+  'link_used',
+  'link_locked',
+  'verification_failed',
+  'verification_required',
+  'email_unavailable',
+  'not_your_turn',
+  'already_signed',
   'internal_error',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -189,6 +203,8 @@ export const NOTIFICATION_TYPES = [
   'contract.approval_requested',
   'contract.approved',
   'contract.rejected',
+  'contract.signature_received',
+  'contract.fully_signed',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

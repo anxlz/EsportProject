@@ -76,15 +76,27 @@ async function failure(res: Response): Promise<never> {
 }
 
 /** Self-contained preview HTML (shown in a sandboxed iframe via srcdoc). */
-export async function fetchHtml(path: string): Promise<string> {
-  const res = await fetch(`/api${path}`, { credentials: 'same-origin', cache: 'no-store' });
+export async function fetchHtml(path: string, headers?: Record<string, string>): Promise<string> {
+  const res = await fetch(`/api${path}`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers,
+  });
   if (!res.ok) await failure(res);
   return res.text();
 }
 
 /** Downloads a GET response as a file, named by the server's Content-Disposition. */
-export async function downloadGet(path: string, fallbackName = 'document.pdf'): Promise<void> {
-  const res = await fetch(`/api${path}`, { credentials: 'same-origin', cache: 'no-store' });
+export async function downloadGet(
+  path: string,
+  fallbackName = 'document.pdf',
+  headers?: Record<string, string>,
+): Promise<void> {
+  const res = await fetch(`/api${path}`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers,
+  });
   if (!res.ok) await failure(res);
   const blob = await res.blob();
   const name =
@@ -120,10 +132,3 @@ export const pick = (
   ar: string | null | undefined,
   locale: ContractLocale,
 ) => (locale === 'ar' ? ar || en : en || ar) ?? '';
-
-/** Age in whole years on a date (both YYYY-MM-DD). */
-export function ageOn(dateOfBirth: string, on: string): number {
-  const [by, bm, bd] = dateOfBirth.split('-').map(Number) as [number, number, number];
-  const [y, m, d] = on.split('-').map(Number) as [number, number, number];
-  return y - by - (m < bm || (m === bm && d < bd) ? 1 : 0);
-}
