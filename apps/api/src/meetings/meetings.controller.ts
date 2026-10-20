@@ -47,7 +47,11 @@ export class MeetingsController {
   @Get('invitees')
   @RequireOrg()
   async invitees(@TenantCtx() ctx: TenantContext) {
-    if (!ctx.access.has('meetings.create') && !ctx.access.has('meetings.manage') && !ctx.access.has('meetings.administrative'))
+    if (
+      !ctx.access.has('meetings.create') &&
+      !ctx.access.has('meetings.manage') &&
+      !ctx.access.has('meetings.administrative')
+    )
       throw Errors.forbidden();
     return this.db
       .select({ userId: users.id, displayName: users.displayName })

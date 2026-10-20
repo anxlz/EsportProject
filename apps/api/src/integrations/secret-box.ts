@@ -15,9 +15,17 @@ export class SecretBox {
 
   constructor(material: { encryptionKey?: string; sessionSecret: string }) {
     this.key = material.encryptionKey
-      ? Buffer.from(hkdfSync('sha256', material.encryptionKey, '', 'integrations-secret-box/v1', 32))
+      ? Buffer.from(
+          hkdfSync('sha256', material.encryptionKey, '', 'integrations-secret-box/v1', 32),
+        )
       : Buffer.from(
-          hkdfSync('sha256', material.sessionSecret, 'esports-platform', 'integrations-secret-box/v1', 32),
+          hkdfSync(
+            'sha256',
+            material.sessionSecret,
+            'esports-platform',
+            'integrations-secret-box/v1',
+            32,
+          ),
         );
   }
 
@@ -27,7 +35,11 @@ export class SecretBox {
     cipher.setAAD(Buffer.from(aad));
     const body = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
-    return [VERSION, iv.toString('base64url'), Buffer.concat([body, tag]).toString('base64url')].join('.');
+    return [
+      VERSION,
+      iv.toString('base64url'),
+      Buffer.concat([body, tag]).toString('base64url'),
+    ].join('.');
   }
 
   open<T = Record<string, unknown>>(sealed: string, aad: string): T {
@@ -37,7 +49,10 @@ export class SecretBox {
     const decipher = createDecipheriv('aes-256-gcm', this.key, Buffer.from(ivB64, 'base64url'));
     decipher.setAAD(Buffer.from(aad));
     decipher.setAuthTag(data.subarray(data.length - 16));
-    const plain = Buffer.concat([decipher.update(data.subarray(0, data.length - 16)), decipher.final()]);
+    const plain = Buffer.concat([
+      decipher.update(data.subarray(0, data.length - 16)),
+      decipher.final(),
+    ]);
     return JSON.parse(plain.toString('utf8')) as T;
   }
 }

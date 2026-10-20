@@ -61,7 +61,11 @@ export function stable(v: unknown): string {
 
 export const same = (a: unknown, b: unknown) => stable(a) === stable(b);
 
-export function changedKeys(base: Snapshot | null, next: Snapshot, keys: SnapshotKey[] = ALL_KEYS): SnapshotKey[] {
+export function changedKeys(
+  base: Snapshot | null,
+  next: Snapshot,
+  keys: SnapshotKey[] = ALL_KEYS,
+): SnapshotKey[] {
   if (!base) return keys.filter((k) => next[k] !== undefined);
   return keys.filter((k) => !same(base[k], next[k]));
 }
@@ -101,8 +105,9 @@ export function threeWayMerge(
     const r = provider[k];
     if (same(p, r)) continue;
     const b = base ? base[k] : undefined;
+    // Without a common base there's no telling who changed what: a difference is a conflict.
     const platformChanged = !base || !same(b, p);
-    const providerChanged = !!base && !same(b, r);
+    const providerChanged = !base || !same(b, r);
     if (providerChanged && !platformChanged) {
       (merged as unknown as Record<string, unknown>)[k] = structuredClone(r);
       (applyLocally as Record<string, unknown>)[k] = structuredClone(r);

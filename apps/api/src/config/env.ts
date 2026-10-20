@@ -26,7 +26,10 @@ export type AiProviderName = 'anthropic' | 'qwen';
 /** "player_analyst=qwen, email=anthropic" → map; throws on anything unknown. */
 export function parseProviderOverrides(raw: string | undefined): Map<AiFeature, AiProviderName> {
   const out = new Map<AiFeature, AiProviderName>();
-  for (const part of (raw ?? '').split(',').map((p) => p.trim()).filter(Boolean)) {
+  for (const part of (raw ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)) {
     const [feature, provider] = part.split('=').map((x) => x?.trim());
     if (!feature || !(AI_FEATURES as readonly string[]).includes(feature))
       throw new Error(`unknown feature "${feature ?? ''}"`);

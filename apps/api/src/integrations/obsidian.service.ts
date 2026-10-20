@@ -21,14 +21,19 @@ import type {
   SyncDirection,
 } from '@esports/shared';
 import { occurrencesBetween } from '@esports/shared';
-import { and, eq, gt, inArray, or } from 'drizzle-orm';
+import { and, eq, gt, inArray } from 'drizzle-orm';
 import type { TenantContext } from '../authz/context';
 import { AuditService } from '../audit/audit.service';
 import { randomToken, sha256 } from '../common/crypto';
-import { AppError, Errors } from '../common/errors';
+import { AppError } from '../common/errors';
 import { NOW, type Now } from '../common/now';
 import { DB, type Database } from '../db/client';
-import { integrationConnections, integrationLinks, meetingParticipants, meetings } from '../db/schema-meetings';
+import {
+  integrationConnections,
+  integrationLinks,
+  meetingParticipants,
+  meetings,
+} from '../db/schema-meetings';
 import { type LoadedMeeting, MeetingsService } from '../meetings/meetings.service';
 import { type ConnectionRow, ConnectionsService } from './connections.service';
 import { notePath, parseNote, renderNote } from './obsidian-note';
@@ -65,7 +70,13 @@ export class ObsidianService {
           tokenHash: sha256(token),
         })
         .returning();
-      await this.audit.fromCtx(ctx, 'integration.connected', { type: 'integration', id: rows[0]!.id }, { provider: 'obsidian', direction: input.direction }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'integration.connected',
+        { type: 'integration', id: rows[0]!.id },
+        { provider: 'obsidian', direction: input.direction },
+        tx,
+      );
       return rows;
     });
     await this.connections.log(c!, 'info', 'connected', 'Vault-sync token created.');
@@ -89,8 +100,14 @@ export class ObsidianService {
     const [c] = await this.db
       .select()
       .from(integrationConnections)
-      .where(and(eq(integrationConnections.tokenHash, sha256(token)), eq(integrationConnections.provider, 'obsidian')));
-    if (!c || c.status !== 'active') throw new AppError('unauthenticated', 401, 'Invalid or revoked token');
+      .where(
+        and(
+          eq(integrationConnections.tokenHash, sha256(token)),
+          eq(integrationConnections.provider, 'obsidian'),
+        ),
+      );
+    if (!c || c.status !== 'active')
+      throw new AppError('unauthenticated', 401, 'Invalid or revoked token');
     if (c.paused) throw new AppError('integration_unavailable', 409, 'This integration is paused');
     return c;
   }
@@ -103,7 +120,12 @@ export class ObsidianService {
 
   private render(l: LoadedMeeting, owner: TenantContext) {
     const upcoming = occurrencesBetween(
-      { startLocal: l.row.startLocal, durationMinutes: l.row.durationMinutes, timeZone: l.row.timeZone, recurrence: l.row.recurrence },
+      {
+        startLocal: l.row.startLocal,
+        durationMinutes: l.row.durationMinutes,
+        timeZone: l.row.timeZone,
+        recurrence: l.row.recurrence,
+      },
       l.overrides.map((o) => ({
         originalStart: o.originalStart.toISOString(),
         status: o.status as 'cancelled' | 'moved',
@@ -129,7 +151,10 @@ export class ObsidianService {
     let sinceMs = 0;
     if (since) {
       try {
-        sinceMs = Date.parse((JSON.parse(Buffer.from(since, 'base64url').toString('utf8')) as { at: string }).at) || 0;
+        sinceMs =
+          Date.parse(
+            (JSON.parse(Buffer.from(since, 'base64url').toString('utf8')) as { at: string }).at,
+          ) || 0;
       } catch {
         sinceMs = 0;
       }
@@ -158,14 +183,28 @@ export class ObsidianService {
       const link = links.find((x) => x.meetingId === id);
       if (!l || !this.connections.carries(c, l, owner, this.meetings)) {
         if (link) {
-          await this.db.update(integrationLinks).set({ state: 'unlinked', updatedAt: new Date(this.now()) }).where(eq(integrationLinks.id, link.id));
-          notes.push({ meetingId: id, path: link.remoteId ?? '', version: link.localVersion ?? 0, deleted: true, content: null });
+          await this.db
+            .update(integrationLinks)
+            .set({ state: 'unlinked', updatedAt: new Date(this.now()) })
+            .where(eq(integrationLinks.id, link.id));
+          notes.push({
+            meetingId: id,
+            path: link.remoteId ?? '',
+            version: link.localVersion ?? 0,
+            deleted: true,
+            content: null,
+          });
         }
         continue;
       }
       latest = Math.max(latest, l.row.updatedAt.getTime());
       const path = notePath(l);
-      const fresh = !link || !since || l.row.updatedAt.getTime() > sinceMs || link.localVersion !== l.row.version || link.remoteId !== path;
+      const fresh =
+        !link ||
+        !since ||
+        l.row.updatedAt.getTime() > sinceMs ||
+        link.localVersion !== l.row.version ||
+        link.remoteId !== path;
       if (!fresh) {
         notes.push({ meetingId: id, path, version: l.row.version, deleted: false, content: null });
         continue;
@@ -175,7 +214,14 @@ export class ObsidianService {
       if (link)
         await this.db
           .update(integrationLinks)
-          .set({ remoteId: path, remoteVersion: sha256(content), syncedSnapshot: snapshot as never, localVersion: l.row.version, lastSyncedAt: new Date(this.now()), updatedAt: new Date(this.now()) })
+          .set({
+            remoteId: path,
+            remoteVersion: sha256(content),
+            syncedSnapshot: snapshot as never,
+            localVersion: l.row.version,
+            lastSyncedAt: new Date(this.now()),
+            updatedAt: new Date(this.now()),
+          })
           .where(eq(integrationLinks.id, link.id));
       else
         await this.db
@@ -193,14 +239,23 @@ export class ObsidianService {
           })
           .onConflictDoUpdate({
             target: [integrationLinks.connectionId, integrationLinks.meetingId],
-            set: { state: 'active', remoteId: path, remoteVersion: sha256(content), syncedSnapshot: snapshot as never, localVersion: l.row.version, lastSyncedAt: new Date(this.now()) },
+            set: {
+              state: 'active',
+              remoteId: path,
+              remoteVersion: sha256(content),
+              syncedSnapshot: snapshot as never,
+              localVersion: l.row.version,
+              lastSyncedAt: new Date(this.now()),
+            },
           });
       notes.push({ meetingId: id, path, version: l.row.version, deleted: false, content });
     }
     await this.connections.recordSuccess(c);
     return {
       notes: notes.sort((a, b) => a.path.localeCompare(b.path)),
-      cursor: Buffer.from(JSON.stringify({ at: new Date(latest || this.now()).toISOString() })).toString('base64url'),
+      cursor: Buffer.from(
+        JSON.stringify({ at: new Date(latest || this.now()).toISOString() }),
+      ).toString('base64url'),
       direction: c.direction as SyncDirection,
     };
   }
@@ -213,28 +268,55 @@ export class ObsidianService {
       ? await this.db
           .select()
           .from(integrationLinks)
-          .where(and(eq(integrationLinks.connectionId, c.id), inArray(integrationLinks.meetingId, ids), or(eq(integrationLinks.state, 'active'))))
+          .where(
+            and(
+              eq(integrationLinks.connectionId, c.id),
+              inArray(integrationLinks.meetingId, ids),
+              eq(integrationLinks.state, 'active'),
+            ),
+          )
       : [];
     for (const n of input.notes) {
       const l = await this.meetings.load(c.organizationId, n.meetingId);
       if (!l || !this.connections.carries(c, l, owner, this.meetings)) {
-        results.push({ meetingId: n.meetingId, outcome: 'not_found', content: null, version: null });
+        results.push({
+          meetingId: n.meetingId,
+          outcome: 'not_found',
+          content: null,
+          version: null,
+        });
         continue;
       }
-      const render = (x: LoadedMeeting) => ({ content: this.render(x, owner), version: x.row.version });
+      const render = (x: LoadedMeeting) => ({
+        content: this.render(x, owner),
+        version: x.row.version,
+      });
       if (c.direction !== 'two_way') {
-        results.push({ meetingId: n.meetingId, outcome: 'ignored', ...render(l), message: 'push_only' });
+        results.push({
+          meetingId: n.meetingId,
+          outcome: 'ignored',
+          ...render(l),
+          message: 'push_only',
+        });
         continue;
       }
       const parsed = parseNote(n.content);
       if (parsed.meetingId && parsed.meetingId !== n.meetingId) {
-        results.push({ meetingId: n.meetingId, outcome: 'rejected', ...render(l), message: 'id_mismatch' });
+        results.push({
+          meetingId: n.meetingId,
+          outcome: 'rejected',
+          ...render(l),
+          message: 'id_mismatch',
+        });
         continue;
       }
       const link = links.find((x) => x.meetingId === n.meetingId);
       const local = this.sync.localSnapshot(c, l, owner);
       // The base is the note as last served, but only if this note was written from it.
-      const base = link && link.localVersion === n.baseVersion ? (link.syncedSnapshot as Snapshot | null) : null;
+      const base =
+        link && link.localVersion === n.baseVersion
+          ? (link.syncedSnapshot as Snapshot | null)
+          : null;
       const remote: Snapshot = {
         ...(base ?? local),
         title: parsed.title ?? (base ?? local).title,
@@ -243,7 +325,9 @@ export class ObsidianService {
       };
       const merge = threeWayMerge(base, local, remote, ['title', 'description', 'notes']);
       const fields = Object.keys(merge.applyLocally) as ('title' | 'description' | 'notes')[];
-      let outcome: ObsidianPushResultDto['results'][number]['outcome'] = merge.conflicts.length ? 'conflict' : 'unchanged';
+      let outcome: ObsidianPushResultDto['results'][number]['outcome'] = merge.conflicts.length
+        ? 'conflict'
+        : 'unchanged';
       let message: string | undefined;
       let current = l;
       if (fields.length) {
@@ -251,24 +335,47 @@ export class ObsidianService {
           await this.meetings.update(
             owner,
             l.row.id,
-            Object.fromEntries(fields.map((f) => [f, f === 'title' ? merge.applyLocally[f] || l.row.title : merge.applyLocally[f]])),
+            Object.fromEntries(
+              fields.map((f) => [
+                f,
+                f === 'title' ? merge.applyLocally[f] || l.row.title : merge.applyLocally[f],
+              ]),
+            ),
             { via: { provider: 'obsidian', connectionId: c.id } },
           );
           current = (await this.meetings.load(c.organizationId, l.row.id))!;
           if (!merge.conflicts.length) outcome = 'applied';
-          await this.connections.log(c, 'info', 'pulled', `Applied an edit from the vault: ${fields.join(', ')}.`, { meetingId: l.row.id, detail: { fields } });
+          await this.connections.log(
+            c,
+            'info',
+            'pulled',
+            `Applied an edit from the vault: ${fields.join(', ')}.`,
+            { meetingId: l.row.id, detail: { fields } },
+          );
         } catch (e) {
           if (!(e instanceof AppError)) throw e;
           outcome = 'rejected';
           message = e.code;
-          await this.connections.log(c, 'warn', 'remote_change_rejected', `An edit from the vault was not applied (${e.code}).`, { meetingId: l.row.id });
+          await this.connections.log(
+            c,
+            'warn',
+            'remote_change_rejected',
+            `An edit from the vault was not applied (${e.code}).`,
+            { meetingId: l.row.id },
+          );
         }
       }
       if (merge.conflicts.length)
-        await this.connections.log(c, 'warn', 'conflict_resolved', `Changed in the vault and on the platform: ${merge.conflicts.map((x) => x.field).join(', ')}. The platform's version was kept.`, {
-          meetingId: l.row.id,
-          detail: { rule: 'platform_wins', base: base ? 'served_note' : 'none' },
-        });
+        await this.connections.log(
+          c,
+          'warn',
+          'conflict_resolved',
+          `Changed in the vault and on the platform: ${merge.conflicts.map((x) => x.field).join(', ')}. The platform's version was kept.`,
+          {
+            meetingId: l.row.id,
+            detail: { rule: 'platform_wins', base: base ? 'served_note' : 'none' },
+          },
+        );
       const out = render(current);
       const snapshot = this.sync.localSnapshot(c, current, owner);
       await this.db
@@ -299,22 +406,5 @@ export class ObsidianService {
       results.push({ meetingId: n.meetingId, outcome, ...out, ...(message ? { message } : {}) });
     }
     return { results };
-  }
-
-  /** Personal connection of `ctx` (for the settings page). */
-  async mine(ctx: TenantContext) {
-    const [c] = await this.db
-      .select()
-      .from(integrationConnections)
-      .where(
-        and(
-          eq(integrationConnections.organizationId, ctx.organizationId),
-          eq(integrationConnections.ownerUserId, ctx.user.id),
-          eq(integrationConnections.provider, 'obsidian'),
-          eq(integrationConnections.status, 'active'),
-        ),
-      );
-    if (!c) throw Errors.notFound('Integration');
-    return c;
   }
 }

@@ -18,7 +18,11 @@ export async function httpJson<T = unknown>(
 ): Promise<HttpResult<T>> {
   let res: Response;
   try {
-    res = await fetch(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(init.timeoutMs) });
+    res = await fetch(url, {
+      ...init,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(init.timeoutMs),
+    });
   } catch (e) {
     const name = (e as Error).name;
     throw new IntegrationError(
@@ -46,5 +50,10 @@ export async function httpJson<T = unknown>(
 export async function reserve(limiter: RateLimitService, bucket: string, perMinute: number) {
   const wait = await limiter.consume(`integration:${bucket}`, perMinute, 60);
   if (wait !== null)
-    throw new IntegrationError('rate_limited', 'rate_limited', `Own rate limit for ${bucket}`, wait * 1000);
+    throw new IntegrationError(
+      'rate_limited',
+      'rate_limited',
+      `Own rate limit for ${bucket}`,
+      wait * 1000,
+    );
 }

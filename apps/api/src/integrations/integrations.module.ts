@@ -26,7 +26,10 @@ import { IntegrationsWorker } from './worker.service';
       provide: SECRET_BOX,
       inject: [ENV],
       useFactory: (env: Env) =>
-        new SecretBox({ encryptionKey: env.INTEGRATIONS_ENCRYPTION_KEY, sessionSecret: env.SESSION_SECRET }),
+        new SecretBox({
+          encryptionKey: env.INTEGRATIONS_ENCRYPTION_KEY,
+          sessionSecret: env.SESSION_SECRET,
+        }),
     },
     JobsService,
     ConnectionsService,

@@ -12,7 +12,11 @@ import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { NOW, type Now } from '../common/now';
 import { DB, type Database } from '../db/client';
-import { integrationConnections, integrationLinks, meetingParticipants } from '../db/schema-meetings';
+import {
+  integrationConnections,
+  integrationLinks,
+  meetingParticipants,
+} from '../db/schema-meetings';
 import { type MeetingEvent, MeetingEvents } from '../meetings/meeting-events';
 import { MeetingsService } from '../meetings/meetings.service';
 import { SchedulerService } from '../scheduler/scheduler.service';
@@ -24,7 +28,11 @@ import { RemoteSyncService } from './remote-sync.service';
 import { eventTypeFor, WebhooksService } from './webhooks.service';
 
 /** How often two-way connections are pulled even without a push notification. */
-export const POLL_INTERVAL_MS = { google_calendar: 15 * 60_000, google_without_channel: 5 * 60_000, notion: 5 * 60_000 };
+export const POLL_INTERVAL_MS = {
+  google_calendar: 15 * 60_000,
+  google_without_channel: 5 * 60_000,
+  notion: 5 * 60_000,
+};
 
 @Injectable()
 export class IntegrationsWorker implements OnModuleInit {
@@ -64,7 +72,9 @@ export class IntegrationsWorker implements OnModuleInit {
         await this.db
           .select({ connectionId: integrationLinks.connectionId })
           .from(integrationLinks)
-          .where(and(eq(integrationLinks.meetingId, e.meetingId), eq(integrationLinks.state, 'active')))
+          .where(
+            and(eq(integrationLinks.meetingId, e.meetingId), eq(integrationLinks.state, 'active')),
+          )
       ).map((l) => l.connectionId),
     );
     for (const c of conns) {
@@ -139,7 +149,9 @@ export class IntegrationsWorker implements OnModuleInit {
           await this.sync.pull(c, { pageIds: (job.payload as { pageIds?: string[] }).pageIds });
           await this.db
             .update(integrationConnections)
-            .set({ cursor: sql`${integrationConnections.cursor} || ${JSON.stringify({ lastPullAt: this.now() })}::jsonb` })
+            .set({
+              cursor: sql`${integrationConnections.cursor} || ${JSON.stringify({ lastPullAt: this.now() })}::jsonb`,
+            })
             .where(eq(integrationConnections.id, c.id));
           break;
         case 'full_sync':
@@ -164,33 +176,59 @@ export class IntegrationsWorker implements OnModuleInit {
     const err =
       e instanceof IntegrationError
         ? e
-        : new IntegrationError('retryable', 'internal_error', e instanceof Error ? e.message : String(e));
-    if (!(e instanceof IntegrationError)) this.logger.error(`Job ${job.kind} ${job.id} failed: ${err.message}`);
+        : new IntegrationError(
+            'retryable',
+            'internal_error',
+            e instanceof Error ? e.message : String(e),
+          );
+    if (!(e instanceof IntegrationError))
+      this.logger.error(`Job ${job.kind} ${job.id} failed: ${err.message}`);
     if (err.kind === 'rate_limited') {
       const wait = err.retryAfterMs ?? 60_000;
       await this.jobs.defer(job, wait, err.message);
-      await this.connections.log(c, 'info', 'rate_limited', `Rate limited; waiting ${Math.ceil(wait / 1000)} s before continuing.`, {
-        meetingId: job.meetingId,
-        detail: { kind: job.kind },
-      });
+      await this.connections.log(
+        c,
+        'info',
+        'rate_limited',
+        `Rate limited; waiting ${Math.ceil(wait / 1000)} s before continuing.`,
+        {
+          meetingId: job.meetingId,
+          detail: { kind: job.kind },
+        },
+      );
       return;
     }
     if (err.kind === 'auth') {
       await this.jobs.dead(job.id, err.message);
       await this.jobs.cancelPending(c.id);
-      await this.connections.recordFailure(c, err.code, err.message, { markError: true, meetingId: job.meetingId, eventCode: 'auth_failed' });
+      await this.connections.recordFailure(c, err.code, err.message, {
+        markError: true,
+        meetingId: job.meetingId,
+        eventCode: 'auth_failed',
+      });
       return;
     }
     if (err.kind === 'retryable') {
       const wait = await this.jobs.retry(job, err.message, err.retryAfterMs);
       if (wait !== null) {
-        await this.connections.log(c, 'warn', 'retry_scheduled', `${err.message}. Retrying in ${Math.ceil(wait / 1000)} s (attempt ${job.attempts}).`, {
-          meetingId: job.meetingId,
-          detail: { kind: job.kind, code: err.code, attempt: job.attempts },
-        });
+        await this.connections.log(
+          c,
+          'warn',
+          'retry_scheduled',
+          `${err.message}. Retrying in ${Math.ceil(wait / 1000)} s (attempt ${job.attempts}).`,
+          {
+            meetingId: job.meetingId,
+            detail: { kind: job.kind, code: err.code, attempt: job.attempts },
+          },
+        );
         return;
       }
-      await this.connections.recordFailure(c, err.code, `${err.message} (gave up after ${job.attempts} attempts)`, { meetingId: job.meetingId });
+      await this.connections.recordFailure(
+        c,
+        err.code,
+        `${err.message} (gave up after ${job.attempts} attempts)`,
+        { meetingId: job.meetingId },
+      );
       return;
     }
     await this.jobs.dead(job.id, err.message);
@@ -213,8 +251,17 @@ export class IntegrationsWorker implements OnModuleInit {
       );
     for (const c of conns) {
       const channel = c.channel as { expiration?: number } | null;
-      if (c.provider === 'google_calendar' && channel?.expiration && channel.expiration - now < CHANNEL_RENEW_BEFORE_MS)
-        await this.jobs.enqueue({ organizationId: c.organizationId, connectionId: c.id, kind: 'renew_channel', dedupeKey: 'renew' });
+      if (
+        c.provider === 'google_calendar' &&
+        channel?.expiration &&
+        channel.expiration - now < CHANNEL_RENEW_BEFORE_MS
+      )
+        await this.jobs.enqueue({
+          organizationId: c.organizationId,
+          connectionId: c.id,
+          kind: 'renew_channel',
+          dedupeKey: 'renew',
+        });
       if (c.direction !== 'two_way') continue;
       const last = Number((c.cursor as { lastPullAt?: number }).lastPullAt ?? 0);
       const every =
@@ -224,7 +271,12 @@ export class IntegrationsWorker implements OnModuleInit {
             ? POLL_INTERVAL_MS.google_calendar
             : POLL_INTERVAL_MS.google_without_channel;
       if (now - last >= every)
-        await this.jobs.enqueue({ organizationId: c.organizationId, connectionId: c.id, kind: 'pull', dedupeKey: 'pull' });
+        await this.jobs.enqueue({
+          organizationId: c.organizationId,
+          connectionId: c.id,
+          kind: 'pull',
+          dedupeKey: 'pull',
+        });
     }
     await this.webhooks.pruneReceipts();
   }

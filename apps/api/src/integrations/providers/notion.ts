@@ -59,7 +59,16 @@ interface NotionPage {
   in_trash?: boolean;
   archived?: boolean;
   last_edited_time?: string;
-  properties?: Record<string, { type?: string; title?: RichText; rich_text?: RichText; date?: { start?: string; end?: string | null; time_zone?: string | null } | null; select?: { name?: string } | null }>;
+  properties?: Record<
+    string,
+    {
+      type?: string;
+      title?: RichText;
+      rich_text?: RichText;
+      date?: { start?: string; end?: string | null; time_zone?: string | null } | null;
+      select?: { name?: string } | null;
+    }
+  >;
 }
 
 /** Notion ids: 32 hex characters, with or without dashes, possibly inside a URL. */
@@ -80,9 +89,13 @@ export function richText(s: string | null | undefined) {
   return out;
 }
 
-const plain = (rt: RichText | undefined) => (rt ?? []).map((t) => t.plain_text ?? t.text?.content ?? '').join('');
+const plain = (rt: RichText | undefined) =>
+  (rt ?? []).map((t) => t.plain_text ?? t.text?.content ?? '').join('');
 
-export function pageToRecord(page: NotionPage, cfg: { titleProperty: string; timeZone: string }): RemoteRecord {
+export function pageToRecord(
+  page: NotionPage,
+  cfg: { titleProperty: string; timeZone: string },
+): RemoteRecord {
   const props = page.properties ?? {};
   const platformMeetingId = plain(props[NOTION_PROPS.platformId]?.rich_text).trim() || null;
   const deleted = page.in_trash === true || page.archived === true;
@@ -90,7 +103,12 @@ export function pageToRecord(page: NotionPage, cfg: { titleProperty: string; tim
   const title = plain(props[cfg.titleProperty]?.title).trim();
   const date = props[NOTION_PROPS.when]?.date;
   if (!date?.start || !/T\d{2}:\d{2}/.test(date.start)) {
-    return { ...base, version: sha256(stable({ title, date: date ?? null })), snapshot: null, unsupported: date?.start ? 'all_day' : 'no_time' };
+    return {
+      ...base,
+      version: sha256(stable({ title, date: date ?? null })),
+      snapshot: null,
+      unsupported: date?.start ? 'all_day' : 'no_time',
+    };
   }
   let tz = date.time_zone && isValidTimeZone(date.time_zone) ? date.time_zone : cfg.timeZone;
   if (!isValidTimeZone(tz)) tz = 'UTC';
@@ -100,15 +118,18 @@ export function pageToRecord(page: NotionPage, cfg: { titleProperty: string; tim
     return formatLocal(utcToLocal(Date.parse(v), tz));
   };
   const startLocal = read(date.start);
-  const endLocal = date.end ? read(date.end) : formatLocal(utcToLocal(Date.parse(`${startLocal}:00Z`) + 3_600_000, 'UTC'));
+  const endLocal = date.end
+    ? read(date.end)
+    : formatLocal(utcToLocal(Date.parse(`${startLocal}:00Z`) + 3_600_000, 'UTC'));
   const snapshot: Partial<Snapshot> = {
     title,
     description: plain(props[NOTION_PROPS.purpose]?.rich_text).trim() || null,
     notes: plain(props[NOTION_PROPS.notes]?.rich_text).trim() || null,
     time: { startLocal, endLocal, timeZone: tz },
-    status: props[NOTION_PROPS.status]?.select?.name === STATUS.cancelled ? 'cancelled' : 'scheduled',
+    status:
+      props[NOTION_PROPS.status]?.select?.name === STATUS.cancelled ? 'cancelled' : 'scheduled',
   };
-  return { ...base, version: sha256(stable(snapshot)), snapshot };
+  return { ...base, version: sha256(stable({ snapshot, deleted })), snapshot };
 }
 
 @Injectable()
@@ -130,25 +151,38 @@ export class NotionProvider implements RemoteProvider {
 
   private cfg(c: ConnectionRow) {
     const cfg = c.config as { titleProperty?: string; timeZone?: string; dataSourceId?: string };
-    return { titleProperty: cfg.titleProperty ?? 'Name', timeZone: cfg.timeZone ?? 'UTC', dataSourceId: cfg.dataSourceId ?? '' };
+    return {
+      titleProperty: cfg.titleProperty ?? 'Name',
+      timeZone: cfg.timeZone ?? 'UTC',
+      dataSourceId: cfg.dataSourceId ?? '',
+    };
   }
 
   /** One API call with a raw token (also used before the connection exists). */
   async call<T>(token: string, bucket: string, method: string, path: string, body?: unknown) {
     await reserve(this.limiter, `notion:${bucket}`, PER_MINUTE);
-    const r = await httpJson<T & { code?: string; message?: string }>('Notion', new URL(path, this.env.NOTION_API_URL).toString(), {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        'notion-version': this.env.NOTION_VERSION,
-        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+    const r = await httpJson<T & { code?: string; message?: string }>(
+      'Notion',
+      new URL(path, this.env.NOTION_API_URL).toString(),
+      {
+        method,
+        headers: {
+          authorization: `Bearer ${token}`,
+          'notion-version': this.env.NOTION_VERSION,
+          ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        timeoutMs: this.env.INTEGRATIONS_TIMEOUT_MS,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      timeoutMs: this.env.INTEGRATIONS_TIMEOUT_MS,
-    });
+    );
     if (r.status >= 200 && r.status < 300) return r.body;
     const code = (r.body as { code?: string } | null)?.code ?? '';
-    if (r.status === 409) throw new IntegrationError('retryable', 'conflict_error', 'Notion reported a conflicting edit');
+    if (r.status === 409)
+      throw new IntegrationError(
+        'retryable',
+        'conflict_error',
+        'Notion reported a conflicting edit',
+      );
     if (r.status === 403 || r.status === 404)
       throw new IntegrationError(
         'permanent',
@@ -169,15 +203,24 @@ export class NotionProvider implements RemoteProvider {
   /** Connect: find the database's data source, make sure the properties exist. */
   async resolveDatabase(token: string, input: string) {
     const databaseId = parseNotionId(input);
-    if (!databaseId) throw new IntegrationError('permanent', 'invalid_database', 'Not a Notion database id or link');
-    const db = await this.call<{ id: string; title?: RichText; data_sources?: { id: string; name?: string }[] }>(
-      token,
-      `connect:${sha256(token).slice(0, 16)}`,
-      'GET',
-      `/v1/databases/${databaseId}`,
-    );
+    if (!databaseId)
+      throw new IntegrationError(
+        'permanent',
+        'invalid_database',
+        'Not a Notion database id or link',
+      );
+    const db = await this.call<{
+      id: string;
+      title?: RichText;
+      data_sources?: { id: string; name?: string }[];
+    }>(token, `connect:${sha256(token).slice(0, 16)}`, 'GET', `/v1/databases/${databaseId}`);
     const dataSourceId = db.data_sources?.[0]?.id;
-    if (!dataSourceId) throw new IntegrationError('permanent', 'invalid_database', 'The database has no data source');
+    if (!dataSourceId)
+      throw new IntegrationError(
+        'permanent',
+        'invalid_database',
+        'The database has no data source',
+      );
     const ds = await this.call<{ properties?: Record<string, { type?: string }> }>(
       token,
       `connect:${sha256(token).slice(0, 16)}`,
@@ -189,7 +232,9 @@ export class NotionProvider implements RemoteProvider {
     const wanted: Record<string, unknown> = {
       [NOTION_PROPS.platformId]: { rich_text: {} },
       [NOTION_PROPS.when]: { date: {} },
-      [NOTION_PROPS.status]: { select: { options: [{ name: STATUS.scheduled }, { name: STATUS.cancelled }] } },
+      [NOTION_PROPS.status]: {
+        select: { options: [{ name: STATUS.scheduled }, { name: STATUS.cancelled }] },
+      },
       [NOTION_PROPS.team]: { rich_text: {} },
       [NOTION_PROPS.purpose]: { rich_text: {} },
       [NOTION_PROPS.notes]: { rich_text: {} },
@@ -198,9 +243,15 @@ export class NotionProvider implements RemoteProvider {
     };
     const missing = Object.fromEntries(Object.entries(wanted).filter(([k]) => !props[k]));
     if (Object.keys(missing).length)
-      await this.call(token, `connect:${sha256(token).slice(0, 16)}`, 'PATCH', `/v1/data_sources/${dataSourceId}`, {
-        properties: missing,
-      });
+      await this.call(
+        token,
+        `connect:${sha256(token).slice(0, 16)}`,
+        'PATCH',
+        `/v1/data_sources/${dataSourceId}`,
+        {
+          properties: missing,
+        },
+      );
     return { databaseId, dataSourceId, titleProperty, databaseTitle: plain(db.title) || null };
   }
 
@@ -212,16 +263,26 @@ export class NotionProvider implements RemoteProvider {
       [titleProperty]: { title: richText(s.title) },
       [NOTION_PROPS.platformId]: { rich_text: richText(l.row.id) },
       [NOTION_PROPS.when]: {
-        date: { start: `${s.time.startLocal}:00.000`, end: `${s.time.endLocal}:00.000`, time_zone: s.time.timeZone },
+        date: {
+          start: `${s.time.startLocal}:00.000`,
+          end: `${s.time.endLocal}:00.000`,
+          time_zone: s.time.timeZone,
+        },
       },
-      [NOTION_PROPS.status]: { select: { name: s.status === 'cancelled' ? STATUS.cancelled : STATUS.scheduled } },
+      [NOTION_PROPS.status]: {
+        select: { name: s.status === 'cancelled' ? STATUS.cancelled : STATUS.scheduled },
+      },
       [NOTION_PROPS.team]: { rich_text: richText(l.team?.name ?? l.departmentName ?? '') },
       [NOTION_PROPS.purpose]: { rich_text: richText(s.description) },
       [NOTION_PROPS.notes]: { rich_text: richText(s.notes) },
       [NOTION_PROPS.repeats]: {
-        rich_text: richText(s.recurrence ? toRRule(s.recurrence, s.time.startLocal, s.time.timeZone).slice(6) : ''),
+        rich_text: richText(
+          s.recurrence ? toRRule(s.recurrence, s.time.startLocal, s.time.timeZone).slice(6) : '',
+        ),
       },
-      [NOTION_PROPS.participants]: { rich_text: richText(l.participants.map((p) => p.displayName).join(', ')) },
+      [NOTION_PROPS.participants]: {
+        rich_text: richText(l.participants.map((p) => p.displayName).join(', ')),
+      },
     };
   }
 
@@ -239,7 +300,11 @@ export class NotionProvider implements RemoteProvider {
     return this.record(c, page);
   }
 
-  async update(c: ConnectionRow, link: Pick<LinkRow, 'remoteId'>, view: MeetingView): Promise<RemoteRecord> {
+  async update(
+    c: ConnectionRow,
+    link: Pick<LinkRow, 'remoteId'>,
+    view: MeetingView,
+  ): Promise<RemoteRecord> {
     const page = await this.api<NotionPage>(c, 'PATCH', `/v1/pages/${link.remoteId}`, {
       properties: this.properties(c, view),
       in_trash: false,
@@ -268,15 +333,23 @@ export class NotionProvider implements RemoteProvider {
   }
 
   async find(c: ConnectionRow, meetingId: string): Promise<RemoteRecord | null> {
-    const r = await this.api<{ results?: NotionPage[] }>(c, 'POST', `/v1/data_sources/${this.cfg(c).dataSourceId}/query`, {
-      filter: { property: NOTION_PROPS.platformId, rich_text: { equals: meetingId } },
-      page_size: 5,
-    });
+    const r = await this.api<{ results?: NotionPage[] }>(
+      c,
+      'POST',
+      `/v1/data_sources/${this.cfg(c).dataSourceId}/query`,
+      {
+        filter: { property: NOTION_PROPS.platformId, rich_text: { equals: meetingId } },
+        page_size: 5,
+      },
+    );
     const page = (r.results ?? []).find((p) => !p.in_trash);
     return page ? this.record(c, page) : null;
   }
 
-  async changes(c: ConnectionRow, opts: { full: boolean; pageIds?: string[] }): Promise<RemoteChanges> {
+  async changes(
+    c: ConnectionRow,
+    opts: { full: boolean; pageIds?: string[] },
+  ): Promise<RemoteChanges> {
     const records: RemoteRecord[] = [];
     // Pages named by webhook events (deleted / restored pages don't show up in queries).
     for (const id of opts.pageIds ?? []) {
@@ -284,24 +357,29 @@ export class NotionProvider implements RemoteProvider {
       if (rec) records.push(rec);
     }
     const cursor = c.cursor as { editedSince?: string };
-    const since = opts.full || !cursor.editedSince ? null : new Date(Date.parse(cursor.editedSince) - OVERLAP_MS).toISOString();
+    const since =
+      opts.full || !cursor.editedSince
+        ? null
+        : new Date(Date.parse(cursor.editedSince) - OVERLAP_MS).toISOString();
     let latest = cursor.editedSince ?? null;
     let startCursor: string | undefined;
     do {
-      const r = await this.api<{ results?: NotionPage[]; has_more?: boolean; next_cursor?: string | null }>(
-        c,
-        'POST',
-        `/v1/data_sources/${this.cfg(c).dataSourceId}/query`,
-        {
-          ...(since ? { filter: { timestamp: 'last_edited_time', last_edited_time: { on_or_after: since } } } : {}),
-          sorts: [{ timestamp: 'last_edited_time', direction: 'ascending' }],
-          page_size: 100,
-          ...(startCursor ? { start_cursor: startCursor } : {}),
-        },
-      );
+      const r = await this.api<{
+        results?: NotionPage[];
+        has_more?: boolean;
+        next_cursor?: string | null;
+      }>(c, 'POST', `/v1/data_sources/${this.cfg(c).dataSourceId}/query`, {
+        ...(since
+          ? { filter: { timestamp: 'last_edited_time', last_edited_time: { on_or_after: since } } }
+          : {}),
+        sorts: [{ timestamp: 'last_edited_time', direction: 'ascending' }],
+        page_size: 100,
+        ...(startCursor ? { start_cursor: startCursor } : {}),
+      });
       for (const p of r.results ?? []) {
         if (!records.some((x) => x.id === p.id)) records.push(this.record(c, p));
-        if (p.last_edited_time && (!latest || p.last_edited_time > latest)) latest = p.last_edited_time;
+        if (p.last_edited_time && (!latest || p.last_edited_time > latest))
+          latest = p.last_edited_time;
       }
       startCursor = r.has_more && r.next_cursor ? r.next_cursor : undefined;
     } while (startCursor);
@@ -309,8 +387,13 @@ export class NotionProvider implements RemoteProvider {
       records,
       fullResync: false,
       commit: async () => {
-        const next = { ...c.cursor, editedSince: latest ?? new Date(this.now()).toISOString() };
-        await this.db.update(integrationConnections).set({ cursor: next }).where(eq(integrationConnections.id, c.id));
+        // Only Notion's own timestamps move the position (never our clock: they may differ).
+        if (!latest) return;
+        const next = { ...c.cursor, editedSince: latest };
+        await this.db
+          .update(integrationConnections)
+          .set({ cursor: next })
+          .where(eq(integrationConnections.id, c.id));
         c.cursor = next;
       },
     };

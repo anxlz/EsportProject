@@ -409,11 +409,22 @@ export class AssistantEngine implements OnModuleDestroy {
         }
         if (tu.input[UNPARSEABLE_ARGUMENTS]) {
           // The provider couldn't give readable arguments: never run the lookup on a guess.
-          await p.log({ tool: tool.name, kind: 'platform', input: {}, outcome: 'error', summary: { error: 'invalid_arguments' }, startedAt });
+          await p.log({
+            tool: tool.name,
+            kind: 'platform',
+            input: {},
+            outcome: 'error',
+            summary: { error: 'invalid_arguments' },
+            startedAt,
+          });
           results.push({
             toolUseId: tu.id,
             isError: true,
-            content: JSON.stringify({ error: 'invalid_arguments', message: 'The arguments were not valid JSON. Call the tool again with valid arguments.' }),
+            content: JSON.stringify({
+              error: 'invalid_arguments',
+              message:
+                'The arguments were not valid JSON. Call the tool again with valid arguments.',
+            }),
           });
           continue;
         }

@@ -44,7 +44,10 @@ export class ConnectionsService {
   ) {}
 
   async byId(id: string, tx: DbOrTx = this.db): Promise<ConnectionRow | null> {
-    const [c] = await tx.select().from(integrationConnections).where(eq(integrationConnections.id, id));
+    const [c] = await tx
+      .select()
+      .from(integrationConnections)
+      .where(eq(integrationConnections.id, id));
     return c ?? null;
   }
 
@@ -68,7 +71,12 @@ export class ConnectionsService {
     const resolved = await this.access.resolve(c.organizationId, c.ownerUserId);
     if (resolved.status !== 'active' || !resolved.access) return null;
     const [u] = await this.db
-      .select({ id: users.id, email: users.email, displayName: users.displayName, locale: users.locale })
+      .select({
+        id: users.id,
+        email: users.email,
+        displayName: users.displayName,
+        locale: users.locale,
+      })
       .from(users)
       .where(eq(users.id, c.ownerUserId));
     if (!u) return null;
@@ -88,7 +96,12 @@ export class ConnectionsService {
    * meetings their owner is invited to; organization connections (Notion, outgoing webhooks)
    * carry what the owner may see. A team filter narrows either.
    */
-  carries(c: ConnectionRow, l: LoadedMeeting, owner: TenantContext, meetings: MeetingsService): boolean {
+  carries(
+    c: ConnectionRow,
+    l: LoadedMeeting,
+    owner: TenantContext,
+    meetings: MeetingsService,
+  ): boolean {
     if (c.teamId && l.row.teamId !== c.teamId) return false;
     const invited = meetings.isParticipant(l, owner.user.id);
     if (c.personal) return invited;
@@ -106,10 +119,17 @@ export class ConnectionsService {
     return this.box.open<T>(c.secrets, this.aad(c));
   }
 
-  async setSecrets(c: Pick<ConnectionRow, 'organizationId' | 'id'>, value: Record<string, unknown> | null, tx: DbOrTx = this.db) {
+  async setSecrets(
+    c: Pick<ConnectionRow, 'organizationId' | 'id'>,
+    value: Record<string, unknown> | null,
+    tx: DbOrTx = this.db,
+  ) {
     await tx
       .update(integrationConnections)
-      .set({ secrets: value ? this.box.seal(value, this.aad(c)) : null, updatedAt: new Date(this.now()) })
+      .set({
+        secrets: value ? this.box.seal(value, this.aad(c)) : null,
+        updatedAt: new Date(this.now()),
+      })
       .where(eq(integrationConnections.id, c.id));
   }
 
@@ -172,11 +192,19 @@ export class ConnectionsService {
         updatedAt: at,
       })
       .where(eq(integrationConnections.id, c.id));
-    await this.log(c, 'error', opts.eventCode ?? 'failed', message, { meetingId: opts.meetingId ?? null, detail: { code } });
+    await this.log(c, 'error', opts.eventCode ?? 'failed', message, {
+      meetingId: opts.meetingId ?? null,
+      detail: { code },
+    });
     const [claimed] = await this.db
       .update(integrationConnections)
       .set({ failureNotifiedAt: at })
-      .where(and(eq(integrationConnections.id, c.id), sql`${integrationConnections.failureNotifiedAt} is null`))
+      .where(
+        and(
+          eq(integrationConnections.id, c.id),
+          sql`${integrationConnections.failureNotifiedAt} is null`,
+        ),
+      )
       .returning({ id: integrationConnections.id });
     if (claimed)
       await this.notifications
@@ -196,7 +224,14 @@ export class ConnectionsService {
         organizationId: c.organizationId,
         recipientUserIds: [c.ownerUserId],
         type: 'integration.conflict',
-        data: { connectionId: c.id, provider: c.provider, name: c.name, meetingId, title, fields: fields.join(', ') },
+        data: {
+          connectionId: c.id,
+          provider: c.provider,
+          name: c.name,
+          meetingId,
+          title,
+          fields: fields.join(', '),
+        },
         link: `/dashboard/meetings/${meetingId}`,
       })
       .catch(() => 0);
@@ -206,8 +241,13 @@ export class ConnectionsService {
 
   async toDto(c: ConnectionRow): Promise<IntegrationDto> {
     const [[owner], [team], [links], pending] = await Promise.all([
-      this.db.select({ id: users.id, displayName: users.displayName }).from(users).where(eq(users.id, c.ownerUserId)),
-      c.teamId ? this.db.select({ name: teams.name }).from(teams).where(eq(teams.id, c.teamId)) : Promise.resolve([]),
+      this.db
+        .select({ id: users.id, displayName: users.displayName })
+        .from(users)
+        .where(eq(users.id, c.ownerUserId)),
+      c.teamId
+        ? this.db.select({ name: teams.name }).from(teams).where(eq(teams.id, c.teamId))
+        : Promise.resolve([]),
       this.db
         .select({ n: count() })
         .from(integrationLinks)
@@ -246,7 +286,11 @@ export class ConnectionsService {
       lastSyncAt: c.lastSyncAt?.toISOString() ?? null,
       lastError:
         c.lastErrorCode && c.lastErrorAt
-          ? { code: c.lastErrorCode, message: c.lastErrorMessage ?? '', at: c.lastErrorAt.toISOString() }
+          ? {
+              code: c.lastErrorCode,
+              message: c.lastErrorMessage ?? '',
+              at: c.lastErrorAt.toISOString(),
+            }
           : null,
       linkedMeetings: links?.n ?? 0,
       pendingJobs: pending,

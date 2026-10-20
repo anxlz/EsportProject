@@ -85,7 +85,10 @@ export class RemoteSyncService {
   }
 
   private ownerResponse(l: LoadedMeeting, owner: TenantContext): RsvpResponse | null {
-    return (l.participants.find((p) => p.userId === owner.user.id)?.response as RsvpResponse | undefined) ?? null;
+    return (
+      (l.participants.find((p) => p.userId === owner.user.id)?.response as
+        RsvpResponse | undefined) ?? null
+    );
   }
 
   view(c: ConnectionRow, l: LoadedMeeting, owner: TenantContext, snapshot?: Snapshot): MeetingView {
@@ -98,7 +101,12 @@ export class RemoteSyncService {
   }
 
   /** The provider's values, completed with the base (or platform) for what it can't represent. */
-  private remoteSnapshot(p: RemoteProvider, rec: RemoteRecord, base: Snapshot | null, local: Snapshot): Snapshot {
+  private remoteSnapshot(
+    p: RemoteProvider,
+    rec: RemoteRecord,
+    base: Snapshot | null,
+    local: Snapshot,
+  ): Snapshot {
     const out = structuredClone(base ?? local) as Snapshot;
     for (const k of p.inboundKeys) {
       const v = (rec.snapshot as Record<string, unknown> | null)?.[k];
@@ -122,11 +130,18 @@ export class RemoteSyncService {
     const [link] = await this.db
       .select()
       .from(integrationLinks)
-      .where(and(eq(integrationLinks.connectionId, c.id), eq(integrationLinks.meetingId, meetingId)));
+      .where(
+        and(eq(integrationLinks.connectionId, c.id), eq(integrationLinks.meetingId, meetingId)),
+      );
     return link ?? null;
   }
 
-  private async saveLink(link: Pick<LinkRow, 'id'>, rec: RemoteRecord, snapshot: Snapshot | null, localVersion: number) {
+  private async saveLink(
+    link: Pick<LinkRow, 'id'>,
+    rec: RemoteRecord,
+    snapshot: Snapshot | null,
+    localVersion: number,
+  ) {
     await this.db
       .update(integrationLinks)
       .set({
@@ -152,7 +167,11 @@ export class RemoteSyncService {
   private async owner(c: ConnectionRow): Promise<TenantContext> {
     const owner = await this.connections.ownerCtx(c);
     if (!owner)
-      throw new IntegrationError('auth', 'owner_inactive', 'The member who set up this integration no longer has access');
+      throw new IntegrationError(
+        'auth',
+        'owner_inactive',
+        'The member who set up this integration no longer has access',
+      );
     return owner;
   }
 
@@ -172,7 +191,13 @@ export class RemoteSyncService {
       if (link?.state === 'active') {
         await p.remove(c, link);
         await this.unlink(link);
-        await this.connections.log(c, 'info', 'pushed', 'Removed from the provider (no longer included).', { meetingId });
+        await this.connections.log(
+          c,
+          'info',
+          'pushed',
+          'Removed from the provider (no longer included).',
+          { meetingId },
+        );
       }
       return;
     }
@@ -182,19 +207,34 @@ export class RemoteSyncService {
       if (!link) {
         await this.db
           .insert(integrationLinks)
-          .values({ organizationId: c.organizationId, connectionId: c.id, meetingId, state: 'pending_create' })
+          .values({
+            organizationId: c.organizationId,
+            connectionId: c.id,
+            meetingId,
+            state: 'pending_create',
+          })
           .onConflictDoNothing();
         link = (await this.link(c, meetingId))!;
       }
       // An earlier attempt may have created the record before failing to record it.
       const existing = await p.find(c, meetingId);
       const rec = existing
-        ? await p.update(c, { ...link, remoteId: existing.id, remoteVersion: null }, this.view(c, l!, owner, local))
+        ? await p.update(
+            c,
+            { ...link, remoteId: existing.id, remoteVersion: null },
+            this.view(c, l!, owner, local),
+          )
         : await p.create(c, this.view(c, l!, owner, local));
       await this.saveLink(link, rec, local, l!.row.version);
-      await this.connections.log(c, 'info', 'pushed', existing ? 'Re-linked to the existing record.' : 'Created at the provider.', {
-        meetingId,
-      });
+      await this.connections.log(
+        c,
+        'info',
+        'pushed',
+        existing ? 'Re-linked to the existing record.' : 'Created at the provider.',
+        {
+          meetingId,
+        },
+      );
       return;
     }
 
@@ -202,23 +242,54 @@ export class RemoteSyncService {
     if (base && same(base, local)) return; // nothing the provider shows has changed
 
     if (c.direction === 'two_way') {
-      const rec = await p.get(c, link.remoteId!);
-      if (!rec || rec.deleted) return this.remoteDeleted(c, owner, link, l!);
-      if (rec.version !== link.remoteVersion) return this.reconcile(c, owner, link, l!, rec);
+      for (let attempt = 0; ; attempt++) {
+        const rec = await p.get(c, link.remoteId!);
+        if (!rec) return this.recreate(c, link, meetingId);
+        if (rec.deleted) return this.remoteDeleted(c, owner, link, l!);
+        if (rec.version !== link.remoteVersion) return this.reconcile(c, owner, link, l!, rec);
+        try {
+          const written = await p.update(c, link, this.view(c, l!, owner, local));
+          await this.saveLink(link, written, local, l!.row.version);
+          await this.connections.log(c, 'info', 'pushed', 'Updated at the provider.', {
+            meetingId,
+          });
+          return;
+        } catch (e) {
+          // Changed at the provider between our read and our write: read again and merge.
+          if (e instanceof IntegrationError && e.code === 'precondition_failed' && attempt === 0)
+            continue;
+          throw e;
+        }
+      }
     }
+    // Push-only writes unconditionally: the platform's version replaces whatever is there.
     let rec: RemoteRecord;
     try {
-      rec = await p.update(c, link, this.view(c, l!, owner, local));
+      rec = await p.update(c, { ...link, remoteVersion: null }, this.view(c, l!, owner, local));
     } catch (e) {
-      if (e instanceof IntegrationError && e.code === 'remote_gone' && c.direction === 'push_only') {
-        // Push-only: the provider lost it; create it again.
-        await this.unlink(link);
-        return this.pushMeeting(c, meetingId);
-      }
+      if (e instanceof IntegrationError && e.code === 'remote_gone')
+        return this.recreate(c, link, meetingId);
       throw e;
     }
     await this.saveLink(link, rec, local, l!.row.version);
     await this.connections.log(c, 'info', 'pushed', 'Updated at the provider.', { meetingId });
+  }
+
+  /**
+   * The record is missing at the provider (not "deleted": Google keeps deleted events with a
+   * cancelled status, Notion keeps trashed pages). A missing record is never read as a
+   * cancellation; it is created again from the platform's version.
+   */
+  private async recreate(c: ConnectionRow, link: LinkRow, meetingId: string): Promise<void> {
+    await this.unlink(link);
+    await this.connections.log(
+      c,
+      'warn',
+      'pushed',
+      'The record was missing at the provider; it was created again.',
+      { meetingId },
+    );
+    return this.pushMeeting(c, meetingId);
   }
 
   // ---------------------------------------------------------------- pull
@@ -229,30 +300,55 @@ export class RemoteSyncService {
     const owner = await this.owner(c);
     const changes = await p.changes(c, { full: !!opts.full, pageIds: opts.pageIds });
     if (changes.fullResync)
-      await this.connections.log(c, 'info', 'full_resync', 'The provider asked for a full re-sync; existing links kept everything matched.');
+      await this.connections.log(
+        c,
+        'info',
+        'full_resync',
+        'The provider asked for a full re-sync; existing links kept everything matched.',
+      );
     let changed = 0;
     for (const rec of changes.records) {
       try {
         if (await this.processRecord(c, owner, p, rec)) changed += 1;
       } catch (e) {
         // Transient problems retry the whole pull (the position isn't saved); others are logged.
-        if (e instanceof IntegrationError && (e.kind === 'retryable' || e.kind === 'rate_limited' || e.kind === 'auth'))
+        if (
+          e instanceof IntegrationError &&
+          (e.kind === 'retryable' || e.kind === 'rate_limited' || e.kind === 'auth')
+        )
           throw e;
-        await this.connections.log(c, 'warn', 'failed', `Could not process a change: ${(e as Error).message}`, {
-          detail: { remoteId: rec.id },
-        });
+        await this.connections.log(
+          c,
+          'warn',
+          'failed',
+          `Could not process a change: ${(e as Error).message}`,
+          {
+            detail: { remoteId: rec.id },
+          },
+        );
       }
     }
     await changes.commit();
     if (changed)
-      await this.connections.log(c, 'info', 'synced', `Processed ${changed} change(s) from the provider.`, {
-        detail: { changed },
-      });
+      await this.connections.log(
+        c,
+        'info',
+        'synced',
+        `Processed ${changed} change(s) from the provider.`,
+        {
+          detail: { changed },
+        },
+      );
     return changed;
   }
 
   /** Returns true if anything changed on the platform. */
-  private async processRecord(c: ConnectionRow, owner: TenantContext, p: RemoteProvider, rec: RemoteRecord): Promise<boolean> {
+  private async processRecord(
+    c: ConnectionRow,
+    owner: TenantContext,
+    p: RemoteProvider,
+    rec: RemoteRecord,
+  ): Promise<boolean> {
     if (rec.instanceOf) return this.instanceChanged(c, owner, rec);
     const [link] = await this.db
       .select()
@@ -264,42 +360,72 @@ export class RemoteSyncService {
       return this.importRecord(c, owner, p, rec);
     }
     if (link.state !== 'active') return false;
-    if (rec.version === link.remoteVersion) return false; // our own write coming back
     const l = await this.meetings.load(c.organizationId, link.meetingId);
     if (!l) return false;
     if (rec.deleted) {
       await this.remoteDeleted(c, owner, link, l);
       return true;
     }
+    if (rec.version === link.remoteVersion) return false; // our own write coming back
     await this.reconcile(c, owner, link, l, rec);
     return true;
   }
 
   /** A record that says it mirrors one of our meetings but has no link: link it, platform wins. */
-  private async relink(c: ConnectionRow, owner: TenantContext, rec: RemoteRecord): Promise<boolean> {
+  private async relink(
+    c: ConnectionRow,
+    owner: TenantContext,
+    rec: RemoteRecord,
+  ): Promise<boolean> {
     const l = await this.meetings.load(c.organizationId, rec.platformMeetingId!);
     if (!l || rec.deleted || !this.carries(c, l, owner)) return false;
     const existing = await this.link(c, l.row.id);
     if (existing?.state === 'active') return false; // linked to another record already
     await this.db
       .insert(integrationLinks)
-      .values({ organizationId: c.organizationId, connectionId: c.id, meetingId: l.row.id, state: 'pending_create' })
+      .values({
+        organizationId: c.organizationId,
+        connectionId: c.id,
+        meetingId: l.row.id,
+        state: 'pending_create',
+      })
       .onConflictDoNothing();
     const link = (await this.link(c, l.row.id))!;
     const local = this.localSnapshot(c, l, owner);
-    const written = await this.provider(c).update(c, { ...link, remoteId: rec.id }, this.view(c, l, owner, local));
+    const written = await this.provider(c).update(
+      c,
+      { ...link, remoteId: rec.id },
+      this.view(c, l, owner, local),
+    );
     await this.saveLink(link, written, local, l.row.version);
-    await this.connections.log(c, 'info', 'pushed', 'Re-linked a record that already mirrored this meeting.', {
-      meetingId: l.row.id,
-    });
+    await this.connections.log(
+      c,
+      'info',
+      'pushed',
+      'Re-linked a record that already mirrored this meeting.',
+      {
+        meetingId: l.row.id,
+      },
+    );
     return false;
   }
 
-  private async importRecord(c: ConnectionRow, owner: TenantContext, p: RemoteProvider, rec: RemoteRecord): Promise<boolean> {
+  private async importRecord(
+    c: ConnectionRow,
+    owner: TenantContext,
+    p: RemoteProvider,
+    rec: RemoteRecord,
+  ): Promise<boolean> {
     if (!rec.snapshot) {
-      await this.connections.log(c, 'warn', rec.unsupported?.startsWith('recurrence') ? 'unsupported_recurrence' : 'import_skipped', `Not imported: ${rec.unsupported ?? 'unreadable'}.`, {
-        detail: { remoteId: rec.id, reason: rec.unsupported ?? null },
-      });
+      await this.connections.log(
+        c,
+        'warn',
+        rec.unsupported?.startsWith('recurrence') ? 'unsupported_recurrence' : 'import_skipped',
+        `Not imported: ${rec.unsupported ?? 'unreadable'}.`,
+        {
+          detail: { remoteId: rec.id, reason: rec.unsupported ?? null },
+        },
+      );
       return false;
     }
     const s = rec.snapshot;
@@ -318,9 +444,15 @@ export class RemoteSyncService {
       reminderMinutes: [15],
     });
     if (!parsed.success) {
-      await this.connections.log(c, 'warn', 'import_skipped', 'Not imported: the record is not a valid meeting.', {
-        detail: { remoteId: rec.id, issues: parsed.error.issues.map((i) => i.message) },
-      });
+      await this.connections.log(
+        c,
+        'warn',
+        'import_skipped',
+        'Not imported: the record is not a valid meeting.',
+        {
+          detail: { remoteId: rec.id, issues: parsed.error.issues.map((i) => i.message) },
+        },
+      );
       return false;
     }
     let meetingId: string;
@@ -331,7 +463,8 @@ export class RemoteSyncService {
         sourceConnectionId: c.id,
       });
       meetingId = dto.id;
-      for (const x of s.exdates ?? []) await this.meetings.cancelOccurrence(owner, meetingId, x, this.via(c)).catch(() => null);
+      for (const x of s.exdates ?? [])
+        await this.meetings.cancelOccurrence(owner, meetingId, x, this.via(c)).catch(() => null);
     } catch (e) {
       if (e instanceof AppError) {
         await this.connections.log(c, 'warn', 'import_skipped', `Not imported: ${e.code}.`, {
@@ -344,18 +477,35 @@ export class RemoteSyncService {
     const l = (await this.meetings.load(c.organizationId, meetingId))!;
     const [link] = await this.db
       .insert(integrationLinks)
-      .values({ organizationId: c.organizationId, connectionId: c.id, meetingId, state: 'pending_create' })
+      .values({
+        organizationId: c.organizationId,
+        connectionId: c.id,
+        meetingId,
+        state: 'pending_create',
+      })
       .returning();
     // Write back so the record carries the meeting's id from now on.
     const local = this.localSnapshot(c, l, owner);
-    const written = await p.update(c, { ...link!, remoteId: rec.id }, this.view(c, l, owner, local));
+    const written = await p.update(
+      c,
+      { ...link!, remoteId: rec.id },
+      this.view(c, l, owner, local),
+    );
     await this.saveLink(link!, written, local, l.row.version);
-    await this.connections.log(c, 'info', 'imported', `Imported "${l.row.title}" as a meeting.`, { meetingId });
+    await this.connections.log(c, 'info', 'imported', `Imported "${l.row.title}" as a meeting.`, {
+      meetingId,
+    });
     return true;
   }
 
   /** Merge a provider change into a linked meeting (see sync-engine.ts for the rules). */
-  private async reconcile(c: ConnectionRow, owner: TenantContext, link: LinkRow, l: LoadedMeeting, rec: RemoteRecord): Promise<void> {
+  private async reconcile(
+    c: ConnectionRow,
+    owner: TenantContext,
+    link: LinkRow,
+    l: LoadedMeeting,
+    rec: RemoteRecord,
+  ): Promise<void> {
     const p = this.provider(c);
     const local = this.localSnapshot(c, l, owner);
     const base = link.syncedSnapshot as Snapshot | null;
@@ -365,11 +515,17 @@ export class RemoteSyncService {
       await this.connections.log(
         c,
         'warn',
-        rec.unsupported?.startsWith('recurrence') ? 'unsupported_recurrence' : 'remote_change_rejected',
+        rec.unsupported?.startsWith('recurrence')
+          ? 'unsupported_recurrence'
+          : 'remote_change_rejected',
         `A change at the provider could not be applied (${rec.unsupported ?? 'unreadable'}); the platform's version was restored.`,
         { meetingId: l.row.id, detail: { reason: rec.unsupported ?? null } },
       );
-      const written = await p.update(c, link, this.view(c, l, owner, local));
+      const written = await p.update(
+        c,
+        { ...link, remoteVersion: rec.version },
+        this.view(c, l, owner, local),
+      );
       await this.saveLink(link, written, local, l.row.version);
       return;
     }
@@ -381,10 +537,16 @@ export class RemoteSyncService {
       const result = await this.applyLocally(c, owner, l, merge.applyLocally);
       if (result.ok) {
         current = (await this.meetings.load(c.organizationId, l.row.id))!;
-        await this.connections.log(c, 'info', 'pulled', `Applied a change from the provider: ${changedFields.join(', ')}.`, {
-          meetingId: l.row.id,
-          detail: { fields: changedFields },
-        });
+        await this.connections.log(
+          c,
+          'info',
+          'pulled',
+          `Applied a change from the provider: ${changedFields.join(', ')}.`,
+          {
+            meetingId: l.row.id,
+            detail: { fields: changedFields },
+          },
+        );
       } else {
         await this.connections.log(
           c,
@@ -405,15 +567,30 @@ export class RemoteSyncService {
           meetingId: l.row.id,
           detail: {
             rule: 'platform_wins',
-            conflicts: merge.conflicts.map((x) => ({ field: x.field, platform: short(x.platform), provider: short(x.provider) })),
+            conflicts: merge.conflicts.map((x) => ({
+              field: x.field,
+              platform: short(x.platform),
+              provider: short(x.provider),
+            })),
           },
         },
       );
-      await this.connections.notifyConflict(c, l.row.id, l.row.title, merge.conflicts.map((x) => x.field));
+      await this.connections.notifyConflict(
+        c,
+        l.row.id,
+        l.row.title,
+        merge.conflicts.map((x) => x.field),
+      );
     }
     const final = this.localSnapshot(c, current, owner);
     let latest = rec;
-    if (!same(final, remote)) latest = await p.update(c, link, this.view(c, current, owner, final));
+    // Conditional on the version we just read (a change in between → 412 → merged again).
+    if (!same(final, remote))
+      latest = await p.update(
+        c,
+        { ...link, remoteVersion: rec.version },
+        this.view(c, current, owner, final),
+      );
     await this.saveLink(link, latest, final, current.row.version);
   }
 
@@ -430,7 +607,8 @@ export class RemoteSyncService {
         await this.meetings.cancel(owner, id, null, this.via(c));
         return { ok: true };
       }
-      if (changes.status === 'scheduled') return { ok: false, reason: 'cancelled_meetings_are_final' };
+      if (changes.status === 'scheduled')
+        return { ok: false, reason: 'cancelled_meetings_are_final' };
       const input: MeetingUpdateInput = {};
       if (changes.title !== undefined) input.title = changes.title || l.row.title;
       if (changes.description !== undefined) input.description = changes.description;
@@ -443,7 +621,11 @@ export class RemoteSyncService {
       if (changes.recurrence !== undefined) input.recurrence = changes.recurrence;
       if (Object.keys(input).length) await this.meetings.update(owner, id, input, this.via(c));
       if (changes.exdates) {
-        const had = new Set(l.overrides.filter((o) => o.status === 'cancelled').map((o) => o.originalStart.toISOString()));
+        const had = new Set(
+          l.overrides
+            .filter((o) => o.status === 'cancelled')
+            .map((o) => o.originalStart.toISOString()),
+        );
         for (const x of changes.exdates.filter((d) => !had.has(d)))
           await this.meetings.cancelOccurrence(owner, id, x, this.via(c));
       }
@@ -455,7 +637,12 @@ export class RemoteSyncService {
   }
 
   /** The record was deleted at the provider. */
-  private async remoteDeleted(c: ConnectionRow, owner: TenantContext, link: LinkRow, l: LoadedMeeting) {
+  private async remoteDeleted(
+    c: ConnectionRow,
+    owner: TenantContext,
+    link: LinkRow,
+    l: LoadedMeeting,
+  ) {
     const p = this.provider(c);
     const isOrganizer = l.row.organizerUserId === owner.user.id;
     const isInvited = l.participants.some((x) => x.userId === owner.user.id);
@@ -468,7 +655,13 @@ export class RemoteSyncService {
       const r = await this.applyLocally(c, owner, l, { status: 'cancelled' });
       if (r.ok) {
         await this.unlink(link);
-        await this.connections.log(c, 'info', 'pulled', 'Deleted at the provider: the meeting was cancelled.', { meetingId: l.row.id });
+        await this.connections.log(
+          c,
+          'info',
+          'pulled',
+          'Deleted at the provider: the meeting was cancelled.',
+          { meetingId: l.row.id },
+        );
         return;
       }
     }
@@ -480,14 +673,26 @@ export class RemoteSyncService {
         if (!(e instanceof AppError)) throw e;
       }
       await this.unlink(link);
-      await this.connections.log(c, 'info', 'pulled', 'Removed from the calendar: the invitation was declined.', { meetingId: l.row.id });
+      await this.connections.log(
+        c,
+        'info',
+        'pulled',
+        'Removed from the calendar: the invitation was declined.',
+        { meetingId: l.row.id },
+      );
       return;
     }
     // Not allowed to cancel it: restore the record (the platform wins).
     await this.unlink(link);
-    await this.connections.log(c, 'warn', 'remote_change_rejected', 'Deleted at the provider without permission to cancel the meeting; it was restored.', {
-      meetingId: l.row.id,
-    });
+    await this.connections.log(
+      c,
+      'warn',
+      'remote_change_rejected',
+      'Deleted at the provider without permission to cancel the meeting; it was restored.',
+      {
+        meetingId: l.row.id,
+      },
+    );
     const fresh = (await this.link(c, l.row.id))!;
     const local = this.localSnapshot(c, l, owner);
     const rec = await p.create(c, this.view(c, l, owner, local));
@@ -495,12 +700,18 @@ export class RemoteSyncService {
   }
 
   /** Google: one occurrence of a recurring event was cancelled or moved there. */
-  private async instanceChanged(c: ConnectionRow, owner: TenantContext, rec: RemoteRecord): Promise<boolean> {
+  private async instanceChanged(
+    c: ConnectionRow,
+    owner: TenantContext,
+    rec: RemoteRecord,
+  ): Promise<boolean> {
     const inst = rec.instanceOf!;
     const [link] = await this.db
       .select()
       .from(integrationLinks)
-      .where(and(eq(integrationLinks.connectionId, c.id), eq(integrationLinks.remoteId, inst.remoteId)));
+      .where(
+        and(eq(integrationLinks.connectionId, c.id), eq(integrationLinks.remoteId, inst.remoteId)),
+      );
     if (!link || link.state !== 'active') return false;
     const l = await this.meetings.load(c.organizationId, link.meetingId);
     if (!l || l.row.status === 'cancelled') return false;
@@ -509,23 +720,46 @@ export class RemoteSyncService {
       if (inst.cancelled) {
         if (override?.status === 'cancelled') return false;
         await this.meetings.cancelOccurrence(owner, l.row.id, inst.originalStart, this.via(c));
-        await this.connections.log(c, 'info', 'pulled', 'One occurrence was cancelled at the provider.', { meetingId: l.row.id });
+        await this.connections.log(
+          c,
+          'info',
+          'pulled',
+          'One occurrence was cancelled at the provider.',
+          { meetingId: l.row.id },
+        );
         return true;
       }
       if (!inst.startLocal || !inst.endLocal) return false;
       const start = localToUtc(parseLocal(inst.startLocal)!, l.row.timeZone);
       const end = localToUtc(parseLocal(inst.endLocal)!, l.row.timeZone);
-      const currentStart = override?.status === 'moved' ? override.startAt!.getTime() : Date.parse(inst.originalStart);
-      const currentEnd = override?.status === 'moved' ? override.endAt!.getTime() : Date.parse(inst.originalStart) + l.row.durationMinutes * 60000;
+      const currentStart =
+        override?.status === 'moved' ? override.startAt!.getTime() : Date.parse(inst.originalStart);
+      const currentEnd =
+        override?.status === 'moved'
+          ? override.endAt!.getTime()
+          : Date.parse(inst.originalStart) + l.row.durationMinutes * 60000;
       if (start === currentStart && end === currentEnd) return false;
-      await this.meetings.moveOccurrence(owner, l.row.id, { originalStart: inst.originalStart, start: inst.startLocal, end: inst.endLocal }, this.via(c));
-      await this.connections.log(c, 'info', 'pulled', 'One occurrence was moved at the provider.', { meetingId: l.row.id });
+      await this.meetings.moveOccurrence(
+        owner,
+        l.row.id,
+        { originalStart: inst.originalStart, start: inst.startLocal, end: inst.endLocal },
+        this.via(c),
+      );
+      await this.connections.log(c, 'info', 'pulled', 'One occurrence was moved at the provider.', {
+        meetingId: l.row.id,
+      });
       return true;
     } catch (e) {
       if (!(e instanceof AppError)) throw e;
-      await this.connections.log(c, 'warn', 'remote_change_ignored', `A change to one occurrence was not applied (${e.code}).`, {
-        meetingId: l.row.id,
-      });
+      await this.connections.log(
+        c,
+        'warn',
+        'remote_change_ignored',
+        `A change to one occurrence was not applied (${e.code}).`,
+        {
+          meetingId: l.row.id,
+        },
+      );
       return false;
     }
   }

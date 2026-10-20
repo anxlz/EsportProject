@@ -13,12 +13,7 @@
  * - a wall-clock time that doesn't exist (skipped by a DST change) uses the offset before the
  *   change; an ambiguous one (repeated hour) uses its first occurrence.
  */
-import {
-  MEETING_LIMITS,
-  type RecurrenceFrequency,
-  type Weekday,
-  WEEKDAYS,
-} from './catalog';
+import { MEETING_LIMITS, type RecurrenceFrequency, type Weekday, WEEKDAYS } from './catalog';
 
 export interface RecurrenceRule {
   freq: RecurrenceFrequency;
@@ -111,7 +106,14 @@ export function utcToLocal(utcMs: number, tz: string): LocalDateTime & { s: numb
   const parts = dtf(tz).formatToParts(new Date(utcMs));
   const get = (t: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((p) => p.type === t)?.value ?? 0);
-  return { y: get('year'), m: get('month'), d: get('day'), h: get('hour'), mi: get('minute'), s: get('second') };
+  return {
+    y: get('year'),
+    m: get('month'),
+    d: get('day'),
+    h: get('hour'),
+    mi: get('minute'),
+    s: get('second'),
+  };
 }
 
 /** UTC offset (minutes east of UTC) in effect at a UTC instant. */
@@ -130,7 +132,9 @@ export function localToUtc(l: LocalDateTime, tz: string): number {
     .map((off) => guess - off * 60_000)
     .filter((utc) => {
       const back = utcToLocal(utc, tz);
-      return back.y === l.y && back.m === l.m && back.d === l.d && back.h === l.h && back.mi === l.mi;
+      return (
+        back.y === l.y && back.m === l.m && back.d === l.d && back.h === l.h && back.mi === l.mi
+      );
     })
     .sort((a, b) => a - b);
   // Two valid instants: the repeated hour, take the first. None: the skipped hour.
@@ -152,7 +156,11 @@ export function isoWithOffset(utcMs: number, tz: string): string {
 export function ruleProblem(rule: RecurrenceRule, startLocal: string): string | null {
   const start = parseLocal(startLocal);
   if (!start) return 'invalid_start';
-  if (!Number.isInteger(rule.interval) || rule.interval < 1 || rule.interval > MEETING_LIMITS.intervalMax)
+  if (
+    !Number.isInteger(rule.interval) ||
+    rule.interval < 1 ||
+    rule.interval > MEETING_LIMITS.intervalMax
+  )
     return 'invalid_interval';
   if (rule.freq === 'weekly') {
     const days = rule.byWeekday?.length ? rule.byWeekday : null;
@@ -160,7 +168,11 @@ export function ruleProblem(rule: RecurrenceRule, startLocal: string): string | 
       return 'start_not_on_weekday';
   } else if (rule.byWeekday?.length) return 'weekday_only_for_weekly';
   if (rule.end.type === 'count') {
-    if (!Number.isInteger(rule.end.count) || rule.end.count < 1 || rule.end.count > MEETING_LIMITS.countMax)
+    if (
+      !Number.isInteger(rule.end.count) ||
+      rule.end.count < 1 ||
+      rule.end.count > MEETING_LIMITS.countMax
+    )
       return 'invalid_count';
   } else {
     const u = parseDate(rule.end.until);
@@ -204,7 +216,8 @@ export function seriesStarts(startLocal: string, rule: RecurrenceRule | null): L
   const out: LocalDateTime[] = [];
   const maxCount = r.end.type === 'count' ? r.end.count : MEETING_LIMITS.countMax * 31;
   const until = r.end.type === 'until' ? r.end.until : null;
-  const done = (l: LocalDateTime) => (until !== null && localDate(l) > until) || out.length >= maxCount;
+  const done = (l: LocalDateTime) =>
+    (until !== null && localDate(l) > until) || out.length >= maxCount;
   const startDate = localDate(start);
 
   if (r.freq === 'daily') {
@@ -299,7 +312,13 @@ export function occurrencesBetween(
     const startUtc = moved ? Date.parse(ov.start!) : o.startUtc;
     const endUtc = moved ? Date.parse(ov.end!) : o.endUtc;
     if (endUtc <= fromUtc || startUtc >= toUtc) continue;
-    out.push({ key: o.key, startUtc, endUtc, cancelled: ov?.status === 'cancelled', moved: !!moved });
+    out.push({
+      key: o.key,
+      startUtc,
+      endUtc,
+      cancelled: ov?.status === 'cancelled',
+      moved: !!moved,
+    });
   }
   return out.sort((a, b) => a.startUtc - b.startUtc);
 }
@@ -337,8 +356,7 @@ export function toRRule(rule: RecurrenceRule, startLocal: string, tz: string): s
 }
 
 export type ParsedRecurrence =
-  | { ok: true; rule: RecurrenceRule; exdates: string[] }
-  | { ok: false; reason: string };
+  { ok: true; rule: RecurrenceRule; exdates: string[] } | { ok: false; reason: string };
 
 /**
  * Reads a provider's recurrence lines back. Only what this platform can represent is accepted;
@@ -370,7 +388,8 @@ export function fromRRule(lines: string[], startLocal: string, tz: string): Pars
     if (freq !== 'DAILY' && freq !== 'WEEKLY' && freq !== 'MONTHLY')
       return { ok: false, reason: 'unsupported_frequency' };
     const known = new Set(['FREQ', 'INTERVAL', 'BYDAY', 'BYMONTHDAY', 'COUNT', 'UNTIL', 'WKST']);
-    for (const k of kv.keys()) if (!known.has(k)) return { ok: false, reason: `unsupported_${k.toLowerCase()}` };
+    for (const k of kv.keys())
+      if (!known.has(k)) return { ok: false, reason: `unsupported_${k.toLowerCase()}` };
     if (kv.has('WKST') && kv.get('WKST') !== 'MO') return { ok: false, reason: 'unsupported_wkst' };
     const interval = kv.has('INTERVAL') ? Number(kv.get('INTERVAL')) : 1;
     const start = parseLocal(startLocal);

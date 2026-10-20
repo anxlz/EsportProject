@@ -16,7 +16,7 @@ import type {
   IntegrationUpdateInput,
   NotionConnectInput,
 } from '@esports/shared';
-import { and, desc, eq, inArray, ne, or } from 'drizzle-orm';
+import { and, desc, eq, ne, or } from 'drizzle-orm';
 import type Redis from 'ioredis';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { TenantContext } from '../authz/context';
@@ -84,7 +84,10 @@ export class IntegrationsService {
           eq(integrationConnections.organizationId, ctx.organizationId),
           ne(integrationConnections.status, 'disconnected'),
           or(
-            and(eq(integrationConnections.personal, true), eq(integrationConnections.ownerUserId, ctx.user.id)),
+            and(
+              eq(integrationConnections.personal, true),
+              eq(integrationConnections.ownerUserId, ctx.user.id),
+            ),
             manage ? eq(integrationConnections.personal, false) : undefined,
           ),
         ),
@@ -142,10 +145,19 @@ export class IntegrationsService {
   }
 
   private fullSync(c: ConnectionRow) {
-    return this.jobs.enqueue({ organizationId: c.organizationId, connectionId: c.id, kind: 'full_sync', dedupeKey: 'full_sync' });
+    return this.jobs.enqueue({
+      organizationId: c.organizationId,
+      connectionId: c.id,
+      kind: 'full_sync',
+      dedupeKey: 'full_sync',
+    });
   }
 
-  async update(ctx: TenantContext, id: string, input: IntegrationUpdateInput): Promise<IntegrationDto> {
+  async update(
+    ctx: TenantContext,
+    id: string,
+    input: IntegrationUpdateInput,
+  ): Promise<IntegrationDto> {
     const c = await this.manageable(ctx, id);
     const set: Partial<typeof integrationConnections.$inferInsert> = {};
     const changed: string[] = [];
@@ -167,14 +179,18 @@ export class IntegrationsService {
     }
     const cfg = { ...(c.config as Record<string, unknown>) };
     if (input.calendarId !== undefined && input.calendarId !== cfg.calendarId)
-      throw Errors.validation([{ path: 'calendarId', message: 'reconnect_to_change_calendar', code: 'custom' }]);
+      throw Errors.validation([
+        { path: 'calendarId', message: 'reconnect_to_change_calendar', code: 'custom' },
+      ]);
     if (input.events !== undefined) {
-      if (c.provider !== 'webhook_outgoing') throw Errors.validation([{ path: 'events', message: 'not_applicable', code: 'custom' }]);
+      if (c.provider !== 'webhook_outgoing')
+        throw Errors.validation([{ path: 'events', message: 'not_applicable', code: 'custom' }]);
       cfg.events = input.events;
       changed.push('events');
     }
     if (input.actions !== undefined) {
-      if (c.provider !== 'webhook_incoming') throw Errors.validation([{ path: 'actions', message: 'not_applicable', code: 'custom' }]);
+      if (c.provider !== 'webhook_incoming')
+        throw Errors.validation([{ path: 'actions', message: 'not_applicable', code: 'custom' }]);
       cfg.actions = input.actions;
       changed.push('actions');
     }
@@ -192,18 +208,38 @@ export class IntegrationsService {
       if (changed.includes('direction') && input.direction === 'two_way' && remote) {
         // Changes made at the provider while push-only were never read; starting two-way from
         // the platform's version means they don't come back as surprises.
-        await tx.update(integrationLinks).set({ syncedSnapshot: null }).where(eq(integrationLinks.connectionId, c.id));
+        await tx
+          .update(integrationLinks)
+          .set({ syncedSnapshot: null })
+          .where(eq(integrationLinks.connectionId, c.id));
         await tx
           .update(integrationConnections)
           .set({ cursor: {} })
           .where(eq(integrationConnections.id, c.id));
       }
-      await this.audit.fromCtx(ctx, 'integration.updated', { type: 'integration', id: c.id }, { provider: c.provider, changed }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'integration.updated',
+        { type: 'integration', id: c.id },
+        { provider: c.provider, changed },
+        tx,
+      );
     });
     const next = (await this.connections.byId(c.id))!;
-    await this.connections.log(next, 'info', 'settings_changed', `Settings changed: ${changed.join(', ')}.`);
+    await this.connections.log(
+      next,
+      'info',
+      'settings_changed',
+      `Settings changed: ${changed.join(', ')}.`,
+    );
     if (input.paused) await this.jobs.cancelPending(c.id);
-    else if (remote && (changed.includes('team') || changed.includes('direction') || changed.includes('resumed') || set.status === 'active'))
+    else if (
+      remote &&
+      (changed.includes('team') ||
+        changed.includes('direction') ||
+        changed.includes('resumed') ||
+        set.status === 'active')
+    )
       await this.fullSync(next);
     return this.connections.toDto(next);
   }
@@ -212,7 +248,12 @@ export class IntegrationsService {
     const c = await this.manageable(ctx, id);
     if (c.provider !== 'google_calendar' && c.provider !== 'notion')
       throw Errors.validation([{ path: 'id', message: 'not_applicable', code: 'custom' }]);
-    if (c.status !== 'active' || c.paused) throw new AppError('integration_unavailable', 409, 'Resume or reconnect the integration first');
+    if (c.status !== 'active' || c.paused)
+      throw new AppError(
+        'integration_unavailable',
+        409,
+        'Resume or reconnect the integration first',
+      );
     await this.fullSync(c);
     return this.connections.toDto(c);
   }
@@ -221,7 +262,8 @@ export class IntegrationsService {
     const c = await this.manageable(ctx, id);
     if (c.provider === 'google_calendar') {
       const ch = c.channel as { id?: string; resourceId?: string } | null;
-      if (ch?.id && ch.resourceId) await this.google.stopChannel(c, ch.id, ch.resourceId).catch(() => undefined);
+      if (ch?.id && ch.resourceId)
+        await this.google.stopChannel(c, ch.id, ch.resourceId).catch(() => undefined);
       await this.google.revoke(c).catch(() => undefined);
     }
     await this.db.transaction(async (tx) => {
@@ -236,37 +278,70 @@ export class IntegrationsService {
           updatedAt: new Date(this.now()),
         })
         .where(eq(integrationConnections.id, c.id));
-      await tx.update(integrationLinks).set({ state: 'unlinked' }).where(eq(integrationLinks.connectionId, c.id));
-      await this.audit.fromCtx(ctx, 'integration.disconnected', { type: 'integration', id: c.id }, { provider: c.provider }, tx);
+      await tx
+        .update(integrationLinks)
+        .set({ state: 'unlinked' })
+        .where(eq(integrationLinks.connectionId, c.id));
+      await this.audit.fromCtx(
+        ctx,
+        'integration.disconnected',
+        { type: 'integration', id: c.id },
+        { provider: c.provider },
+        tx,
+      );
     });
     await this.jobs.cancelPending(c.id);
-    await this.connections.log(c, 'info', 'disconnected', 'Disconnected. Records already created at the provider were left as they are.');
+    await this.connections.log(
+      c,
+      'info',
+      'disconnected',
+      'Disconnected. Records already created at the provider were left as they are.',
+    );
   }
 
   async rotateSecret(ctx: TenantContext, id: string) {
     const c = await this.manageable(ctx, id);
     let secret: string;
     if (c.provider === 'obsidian') secret = await this.obsidian.rotate(c);
-    else if (c.provider === 'webhook_outgoing' || c.provider === 'webhook_incoming') secret = await this.webhooks.rotate(c);
+    else if (c.provider === 'webhook_outgoing' || c.provider === 'webhook_incoming')
+      secret = await this.webhooks.rotate(c);
     else throw Errors.validation([{ path: 'id', message: 'not_applicable', code: 'custom' }]);
-    await this.audit.fromCtx(ctx, 'integration.secret_rotated', { type: 'integration', id: c.id }, { provider: c.provider });
-    return { integration: await this.connections.toDto((await this.connections.byId(c.id))!), secret };
+    await this.audit.fromCtx(
+      ctx,
+      'integration.secret_rotated',
+      { type: 'integration', id: c.id },
+      { provider: c.provider },
+    );
+    return {
+      integration: await this.connections.toDto((await this.connections.byId(c.id))!),
+      secret,
+    };
   }
 
   async resetVerification(ctx: TenantContext, id: string) {
     const c = await this.manageable(ctx, id);
-    if (c.provider !== 'notion') throw Errors.validation([{ path: 'id', message: 'not_applicable', code: 'custom' }]);
+    if (c.provider !== 'notion')
+      throw Errors.validation([{ path: 'id', message: 'not_applicable', code: 'custom' }]);
     const s = this.connections.secrets<Record<string, unknown>>(c);
     delete s.verificationToken;
     await this.connections.setSecrets(c, s);
-    await this.audit.fromCtx(ctx, 'integration.updated', { type: 'integration', id: c.id }, { provider: c.provider, changed: ['verification_reset'] });
+    await this.audit.fromCtx(
+      ctx,
+      'integration.updated',
+      { type: 'integration', id: c.id },
+      { provider: c.provider, changed: ['verification_reset'] },
+    );
     return this.connections.toDto((await this.connections.byId(c.id))!);
   }
 
   // ---------------------------------------------------------------- Google Calendar (OAuth)
 
-  async googleStart(ctx: TenantContext, input: GoogleConnectInput): Promise<{ url: string; nonce: string }> {
-    if (!this.env.googleEnabled) throw new AppError('integration_not_configured', 503, 'Google Calendar is not configured');
+  async googleStart(
+    ctx: TenantContext,
+    input: GoogleConnectInput,
+  ): Promise<{ url: string; nonce: string }> {
+    if (!this.env.googleEnabled)
+      throw new AppError('integration_not_configured', 503, 'Google Calendar is not configured');
     await this.checkTeam(ctx, input.teamId);
     const existing = await this.db
       .select({ id: integrationConnections.id })
@@ -282,7 +357,12 @@ export class IntegrationsService {
     if (existing.length) throw Errors.conflict('conflict', 'Google Calendar is already connected');
     const state = randomToken(24);
     const nonce = randomToken(24);
-    const value: GoogleOAuthState = { userId: ctx.user.id, organizationId: ctx.organizationId, nonceHash: sha256(nonce), input };
+    const value: GoogleOAuthState = {
+      userId: ctx.user.id,
+      organizationId: ctx.organizationId,
+      nonceHash: sha256(nonce),
+      input,
+    };
     await this.redis.set(`oauth:google:${state}`, JSON.stringify(value), 'EX', OAUTH_TTL_SECONDS);
     return { url: this.google.authUrl(state), nonce };
   }
@@ -298,7 +378,8 @@ export class IntegrationsService {
     const raw = await this.redis.getdel(`oauth:google:${p.state}`);
     if (!raw) return back('error=oauth_state_invalid');
     const state = JSON.parse(raw) as GoogleOAuthState;
-    if (!p.nonce || !safeEqual(state.nonceHash, sha256(p.nonce))) return back('error=oauth_state_invalid');
+    if (!p.nonce || !safeEqual(state.nonceHash, sha256(p.nonce)))
+      return back('error=oauth_state_invalid');
     if (!ctx || ctx.user.id !== state.userId || ctx.organizationId !== state.organizationId)
       return back('error=oauth_state_invalid');
     if (p.error || !p.code) return back('error=google_denied');
@@ -323,15 +404,31 @@ export class IntegrationsService {
         })
         .returning();
       await this.connections.setSecrets(row!, secrets, tx);
-      await this.audit.fromCtx(ctx, 'integration.connected', { type: 'integration', id: row!.id }, {
-        provider: 'google_calendar',
-        direction: state.input.direction,
-        calendar: state.input.calendarId === 'primary' ? 'primary' : 'dedicated',
-      }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'integration.connected',
+        { type: 'integration', id: row!.id },
+        {
+          provider: 'google_calendar',
+          direction: state.input.direction,
+          calendar: state.input.calendarId === 'primary' ? 'primary' : 'dedicated',
+        },
+        tx,
+      );
       return row!;
     });
-    await this.connections.log(c, 'info', 'connected', `Connected (${state.input.direction === 'two_way' ? 'two-way' : 'push only'}).`);
-    await this.jobs.enqueue({ organizationId: c.organizationId, connectionId: c.id, kind: 'renew_channel', dedupeKey: 'renew' });
+    await this.connections.log(
+      c,
+      'info',
+      'connected',
+      `Connected (${state.input.direction === 'two_way' ? 'two-way' : 'push only'}).`,
+    );
+    await this.jobs.enqueue({
+      organizationId: c.organizationId,
+      connectionId: c.id,
+      kind: 'renew_channel',
+      dedupeKey: 'renew',
+    });
     await this.fullSync(c);
     return back('connected=google_calendar');
   }
@@ -375,10 +472,21 @@ export class IntegrationsService {
         })
         .returning();
       await this.connections.setSecrets(row!, { token: input.token }, tx);
-      await this.audit.fromCtx(ctx, 'integration.connected', { type: 'integration', id: row!.id }, { provider: 'notion', direction: input.direction }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'integration.connected',
+        { type: 'integration', id: row!.id },
+        { provider: 'notion', direction: input.direction },
+        tx,
+      );
       return row!;
     });
-    await this.connections.log(c, 'info', 'connected', `Connected to "${db.databaseTitle ?? 'Notion database'}".`);
+    await this.connections.log(
+      c,
+      'info',
+      'connected',
+      `Connected to "${db.databaseTitle ?? 'Notion database'}".`,
+    );
     await this.fullSync(c);
     return this.connections.toDto((await this.connections.byId(c.id))!);
   }
@@ -402,19 +510,42 @@ export class IntegrationsService {
     if (!/^[0-9a-f-]{36}$/i.test(id) || !channelId || !token || !resourceId) this.unauthorized();
     const c = await this.connections.byId(id);
     if (!c || c.provider !== 'google_calendar' || c.status !== 'active') this.unauthorized();
-    const ch = c.channel as { id?: string; resourceId?: string; tokenHash?: string; previous?: { id?: string; resourceId?: string; tokenHash?: string } | null } | null;
-    const candidates = [ch, ch?.previous].filter(Boolean) as { id?: string; resourceId?: string; tokenHash?: string }[];
+    const ch = c.channel as {
+      id?: string;
+      resourceId?: string;
+      tokenHash?: string;
+      previous?: { id?: string; resourceId?: string; tokenHash?: string } | null;
+    } | null;
+    const candidates = [ch, ch?.previous].filter(Boolean) as {
+      id?: string;
+      resourceId?: string;
+      tokenHash?: string;
+    }[];
     const match = candidates.find(
-      (x) => x.id === channelId && x.resourceId === resourceId && !!x.tokenHash && safeEqual(x.tokenHash, sha256(token)),
+      (x) =>
+        x.id === channelId &&
+        x.resourceId === resourceId &&
+        !!x.tokenHash &&
+        safeEqual(x.tokenHash, sha256(token)),
     );
     if (!match) {
       if ((await this.limiter.consume(`hooklog:${c.id}`, 1, 60)) === null)
-        await this.connections.log(c, 'warn', 'signature_rejected', 'Refused a push notification with a wrong channel or token.');
+        await this.connections.log(
+          c,
+          'warn',
+          'signature_rejected',
+          'Refused a push notification with a wrong channel or token.',
+        );
       this.unauthorized();
     }
     if (state === 'sync') return { ok: true };
     if (!c.paused && c.direction === 'two_way')
-      await this.jobs.enqueue({ organizationId: c.organizationId, connectionId: c.id, kind: 'pull', dedupeKey: 'pull' });
+      await this.jobs.enqueue({
+        organizationId: c.organizationId,
+        connectionId: c.id,
+        kind: 'pull',
+        dedupeKey: 'pull',
+      });
     return { ok: true };
   }
 
@@ -425,13 +556,22 @@ export class IntegrationsService {
    * X-Notion-Signature = "sha256=" + HMAC-SHA256(token, raw body). Events are only signals —
    * the pull reads the actual pages from Notion's API with our own credentials.
    */
-  async notionHook(id: string, headers: Record<string, string | string[] | undefined>, raw: Buffer | undefined) {
+  async notionHook(
+    id: string,
+    headers: Record<string, string | string[] | undefined>,
+    raw: Buffer | undefined,
+  ) {
     const sig = headers['x-notion-signature'];
     const signature = Array.isArray(sig) ? sig[0] : sig;
     if (!/^[0-9a-f-]{36}$/i.test(id) || !raw?.length) this.unauthorized();
     const c = await this.connections.byId(id);
     if (!c || c.provider !== 'notion' || c.status !== 'active') this.unauthorized();
-    let body: { verification_token?: unknown; type?: unknown; entity?: { id?: unknown }; data?: { parent?: { data_source_id?: unknown } } };
+    let body: {
+      verification_token?: unknown;
+      type?: unknown;
+      entity?: { id?: unknown };
+      data?: { parent?: { data_source_id?: unknown } };
+    };
     try {
       body = JSON.parse(raw.toString('utf8'));
     } catch {
@@ -440,8 +580,16 @@ export class IntegrationsService {
     const secrets = this.connections.secrets<{ token?: string; verificationToken?: string }>(c);
     if (!signature && typeof body.verification_token === 'string') {
       if (secrets.verificationToken || body.verification_token.length > 200) this.unauthorized();
-      await this.connections.setSecrets(c, { ...secrets, verificationToken: body.verification_token });
-      await this.connections.log(c, 'info', 'verification_received', "Received Notion's verification token; paste it into the webhook settings in Notion to finish.");
+      await this.connections.setSecrets(c, {
+        ...secrets,
+        verificationToken: body.verification_token,
+      });
+      await this.connections.log(
+        c,
+        'info',
+        'verification_received',
+        "Received Notion's verification token; paste it into the webhook settings in Notion to finish.",
+      );
       return { ok: true };
     }
     if (!secrets.verificationToken || !signature) this.unauthorized();
@@ -450,7 +598,12 @@ export class IntegrationsService {
     const b = Buffer.from(signature);
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
       if ((await this.limiter.consume(`hooklog:${c.id}`, 1, 60)) === null)
-        await this.connections.log(c, 'warn', 'signature_rejected', 'Refused a Notion event with a missing or wrong signature.');
+        await this.connections.log(
+          c,
+          'warn',
+          'signature_rejected',
+          'Refused a Notion event with a missing or wrong signature.',
+        );
       this.unauthorized();
     }
     const type = typeof body.type === 'string' ? body.type : '';
@@ -466,17 +619,14 @@ export class IntegrationsService {
           payload: { pageIds: [pageId] },
           dedupeKey: `page:${pageId}`,
         });
-      else await this.jobs.enqueue({ organizationId: c.organizationId, connectionId: c.id, kind: 'pull', dedupeKey: 'pull' });
+      else
+        await this.jobs.enqueue({
+          organizationId: c.organizationId,
+          connectionId: c.id,
+          kind: 'pull',
+          dedupeKey: 'pull',
+        });
     }
     return { ok: true };
-  }
-
-  /** For the settings page: which of the member's meetings each connection holds. */
-  async linkCount(ids: string[]) {
-    if (!ids.length) return [];
-    return this.db
-      .select({ connectionId: integrationLinks.connectionId })
-      .from(integrationLinks)
-      .where(and(inArray(integrationLinks.connectionId, ids), eq(integrationLinks.state, 'active')));
   }
 }

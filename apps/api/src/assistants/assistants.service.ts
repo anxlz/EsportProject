@@ -129,7 +129,8 @@ export class AssistantsService {
         configured: d.configured,
         model: d.model,
         // Web search needs both the deployment switch and a provider that can search.
-        webSearchAvailable: this.engine.webSearchEnabled && d.webSearch && ASSISTANT_FEATURES[key].tools,
+        webSearchAvailable:
+          this.engine.webSearchEnabled && d.webSearch && ASSISTANT_FEATURES[key].tools,
       };
     });
     const first = assistants.find((a) => a.configured);

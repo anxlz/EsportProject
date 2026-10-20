@@ -57,7 +57,13 @@ export function signWebhook(secret: string, id: string, timestamp: number, body:
   return `v1,${createHmac('sha256', key).update(`${id}.${timestamp}.${body}`).digest('base64')}`;
 }
 
-export function verifyWebhookSignature(secret: string, id: string, timestamp: number, body: string, header: string): boolean {
+export function verifyWebhookSignature(
+  secret: string,
+  id: string,
+  timestamp: number,
+  body: string,
+  header: string,
+): boolean {
   const expected = Buffer.from(signWebhook(secret, id, timestamp, body).slice(3), 'base64');
   for (const part of header.split(' ')) {
     const [version, sig] = part.split(',');
@@ -70,25 +76,55 @@ export function verifyWebhookSignature(secret: string, id: string, timestamp: nu
 
 // ---------------------------------------------------------------- SSRF protection
 
-function isPrivateAddress(ip: string): boolean {
-  if (isIP(ip) === 4) {
-    const [a, b] = ip.split('.').map(Number) as [number, number];
-    return (
-      a === 0 ||
-      a === 10 ||
-      a === 127 ||
-      (a === 100 && b >= 64 && b <= 127) || // carrier-grade NAT
-      (a === 169 && b === 254) || // link-local, cloud metadata
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 192 && b === 0) ||
-      (a === 198 && (b === 18 || b === 19)) ||
-      a >= 224 // multicast, reserved, broadcast
-    );
+function isPrivateV4(ip: string): boolean {
+  const [a, b] = ip.split('.').map(Number) as [number, number];
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) || // carrier-grade NAT
+    (a === 169 && b === 254) || // link-local, cloud metadata
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 192 && b === 0) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    a >= 224 // multicast, reserved, broadcast
+  );
+}
+
+/** Eight 16-bit groups of an IPv6 address (handles "::" and a dotted IPv4 tail). */
+function ipv6Groups(ip: string): number[] | null {
+  let v = ip.toLowerCase().split('%')[0]!;
+  const tail = /(\d+\.\d+\.\d+\.\d+)$/.exec(v);
+  if (tail) {
+    const [a, b, c, d] = tail[1]!.split('.').map(Number) as [number, number, number, number];
+    v = `${v.slice(0, -tail[1]!.length)}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
   }
-  const v = ip.toLowerCase();
-  if (v.startsWith('::ffff:')) return isPrivateAddress(v.slice(7));
-  return v === '::' || v === '::1' || v.startsWith('fc') || v.startsWith('fd') || v.startsWith('fe8') || v.startsWith('fe9') || v.startsWith('fea') || v.startsWith('feb') || v.startsWith('ff');
+  const [head, rest] = v.split('::') as [string, string | undefined];
+  const h = head ? head.split(':') : [];
+  const r = rest !== undefined && rest !== '' ? rest.split(':') : [];
+  const fill = v.includes('::') ? 8 - h.length - r.length : 0;
+  const groups = [...h, ...Array(Math.max(fill, 0)).fill('0'), ...r].map((g) =>
+    Number.parseInt(g, 16),
+  );
+  return groups.length === 8 && groups.every((g) => Number.isInteger(g) && g >= 0 && g <= 0xffff)
+    ? groups
+    : null;
+}
+
+function isPrivateAddress(ip: string): boolean {
+  if (isIP(ip) === 4) return isPrivateV4(ip);
+  const g = ipv6Groups(ip);
+  if (!g) return true; // unreadable: refuse
+  const v4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+  const zero = (n: number) => g.slice(0, n).every((x) => x === 0);
+  if (zero(8) || (zero(7) && g[7] === 1)) return true; // :: and ::1
+  if (zero(5) && g[5] === 0xffff) return isPrivateV4(v4(g[6]!, g[7]!)); // IPv4-mapped
+  if (zero(6)) return isPrivateV4(v4(g[6]!, g[7]!)); // IPv4-compatible (deprecated)
+  if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0))
+    return isPrivateV4(v4(g[6]!, g[7]!)); // NAT64
+  if (g[0] === 0x2002) return isPrivateV4(v4(g[1]!, g[2]!)); // 6to4
+  return (g[0]! & 0xfe00) === 0xfc00 || (g[0]! & 0xffc0) === 0xfe80 || (g[0]! & 0xff00) === 0xff00;
 }
 
 /** Refuses URLs that could reach the platform's own network. */
@@ -99,18 +135,30 @@ export async function assertPublicUrl(raw: string, allowPrivate: boolean): Promi
   } catch {
     throw new AppError('url_not_allowed', 400, 'Not a valid URL');
   }
-  if (url.username || url.password) throw new AppError('url_not_allowed', 400, 'Credentials in URLs are not allowed');
+  if (url.username || url.password)
+    throw new AppError('url_not_allowed', 400, 'Credentials in URLs are not allowed');
   if (allowPrivate) {
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new AppError('url_not_allowed', 400, 'Only http(s) URLs');
+    if (url.protocol !== 'https:' && url.protocol !== 'http:')
+      throw new AppError('url_not_allowed', 400, 'Only http(s) URLs');
     return url;
   }
-  if (url.protocol !== 'https:') throw new AppError('url_not_allowed', 400, 'Webhook URLs must use https');
+  if (url.protocol !== 'https:')
+    throw new AppError('url_not_allowed', 400, 'Webhook URLs must use https');
   const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
-  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal'))
+  if (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal')
+  )
     throw new AppError('url_not_allowed', 400, 'Private addresses are not allowed');
-  const addresses = isIP(host) ? [host] : (await lookup(host, { all: true }).catch(() => [])).map((a) => a.address);
-  if (!addresses.length) throw new AppError('url_not_allowed', 400, 'The host name does not resolve');
-  if (addresses.some(isPrivateAddress)) throw new AppError('url_not_allowed', 400, 'Private addresses are not allowed');
+  const addresses = isIP(host)
+    ? [host]
+    : (await lookup(host, { all: true }).catch(() => [])).map((a) => a.address);
+  if (!addresses.length)
+    throw new AppError('url_not_allowed', 400, 'The host name does not resolve');
+  if (addresses.some(isPrivateAddress))
+    throw new AppError('url_not_allowed', 400, 'Private addresses are not allowed');
   return url;
 }
 
@@ -158,10 +206,21 @@ export class WebhooksService {
         })
         .returning();
       await this.connections.setSecrets(row!, { signingSecret: secret }, tx);
-      await this.audit.fromCtx(ctx, 'integration.connected', { type: 'integration', id: row!.id }, { provider: 'webhook_outgoing', events: input.events, host: new URL(input.url).host }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'integration.connected',
+        { type: 'integration', id: row!.id },
+        { provider: 'webhook_outgoing', events: input.events, host: new URL(input.url).host },
+        tx,
+      );
       return row!;
     });
-    await this.connections.log(c, 'info', 'connected', `Outgoing webhook to ${new URL(input.url).host} created.`);
+    await this.connections.log(
+      c,
+      'info',
+      'connected',
+      `Outgoing webhook to ${new URL(input.url).host} created.`,
+    );
     return { connection: (await this.connections.byId(c.id))!, secret };
   }
 
@@ -181,7 +240,13 @@ export class WebhooksService {
         })
         .returning();
       await this.connections.setSecrets(row!, { signingSecret: secret }, tx);
-      await this.audit.fromCtx(ctx, 'integration.connected', { type: 'integration', id: row!.id }, { provider: 'webhook_incoming', actions: input.actions }, tx);
+      await this.audit.fromCtx(
+        ctx,
+        'integration.connected',
+        { type: 'integration', id: row!.id },
+        { provider: 'webhook_incoming', actions: input.actions },
+        tx,
+      );
       return row!;
     });
     await this.connections.log(c, 'info', 'connected', 'Incoming webhook endpoint created.');
@@ -218,7 +283,11 @@ export class WebhooksService {
           team: l.team ? { id: l.team.id, name: l.team.name } : null,
           department: m.departmentId ? { id: m.departmentId, name: l.departmentName } : null,
           organizerUserId: m.organizerUserId,
-          participants: l.participants.map((p) => ({ userId: p.userId, displayName: p.displayName, response: p.response })),
+          participants: l.participants.map((p) => ({
+            userId: p.userId,
+            displayName: p.displayName,
+            response: p.response,
+          })),
           occurrenceChanges: l.overrides.map((o) => ({
             originalStart: o.originalStart.toISOString(),
             status: o.status,
@@ -235,11 +304,15 @@ export class WebhooksService {
 
   async deliver(c: ConnectionRow, job: JobRow): Promise<void> {
     const cfg = c.config as { url?: string };
-    const url = await assertPublicUrl(String(cfg.url ?? ''), this.env.WEBHOOK_ALLOW_PRIVATE_URLS).catch((e: AppError) => {
+    const url = await assertPublicUrl(
+      String(cfg.url ?? ''),
+      this.env.WEBHOOK_ALLOW_PRIVATE_URLS,
+    ).catch((e: AppError) => {
       throw new IntegrationError('permanent', 'url_not_allowed', e.message);
     });
     const { signingSecret } = this.connections.secrets<{ signingSecret?: string }>(c);
-    if (!signingSecret) throw new IntegrationError('auth', 'no_secret', 'The endpoint has no signing secret');
+    if (!signingSecret)
+      throw new IntegrationError('auth', 'no_secret', 'The endpoint has no signing secret');
     const body = JSON.stringify(job.payload);
     const id = `msg_${job.id}`;
     const ts = Math.floor(this.now() / 1000);
@@ -260,27 +333,58 @@ export class WebhooksService {
       });
       await res.arrayBuffer().catch(() => null);
     } catch (e) {
-      throw new IntegrationError('retryable', 'network', `The endpoint could not be reached (${(e as Error).name})`);
+      throw new IntegrationError(
+        'retryable',
+        'network',
+        `The endpoint could not be reached (${(e as Error).name})`,
+      );
     }
     if (res.status >= 200 && res.status < 300) {
-      await this.connections.log(c, 'info', 'delivered', `Delivered ${(job.payload as { type?: string }).type ?? 'event'} (${res.status}).`, {
-        meetingId: job.meetingId,
-        detail: { messageId: id, status: res.status, attempt: job.attempts },
-      });
+      await this.connections.log(
+        c,
+        'info',
+        'delivered',
+        `Delivered ${(job.payload as { type?: string }).type ?? 'event'} (${res.status}).`,
+        {
+          meetingId: job.meetingId,
+          detail: { messageId: id, status: res.status, attempt: job.attempts },
+        },
+      );
       return;
     }
     if (res.status === 410) {
-      await this.db.update(integrationConnections).set({ status: 'error' }).where(eq(integrationConnections.id, c.id));
-      await this.connections.log(c, 'error', 'endpoint_disabled', 'The endpoint answered 410 Gone; it was disabled.', { meetingId: job.meetingId });
+      await this.db
+        .update(integrationConnections)
+        .set({ status: 'error' })
+        .where(eq(integrationConnections.id, c.id));
+      await this.connections.log(
+        c,
+        'error',
+        'endpoint_disabled',
+        'The endpoint answered 410 Gone; it was disabled.',
+        { meetingId: job.meetingId },
+      );
       throw new IntegrationError('auth', 'endpoint_gone', 'The endpoint answered 410 Gone');
     }
     // Everything else is retried (Standard Webhooks: only 2xx is success).
     const retryAfter = parseRetryAfter(res.headers.get('retry-after'));
-    await this.connections.log(c, 'warn', 'delivery_failed', `Delivery attempt ${job.attempts} got ${res.status}.`, {
-      meetingId: job.meetingId,
-      detail: { messageId: id, status: res.status },
-    });
-    throw new IntegrationError(res.status === 429 ? 'rate_limited' : 'retryable', 'delivery_failed', `Endpoint answered ${res.status}`, retryAfter ?? undefined, res.status);
+    await this.connections.log(
+      c,
+      'warn',
+      'delivery_failed',
+      `Delivery attempt ${job.attempts} got ${res.status}.`,
+      {
+        meetingId: job.meetingId,
+        detail: { messageId: id, status: res.status },
+      },
+    );
+    throw new IntegrationError(
+      res.status === 429 ? 'rate_limited' : 'retryable',
+      'delivery_failed',
+      `Endpoint answered ${res.status}`,
+      retryAfter ?? undefined,
+      res.status,
+    );
   }
 
   // ---------------------------------------------------------------- incoming
@@ -289,7 +393,11 @@ export class WebhooksService {
     throw new AppError('invalid_signature', 401, 'Missing or invalid webhook signature');
   }
 
-  async handleIncoming(connectionId: string, headers: Record<string, string | string[] | undefined>, raw: Buffer | undefined) {
+  async handleIncoming(
+    connectionId: string,
+    headers: Record<string, string | string[] | undefined>,
+    raw: Buffer | undefined,
+  ) {
     const h = (k: string) => {
       const v = headers[k];
       return Array.isArray(v) ? v[0] : v;
@@ -304,16 +412,33 @@ export class WebhooksService {
     const body = raw.toString('utf8');
     const { signingSecret } = this.connections.secrets<{ signingSecret?: string }>(c);
     const fresh = Number.isInteger(ts) && Math.abs(this.now() / 1000 - ts) <= TIMESTAMP_TOLERANCE_S;
-    if (!signingSecret || !fresh || id.length > 200 || !verifyWebhookSignature(signingSecret, id, ts, body, sig)) {
+    if (
+      !signingSecret ||
+      !fresh ||
+      id.length > 200 ||
+      !verifyWebhookSignature(signingSecret, id, ts, body, sig)
+    ) {
       // Logged at most once a minute per endpoint, so a flood can't fill the log.
       if ((await this.limiter.consume(`hooklog:${c.id}`, 1, 60)) === null)
-        await this.connections.log(c, 'warn', 'signature_rejected', fresh ? 'Refused a request with a missing or wrong signature.' : 'Refused a request with a stale or missing timestamp.');
+        await this.connections.log(
+          c,
+          'warn',
+          'signature_rejected',
+          fresh
+            ? 'Refused a request with a missing or wrong signature.'
+            : 'Refused a request with a stale or missing timestamp.',
+        );
       this.refuse();
     }
     const wait = await this.limiter.consume(`hook:${c.id}`, 120, 60);
-    if (wait !== null) throw new AppError('rate_limited', 429, 'Too many requests', { retryAfterSeconds: wait });
+    if (wait !== null)
+      throw new AppError('rate_limited', 429, 'Too many requests', { retryAfterSeconds: wait });
     // Replay protection: each message id is processed once.
-    const [fresh2] = await this.db.insert(webhookReceipts).values({ connectionId: c.id, messageId: id }).onConflictDoNothing().returning();
+    const [fresh2] = await this.db
+      .insert(webhookReceipts)
+      .values({ connectionId: c.id, messageId: id })
+      .onConflictDoNothing()
+      .returning();
     if (!fresh2) return { duplicate: true };
 
     let json: unknown;
@@ -324,20 +449,31 @@ export class WebhooksService {
     }
     const parsed = incomingWebhookPayloadSchema.safeParse(json);
     if (!parsed.success)
-      throw Errors.validation(parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message, code: i.code })));
+      throw Errors.validation(
+        parsed.error.issues.map((i) => ({
+          path: i.path.join('.'),
+          message: i.message,
+          code: i.code,
+        })),
+      );
     const p = parsed.data;
     const allowed = ((c.config as { actions?: string[] }).actions ?? []) as string[];
-    if (!allowed.includes(p.type)) throw Errors.forbidden('This endpoint does not accept that action');
+    if (!allowed.includes(p.type))
+      throw Errors.forbidden('This endpoint does not accept that action');
     const owner = await this.connections.ownerCtx(c);
     if (!owner) throw Errors.forbidden('The endpoint owner no longer has access');
     const via = { via: { provider: 'webhook', connectionId: c.id } };
-    await this.connections.log(c, 'info', 'webhook_received', `Received ${p.type}.`, { detail: { messageId: id } });
+    await this.connections.log(c, 'info', 'webhook_received', `Received ${p.type}.`, {
+      detail: { messageId: id },
+    });
 
     if (p.type === 'meeting.create') {
       const [existing] = await this.db
         .select({ id: meetings.id })
         .from(meetings)
-        .where(and(eq(meetings.sourceConnectionId, c.id), eq(meetings.externalId, p.data.externalId)));
+        .where(
+          and(eq(meetings.sourceConnectionId, c.id), eq(meetings.externalId, p.data.externalId)),
+        );
       if (existing) return { meetingId: existing.id, result: 'exists' };
       const emails = [...new Set(p.data.participantEmails.map((e) => e.toLowerCase()))];
       const members = emails.length
@@ -374,7 +510,11 @@ export class WebhooksService {
         externalId: p.data.externalId,
       });
       const matched = new Set(members.map((m) => m.email.toLowerCase()));
-      return { meetingId: dto.id, result: 'created', unmatchedParticipants: emails.filter((e) => !matched.has(e)) };
+      return {
+        meetingId: dto.id,
+        result: 'created',
+        unmatchedParticipants: emails.filter((e) => !matched.has(e)),
+      };
     }
 
     // update / cancel: by our id, or by the sender's external id (scoped to this endpoint).
@@ -383,7 +523,9 @@ export class WebhooksService {
       const [m] = await this.db
         .select({ id: meetings.id })
         .from(meetings)
-        .where(and(eq(meetings.sourceConnectionId, c.id), eq(meetings.externalId, p.data.externalId)));
+        .where(
+          and(eq(meetings.sourceConnectionId, c.id), eq(meetings.externalId, p.data.externalId)),
+        );
       meetingId = m?.id;
     }
     if (!meetingId) throw Errors.notFound('Meeting');
@@ -400,6 +542,8 @@ export class WebhooksService {
 
   /** Receipts only need to outlive the timestamp tolerance; a day is plenty. */
   async pruneReceipts() {
-    await this.db.delete(webhookReceipts).where(lt(webhookReceipts.receivedAt, new Date(this.now() - 86_400_000)));
+    await this.db
+      .delete(webhookReceipts)
+      .where(lt(webhookReceipts.receivedAt, new Date(this.now() - 86_400_000)));
   }
 }

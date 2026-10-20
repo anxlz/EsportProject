@@ -76,15 +76,16 @@ export class JobsService {
 
   /** Locks and returns up to `limit` due jobs (status running, attempts + 1). */
   async claim(limit = 20, at = this.now()): Promise<JobRow[]> {
-    const now = new Date(at);
+    const now = new Date(at).toISOString();
+    const lockUntil = new Date(at + LOCK_MS).toISOString();
     const result = await this.db.execute(sql`
       update app.integration_jobs j
          set status = 'running', attempts = j.attempts + 1,
-             locked_until = ${new Date(at + LOCK_MS)}, updated_at = ${now}
+             locked_until = ${lockUntil}::timestamptz, updated_at = ${now}::timestamptz
        where j.id in (
          select id from app.integration_jobs
-          where (status = 'pending' and next_attempt_at <= ${now})
-             or (status = 'running' and locked_until < ${now})
+          where (status = 'pending' and next_attempt_at <= ${now}::timestamptz)
+             or (status = 'running' and locked_until < ${now}::timestamptz)
           order by next_attempt_at
           limit ${limit}
           for update skip locked)
@@ -97,7 +98,12 @@ export class JobsService {
   async complete(id: string) {
     await this.db
       .update(integrationJobs)
-      .set({ status: 'done', finishedAt: new Date(this.now()), lockedUntil: null, updatedAt: new Date(this.now()) })
+      .set({
+        status: 'done',
+        finishedAt: new Date(this.now()),
+        lockedUntil: null,
+        updatedAt: new Date(this.now()),
+      })
       .where(eq(integrationJobs.id, id));
   }
 
@@ -159,14 +165,21 @@ export class JobsService {
     await this.db
       .update(integrationJobs)
       .set({ status: 'dead', lastError: 'connection_stopped', finishedAt: new Date(this.now()) })
-      .where(and(eq(integrationJobs.connectionId, connectionId), eq(integrationJobs.status, 'pending')));
+      .where(
+        and(eq(integrationJobs.connectionId, connectionId), eq(integrationJobs.status, 'pending')),
+      );
   }
 
   async pendingCount(connectionId: string): Promise<number> {
     const [r] = await this.db
       .select({ n: sql<number>`count(*)::int` })
       .from(integrationJobs)
-      .where(and(eq(integrationJobs.connectionId, connectionId), inArray(integrationJobs.status, ['pending', 'running'])));
+      .where(
+        and(
+          eq(integrationJobs.connectionId, connectionId),
+          inArray(integrationJobs.status, ['pending', 'running']),
+        ),
+      );
     return r?.n ?? 0;
   }
 }

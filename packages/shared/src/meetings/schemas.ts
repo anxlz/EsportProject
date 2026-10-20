@@ -35,13 +35,21 @@ export const recurrenceRuleSchema = z.object({
   interval: z.number().int().min(1).max(MEETING_LIMITS.intervalMax).default(1),
   byWeekday: z.array(z.enum(WEEKDAYS)).max(7).optional(),
   end: z.discriminatedUnion('type', [
-    z.object({ type: z.literal('count'), count: z.number().int().min(1).max(MEETING_LIMITS.countMax) }),
+    z.object({
+      type: z.literal('count'),
+      count: z.number().int().min(1).max(MEETING_LIMITS.countMax),
+    }),
     z.object({ type: z.literal('until'), until: dateOnlySchema }),
   ]),
 });
 
 const reminders = z
-  .array(z.number().int().refine((n) => (REMINDER_OPTIONS as readonly number[]).includes(n), 'reminder_option'))
+  .array(
+    z
+      .number()
+      .int()
+      .refine((n) => (REMINDER_OPTIONS as readonly number[]).includes(n), 'reminder_option'),
+  )
   .max(MEETING_LIMITS.remindersMax);
 
 const timing = {
@@ -196,7 +204,10 @@ export type ObsidianConnectInput = z.infer<typeof obsidianConnectSchema>;
 export const outgoingWebhookCreateSchema = z.object({
   name: text(120).min(1),
   url: z.url().max(2000),
-  events: z.array(z.enum(WEBHOOK_EVENT_TYPES)).min(1).default([...WEBHOOK_EVENT_TYPES]),
+  events: z
+    .array(z.enum(WEBHOOK_EVENT_TYPES))
+    .min(1)
+    .default([...WEBHOOK_EVENT_TYPES]),
   teamId: uuid.nullable().optional(),
 });
 export type OutgoingWebhookCreateInput = z.infer<typeof outgoingWebhookCreateSchema>;
@@ -227,7 +238,10 @@ export const incomingWebhookPayloadSchema = z.discriminatedUnion('type', [
         notes: optText(MEETING_LIMITS.notesMax),
         teamId: uuid.nullable().optional(),
         ...timing,
-        participantEmails: z.array(z.email().max(254)).max(MEETING_LIMITS.participantsMax).default([]),
+        participantEmails: z
+          .array(z.email().max(254))
+          .max(MEETING_LIMITS.participantsMax)
+          .default([]),
         reminderMinutes: reminders.optional(),
       })
       .superRefine(checkTiming),

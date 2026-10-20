@@ -25,7 +25,14 @@
  * connection and back off on 403/429 usageLimits with the documented exponential backoff.
  */
 import { Inject, Injectable } from '@nestjs/common';
-import { formatLocal, fromRRule, toRRule, utcToLocal } from '@esports/shared';
+import {
+  formatLocal,
+  fromRRule,
+  localToUtc,
+  parseLocal,
+  toRRule,
+  utcToLocal,
+} from '@esports/shared';
 import { eq } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
 import { NOW, type Now } from '../../common/now';
@@ -77,11 +84,22 @@ export function googleEventId(connectionId: string, meetingId: string) {
 /** "2026-10-21T18:00" in Asia/Riyadh → EXDATE value "20261021T180000". */
 const basic = (local: string) => `${local.replace(/[-:]/g, '')}00`;
 
-/** A Google date-time (with offset) read as wall-clock time in `tz`. */
+const HAS_OFFSET = /(?:[zZ]|[+-]\d{2}:\d{2})$/;
+
+/** A Google date-time read as wall-clock time in `tz` (Google sends an offset; be lenient). */
 function toLocal(dateTime: string, tz: string): string | null {
+  if (!HAS_OFFSET.test(dateTime))
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(dateTime) ? dateTime.slice(0, 16) : null;
   const ms = Date.parse(dateTime);
   if (!Number.isFinite(ms)) return null;
   return formatLocal(utcToLocal(ms, tz));
+}
+
+/** A Google date-time as a UTC instant (a time without offset is read in `tz`). */
+function instant(dateTime: string, tz: string): number {
+  if (HAS_OFFSET.test(dateTime)) return Date.parse(dateTime);
+  const l = parseLocal(dateTime.slice(0, 16));
+  return l ? localToUtc(l, tz) : Number.NaN;
 }
 
 export function eventToRecord(ev: GoogleEvent, fallbackTz: string): RemoteRecord {
@@ -103,7 +121,7 @@ export function eventToRecord(ev: GoogleEvent, fallbackTz: string): RemoteRecord
       deleted: false,
       instanceOf: {
         remoteId: ev.recurringEventId,
-        originalStart: new Date(Date.parse(orig)).toISOString(),
+        originalStart: new Date(instant(orig, tz)).toISOString(),
         cancelled: ev.status === 'cancelled',
         startLocal: ev.start?.dateTime ? (toLocal(ev.start.dateTime, tz) ?? undefined) : undefined,
         endLocal: ev.end?.dateTime ? (toLocal(ev.end.dateTime, tz) ?? undefined) : undefined,
@@ -177,24 +195,29 @@ export class GoogleCalendarProvider implements RemoteProvider {
   }
 
   async exchangeCode(code: string): Promise<GoogleSecrets> {
-    const r = await httpJson<{ access_token?: string; refresh_token?: string; expires_in?: number; error?: string }>(
-      'Google',
-      this.env.GOOGLE_TOKEN_URL,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code,
-          client_id: this.env.GOOGLE_CLIENT_ID!,
-          client_secret: this.env.GOOGLE_CLIENT_SECRET!,
-          redirect_uri: this.env.GOOGLE_REDIRECT_URI!,
-          grant_type: 'authorization_code',
-        }).toString(),
-        timeoutMs: this.env.INTEGRATIONS_TIMEOUT_MS,
-      },
-    );
+    const r = await httpJson<{
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+      error?: string;
+    }>('Google', this.env.GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: this.env.GOOGLE_CLIENT_ID!,
+        client_secret: this.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: this.env.GOOGLE_REDIRECT_URI!,
+        grant_type: 'authorization_code',
+      }).toString(),
+      timeoutMs: this.env.INTEGRATIONS_TIMEOUT_MS,
+    });
     if (r.status !== 200 || !r.body.access_token || !r.body.refresh_token)
-      throw new IntegrationError('auth', 'oauth_failed', `Google token exchange failed (${r.status})`);
+      throw new IntegrationError(
+        'auth',
+        'oauth_failed',
+        `Google token exchange failed (${r.status})`,
+      );
     return {
       accessToken: r.body.access_token,
       refreshToken: r.body.refresh_token,
@@ -204,7 +227,8 @@ export class GoogleCalendarProvider implements RemoteProvider {
 
   private async accessToken(c: ConnectionRow): Promise<string> {
     const s = this.connections.secrets<GoogleSecrets>(c);
-    if (!s.refreshToken) throw new IntegrationError('auth', 'not_connected', 'Google Calendar is not connected');
+    if (!s.refreshToken)
+      throw new IntegrationError('auth', 'not_connected', 'Google Calendar is not connected');
     if (s.accessToken && s.expiresAt > this.now() + 60_000) return s.accessToken;
     const r = await httpJson<{ access_token?: string; expires_in?: number; error?: string }>(
       'Google',
@@ -222,9 +246,18 @@ export class GoogleCalendarProvider implements RemoteProvider {
       },
     );
     if (r.status === 400 || r.status === 401)
-      throw new IntegrationError('auth', 'auth_failed', `Google refused the stored authorization (${r.body.error ?? r.status})`);
-    if (r.status !== 200 || !r.body.access_token) throw IntegrationError.fromStatus('Google', r.status, null);
-    const next = { ...s, accessToken: r.body.access_token, expiresAt: this.now() + (r.body.expires_in ?? 3600) * 1000 };
+      throw new IntegrationError(
+        'auth',
+        'auth_failed',
+        `Google refused the stored authorization (${r.body.error ?? r.status})`,
+      );
+    if (r.status !== 200 || !r.body.access_token)
+      throw IntegrationError.fromStatus('Google', r.status, null);
+    const next = {
+      ...s,
+      accessToken: r.body.access_token,
+      expiresAt: this.now() + (r.body.expires_in ?? 3600) * 1000,
+    };
     await this.connections.setSecrets(c, next);
     c.secrets = this.connections.seal(c, next);
     return next.accessToken;
@@ -248,27 +281,42 @@ export class GoogleCalendarProvider implements RemoteProvider {
     c: ConnectionRow,
     method: string,
     path: string,
-    opts: { query?: Record<string, string | undefined>; body?: unknown; headers?: Record<string, string> } = {},
+    opts: {
+      query?: Record<string, string | undefined>;
+      body?: unknown;
+      headers?: Record<string, string>;
+    } = {},
   ) {
     await reserve(this.limiter, `google:${c.id}`, PER_MINUTE);
     const token = await this.accessToken(c);
     const u = new URL(`/calendar/v3${path}`, this.env.GOOGLE_API_URL);
-    for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined) u.searchParams.set(k, v);
-    const r = await httpJson<T & { error?: { errors?: { reason?: string }[]; message?: string } }>('Google', u.toString(), {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        ...(opts.body !== undefined ? { 'content-type': 'application/json' } : {}),
-        ...opts.headers,
+    for (const [k, v] of Object.entries(opts.query ?? {}))
+      if (v !== undefined) u.searchParams.set(k, v);
+    const r = await httpJson<T & { error?: { errors?: { reason?: string }[]; message?: string } }>(
+      'Google',
+      u.toString(),
+      {
+        method,
+        headers: {
+          authorization: `Bearer ${token}`,
+          ...(opts.body !== undefined ? { 'content-type': 'application/json' } : {}),
+          ...opts.headers,
+        },
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        timeoutMs: this.env.INTEGRATIONS_TIMEOUT_MS,
       },
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-      timeoutMs: this.env.INTEGRATIONS_TIMEOUT_MS,
-    });
+    );
     // Quota errors come back as 403 (usageLimits / rateLimitExceeded) or 429.
     if (r.status === 403) {
       const reason = r.body?.error?.errors?.[0]?.reason ?? '';
       if (/rateLimit|usageLimit|quota/i.test(reason))
-        throw new IntegrationError('rate_limited', 'rate_limited', `Google quota (${reason})`, 60_000, 403);
+        throw new IntegrationError(
+          'rate_limited',
+          'rate_limited',
+          `Google quota (${reason})`,
+          60_000,
+          403,
+        );
     }
     return r;
   }
@@ -283,7 +331,9 @@ export class GoogleCalendarProvider implements RemoteProvider {
     const recurrence = s.recurrence
       ? [
           toRRule(s.recurrence, s.time.startLocal, tz),
-          ...s.exdates.map((x) => `EXDATE;TZID=${tz}:${basic(formatLocal(utcToLocal(Date.parse(x), tz)))}`),
+          ...s.exdates.map(
+            (x) => `EXDATE;TZID=${tz}:${basic(formatLocal(utcToLocal(Date.parse(x), tz)))}`,
+          ),
         ]
       : undefined;
     return {
@@ -294,16 +344,23 @@ export class GoogleCalendarProvider implements RemoteProvider {
       end: { dateTime: `${s.time.endLocal}:00`, timeZone: tz },
       ...(recurrence ? { recurrence } : {}),
       status: view.ownerResponse === 'accepted' ? 'confirmed' : 'tentative',
-      extendedProperties: { private: { platformMeetingId: view.loaded.row.id, platformConnectionId: c.id } },
+      extendedProperties: {
+        private: { platformMeetingId: view.loaded.row.id, platformConnectionId: c.id },
+      },
     };
   }
 
   async create(c: ConnectionRow, view: MeetingView): Promise<RemoteRecord> {
     const body = this.eventBody(c, view);
-    const r = await this.api<GoogleEvent>(c, 'POST', `/calendars/${encodeURIComponent(this.calendarId(c))}/events`, {
-      body,
-      query: { sendUpdates: 'none' },
-    });
+    const r = await this.api<GoogleEvent>(
+      c,
+      'POST',
+      `/calendars/${encodeURIComponent(this.calendarId(c))}/events`,
+      {
+        body,
+        query: { sendUpdates: 'none' },
+      },
+    );
     if (r.status === 409) {
       // The id is taken: an earlier attempt created it (response lost), or it was deleted and
       // Google keeps deleted ids. Either way, a full update makes it this meeting again.
@@ -320,7 +377,12 @@ export class GoogleCalendarProvider implements RemoteProvider {
   }
 
   /** Full replacement (events.update), conditional on the etag we last saw. */
-  private async write(c: ConnectionRow, eventId: string, view: MeetingView, etag: string | null): Promise<RemoteRecord> {
+  private async write(
+    c: ConnectionRow,
+    eventId: string,
+    view: MeetingView,
+    etag: string | null,
+  ): Promise<RemoteRecord> {
     const r = await this.api<GoogleEvent>(
       c,
       'PUT',
@@ -332,9 +394,19 @@ export class GoogleCalendarProvider implements RemoteProvider {
       },
     );
     if (r.status === 412)
-      throw new IntegrationError('retryable', 'precondition_failed', 'The event changed in Google Calendar meanwhile');
+      throw new IntegrationError(
+        'retryable',
+        'precondition_failed',
+        'The event changed in Google Calendar meanwhile',
+      );
     if (r.status === 404 || r.status === 410)
-      throw new IntegrationError('permanent', 'remote_gone', 'The event no longer exists in Google Calendar', undefined, r.status);
+      throw new IntegrationError(
+        'permanent',
+        'remote_gone',
+        'The event no longer exists in Google Calendar',
+        undefined,
+        r.status,
+      );
     if (r.status !== 200) this.fail(r.status, r.headers, 'update event');
     await this.syncMovedOccurrences(c, eventId, view);
     // The etag changes when exception instances change; read the series back for the latest.
@@ -366,16 +438,16 @@ export class GoogleCalendarProvider implements RemoteProvider {
       );
       if (r.status !== 200) this.fail(r.status, r.headers, 'list instances');
       const inst = (r.body.items ?? []).find(
-        (i) => i.originalStartTime?.dateTime && Date.parse(i.originalStartTime.dateTime) === orig,
+        (i) => i.originalStartTime?.dateTime && instant(i.originalStartTime.dateTime, tz) === orig,
       );
       if (!inst) continue;
       const start = formatLocal(utcToLocal(o.startAt!.getTime(), tz));
       const end = formatLocal(utcToLocal(o.endAt!.getTime(), tz));
       if (
         inst.start?.dateTime &&
-        Date.parse(inst.start.dateTime) === o.startAt!.getTime() &&
+        instant(inst.start.dateTime, tz) === o.startAt!.getTime() &&
         inst.end?.dateTime &&
-        Date.parse(inst.end.dateTime) === o.endAt!.getTime()
+        instant(inst.end.dateTime, tz) === o.endAt!.getTime()
       )
         continue;
       const p = await this.api<GoogleEvent>(
@@ -383,7 +455,10 @@ export class GoogleCalendarProvider implements RemoteProvider {
         'PATCH',
         `/calendars/${encodeURIComponent(this.calendarId(c))}/events/${encodeURIComponent(inst.id)}`,
         {
-          body: { start: { dateTime: `${start}:00`, timeZone: tz }, end: { dateTime: `${end}:00`, timeZone: tz } },
+          body: {
+            start: { dateTime: `${start}:00`, timeZone: tz },
+            end: { dateTime: `${end}:00`, timeZone: tz },
+          },
           query: { sendUpdates: 'none' },
         },
       );
@@ -427,20 +502,19 @@ export class GoogleCalendarProvider implements RemoteProvider {
       let pageToken: string | undefined;
       let nextSyncToken: string | undefined;
       do {
-        const r = await this.api<{ items?: GoogleEvent[]; nextPageToken?: string; nextSyncToken?: string }>(
-          c,
-          'GET',
-          `/calendars/${encodeURIComponent(this.calendarId(c))}/events`,
-          {
-            query: {
-              maxResults: '250',
-              pageToken,
-              ...(syncToken
-                ? { syncToken }
-                : { timeMin: new Date(this.now() - FULL_SYNC_LOOKBACK_MS).toISOString() }),
-            },
+        const r = await this.api<{
+          items?: GoogleEvent[];
+          nextPageToken?: string;
+          nextSyncToken?: string;
+        }>(c, 'GET', `/calendars/${encodeURIComponent(this.calendarId(c))}/events`, {
+          query: {
+            maxResults: '250',
+            pageToken,
+            ...(syncToken
+              ? { syncToken }
+              : { timeMin: new Date(this.now() - FULL_SYNC_LOOKBACK_MS).toISOString() }),
           },
-        );
+        });
         if (r.status === 410) return null; // sync token invalidated
         if (r.status !== 200) this.fail(r.status, r.headers, 'list events');
         for (const ev of r.body.items ?? []) records.push(eventToRecord(ev, 'UTC'));
@@ -449,17 +523,20 @@ export class GoogleCalendarProvider implements RemoteProvider {
       } while (pageToken);
       return { records, nextSyncToken };
     };
+    let gone = false;
     let result = await list(full ? undefined : cursor.syncToken);
     if (!result) {
       // 410 Gone: start over with a full listing (links prevent duplicates).
+      gone = true;
       full = true;
       result = await list(undefined);
-      if (!result) throw new IntegrationError('retryable', 'sync_token', 'Google refused a fresh listing');
+      if (!result)
+        throw new IntegrationError('retryable', 'sync_token', 'Google refused a fresh listing');
     }
     const { records, nextSyncToken } = result;
     return {
       records,
-      fullResync: full && !!cursor.syncToken,
+      fullResync: gone,
       commit: async () => {
         if (!nextSyncToken) return;
         await this.db
@@ -483,7 +560,15 @@ export class GoogleCalendarProvider implements RemoteProvider {
       c,
       'POST',
       `/calendars/${encodeURIComponent(this.calendarId(c))}/events/watch`,
-      { body: { id, type: 'web_hook', address, token, expiration: String(this.now() + CHANNEL_TTL_MS) } },
+      {
+        body: {
+          id,
+          type: 'web_hook',
+          address,
+          token,
+          expiration: String(this.now() + CHANNEL_TTL_MS),
+        },
+      },
     );
     if (r.status !== 200 || !r.body.resourceId) this.fail(r.status, r.headers, 'watch');
     const previous = c.channel as { id?: string; resourceId?: string } | null;
@@ -493,16 +578,28 @@ export class GoogleCalendarProvider implements RemoteProvider {
       tokenHash: sha256(token),
       expiration: Number(r.body.expiration ?? this.now() + CHANNEL_TTL_MS),
       // Keep the old channel valid until it's stopped (overlap during renewal).
-      previous: previous?.id ? { id: previous.id, resourceId: previous.resourceId, tokenHash: (previous as { tokenHash?: string }).tokenHash } : null,
+      previous: previous?.id
+        ? {
+            id: previous.id,
+            resourceId: previous.resourceId,
+            tokenHash: (previous as { tokenHash?: string }).tokenHash,
+          }
+        : null,
     };
-    await this.db.update(integrationConnections).set({ channel }).where(eq(integrationConnections.id, c.id));
+    await this.db
+      .update(integrationConnections)
+      .set({ channel })
+      .where(eq(integrationConnections.id, c.id));
     c.channel = channel;
-    if (previous?.id && previous.resourceId) await this.stopChannel(c, previous.id, previous.resourceId);
+    if (previous?.id && previous.resourceId)
+      await this.stopChannel(c, previous.id, previous.resourceId);
     return 'started';
   }
 
   async stopChannel(c: ConnectionRow, id: string, resourceId: string) {
-    await this.api(c, 'POST', '/channels/stop', { body: { id, resourceId } }).catch(() => undefined);
+    await this.api(c, 'POST', '/channels/stop', { body: { id, resourceId } }).catch(
+      () => undefined,
+    );
   }
 }
 
@@ -514,7 +611,10 @@ function describe(view: MeetingView): string {
   if (l.row.description) parts.push(l.row.description);
   if (l.row.notes) parts.push(`${ar ? 'ملاحظات' : 'Notes'}:\n${l.row.notes}`);
   const who = l.participants
-    .map((p) => `${p.displayName}${p.userId === l.row.organizerUserId ? (ar ? ' (المنظم)' : ' (organizer)') : ''}`)
+    .map(
+      (p) =>
+        `${p.displayName}${p.userId === l.row.organizerUserId ? (ar ? ' (المنظم)' : ' (organizer)') : ''}`,
+    )
     .join(', ');
   if (who) parts.push(`${ar ? 'المشاركون' : 'Participants'}: ${who}`);
   parts.push(

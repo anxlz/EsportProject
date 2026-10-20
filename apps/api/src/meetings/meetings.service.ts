@@ -72,6 +72,21 @@ export interface LoadedMeeting {
 
 const link = (id: string) => `/dashboard/meetings/${id}`;
 
+/** Equality for JSON values regardless of key order (jsonb reorders object keys). */
+function sameJson(a: unknown, b: unknown): boolean {
+  const norm = (v: unknown): unknown =>
+    v === null || typeof v !== 'object'
+      ? v
+      : Array.isArray(v)
+        ? v.map(norm)
+        : Object.fromEntries(
+            Object.keys(v as object)
+              .sort()
+              .map((k) => [k, norm((v as Record<string, unknown>)[k])]),
+          );
+  return JSON.stringify(norm(a ?? null)) === JSON.stringify(norm(b ?? null));
+}
+
 /** Duration and derived instants for a start/end pair in a zone. */
 function timing(startLocal: string, endLocal: string, tz: string, rule: RecurrenceRule | null) {
   const s = localToUtc(parseLocal(startLocal)!, tz);
@@ -82,7 +97,8 @@ function timing(startLocal: string, endLocal: string, tz: string, rule: Recurren
   const recurrence = rule ? normalizeRule(rule, startLocal) : null;
   if (recurrence) {
     const problem = ruleProblem(recurrence, startLocal);
-    if (problem) throw Errors.validation([{ path: 'recurrence', message: problem, code: 'custom' }]);
+    if (problem)
+      throw Errors.validation([{ path: 'recurrence', message: problem, code: 'custom' }]);
   }
   return {
     startLocal,
@@ -110,7 +126,11 @@ export class MeetingsService {
 
   // ---------------------------------------------------------------- loading
 
-  async load(organizationId: string, id: string, tx: DbOrTx = this.db): Promise<LoadedMeeting | null> {
+  async load(
+    organizationId: string,
+    id: string,
+    tx: DbOrTx = this.db,
+  ): Promise<LoadedMeeting | null> {
     const [r] = await tx
       .select({
         m: meetings,
@@ -133,7 +153,9 @@ export class MeetingsService {
     ]);
     return {
       row: r.m,
-      team: r.m.teamId ? { id: r.m.teamId, departmentId: r.teamDept, name: r.teamName ?? '' } : null,
+      team: r.m.teamId
+        ? { id: r.m.teamId, departmentId: r.teamDept, name: r.teamName ?? '' }
+        : null,
       departmentName: r.departmentName,
       participants: participants
         .map(({ p, displayName }) => ({ ...p, displayName }))
@@ -160,7 +182,9 @@ export class MeetingsService {
 
   private async editable(ctx: TenantContext, id: string, tx: DbOrTx): Promise<LoadedMeeting> {
     // Row lock: concurrent edits to one meeting are serialized (versions stay sequential).
-    await tx.execute(sql`select 1 from app.meetings where id = ${id} and organization_id = ${ctx.organizationId} for update`);
+    await tx.execute(
+      sql`select 1 from app.meetings where id = ${id} and organization_id = ${ctx.organizationId} for update`,
+    );
     const l = await this.load(ctx.organizationId, id, tx);
     if (!l || !canView(ctx.access, this.scopeOf(l), this.isParticipant(l, ctx.user.id)))
       throw Errors.notFound('Meeting');
@@ -171,14 +195,21 @@ export class MeetingsService {
     return l;
   }
 
-  private async scopeFor(ctx: TenantContext, kind: MeetingKind, teamId?: string | null, departmentId?: string | null) {
+  private async scopeFor(
+    ctx: TenantContext,
+    kind: MeetingKind,
+    teamId?: string | null,
+    departmentId?: string | null,
+  ) {
     let team: (TeamRef & { name: string }) | null = null;
     if (teamId) team = await loadTeamRef(this.db, ctx.organizationId, teamId);
     if (departmentId) {
       const [d] = await this.db
         .select({ id: departments.id })
         .from(departments)
-        .where(and(eq(departments.id, departmentId), eq(departments.organizationId, ctx.organizationId)));
+        .where(
+          and(eq(departments.id, departmentId), eq(departments.organizationId, ctx.organizationId)),
+        );
       if (!d) throw Errors.badRequest('invalid_scope', 'Unknown department');
     }
     return { kind, team, departmentId: departmentId ?? null } satisfies MeetingScope;
@@ -198,7 +229,9 @@ export class MeetingsService {
         ),
       );
     if (found.length !== unique.length)
-      throw Errors.validation([{ path: 'participantUserIds', message: 'unknown_participant', code: 'custom' }]);
+      throw Errors.validation([
+        { path: 'participantUserIds', message: 'unknown_participant', code: 'custom' },
+      ]);
     return unique;
   }
 
@@ -215,7 +248,10 @@ export class MeetingsService {
   ): Promise<MeetingDto> {
     const scope = await this.scopeFor(ctx, input.kind, input.teamId, input.departmentId);
     if (!canCreateIn(ctx.access, scope)) throw Errors.forbidden();
-    const participantIds = await this.checkParticipants(ctx.organizationId, input.participantUserIds);
+    const participantIds = await this.checkParticipants(
+      ctx.organizationId,
+      input.participantUserIds,
+    );
     const t = timing(input.start, input.end, input.timeZone, input.recurrence ?? null);
 
     const id = await this.db.transaction(async (tx) => {
@@ -293,7 +329,12 @@ export class MeetingsService {
     return this.get(ctx, id);
   }
 
-  async update(ctx: TenantContext, id: string, input: MeetingUpdateInput, opts: ActOpts = {}): Promise<MeetingDto> {
+  async update(
+    ctx: TenantContext,
+    id: string,
+    input: MeetingUpdateInput,
+    opts: ActOpts = {},
+  ): Promise<MeetingDto> {
     const result = await this.db.transaction(async (tx) => {
       const l = await this.editable(ctx, id, tx);
       const m = l.row;
@@ -307,12 +348,24 @@ export class MeetingsService {
       let scope = this.scopeOf(l);
       if (scopeChanged) {
         if (m.kind === 'administrative' && (input.teamId || input.departmentId))
-          throw Errors.validation([{ path: 'teamId', message: 'administrative_is_org_wide', code: 'custom' }]);
-        const teamId = input.teamId !== undefined ? input.teamId : input.departmentId !== undefined ? null : m.teamId;
+          throw Errors.validation([
+            { path: 'teamId', message: 'administrative_is_org_wide', code: 'custom' },
+          ]);
+        const teamId =
+          input.teamId !== undefined
+            ? input.teamId
+            : input.departmentId !== undefined
+              ? null
+              : m.teamId;
         const departmentId =
-          input.departmentId !== undefined ? input.departmentId : input.teamId !== undefined ? null : m.departmentId;
+          input.departmentId !== undefined
+            ? input.departmentId
+            : input.teamId !== undefined
+              ? null
+              : m.departmentId;
         scope = await this.scopeFor(ctx, m.kind as MeetingKind, teamId, departmentId);
-        if (!canEdit(ctx.access, scope, m.organizerUserId === ctx.user.id)) throw Errors.forbidden();
+        if (!canEdit(ctx.access, scope, m.organizerUserId === ctx.user.id))
+          throw Errors.forbidden();
       }
 
       const tz = input.timeZone ?? m.timeZone;
@@ -333,7 +386,10 @@ export class MeetingsService {
       field('title');
       field('description');
       field('notes');
-      if (scopeChanged && ((scope.team?.id ?? null) !== m.teamId || scope.departmentId !== m.departmentId)) {
+      if (
+        scopeChanged &&
+        ((scope.team?.id ?? null) !== m.teamId || scope.departmentId !== m.departmentId)
+      ) {
         set.teamId = scope.team?.id ?? null;
         set.departmentId = scope.departmentId;
         changed.push('team');
@@ -342,11 +398,14 @@ export class MeetingsService {
         t.startLocal !== m.startLocal ||
         t.durationMinutes !== m.durationMinutes ||
         tz !== m.timeZone ||
-        JSON.stringify(t.recurrence) !== JSON.stringify(m.recurrence ? normalizeRule(m.recurrence, m.startLocal) : null);
+        !sameJson(t.recurrence, m.recurrence ? normalizeRule(m.recurrence, m.startLocal) : null);
       if (timingChanged) {
         Object.assign(set, t, { timeZone: tz });
         changed.push('time');
-        if (JSON.stringify(t.recurrence) !== JSON.stringify(m.recurrence)) changed.push('recurrence');
+        if (
+          !sameJson(t.recurrence, m.recurrence ? normalizeRule(m.recurrence, m.startLocal) : null)
+        )
+          changed.push('recurrence');
       }
       if (input.reminderMinutes !== undefined) {
         const next = [...new Set(input.reminderMinutes)].sort((a, b) => b - a);
@@ -358,7 +417,9 @@ export class MeetingsService {
       let added: string[] = [];
       let removed: string[] = [];
       if (input.participantUserIds !== undefined) {
-        const wanted = new Set(await this.checkParticipants(ctx.organizationId, input.participantUserIds));
+        const wanted = new Set(
+          await this.checkParticipants(ctx.organizationId, input.participantUserIds),
+        );
         if (m.organizerUserId) wanted.add(m.organizerUserId);
         const current = new Set(l.participants.map((p) => p.userId));
         added = [...wanted].filter((u) => !current.has(u));
@@ -374,14 +435,23 @@ export class MeetingsService {
       if (removed.length)
         await tx
           .delete(meetingParticipants)
-          .where(and(eq(meetingParticipants.meetingId, id), inArray(meetingParticipants.userId, removed)));
+          .where(
+            and(
+              eq(meetingParticipants.meetingId, id),
+              inArray(meetingParticipants.userId, removed),
+            ),
+          );
       if (added.length)
         await tx
           .insert(meetingParticipants)
-          .values(added.map((userId) => ({ organizationId: ctx.organizationId, meetingId: id, userId })));
+          .values(
+            added.map((userId) => ({ organizationId: ctx.organizationId, meetingId: id, userId })),
+          );
       if (timingChanged) {
         // Occurrence changes only survive for occurrences the new series still has.
-        const keys = seriesOccurrences(t.startLocal, t.durationMinutes, tz, t.recurrence).map((o) => new Date(o.key));
+        const keys = seriesOccurrences(t.startLocal, t.durationMinutes, tz, t.recurrence).map(
+          (o) => new Date(o.key),
+        );
         await tx
           .delete(meetingOverrides)
           .where(
@@ -425,7 +495,9 @@ export class MeetingsService {
         );
       const notifyChanged = changed.filter((c) => c === 'time' || c === 'title');
       if (notifyChanged.length) {
-        const stay = l.participants.map((p) => p.userId).filter((u) => !removed.includes(u) && u !== ctx.user.id);
+        const stay = l.participants
+          .map((p) => p.userId)
+          .filter((u) => !removed.includes(u) && u !== ctx.user.id);
         await this.notifications.notify(
           {
             organizationId: ctx.organizationId,
@@ -456,7 +528,12 @@ export class MeetingsService {
     return this.get(ctx, id);
   }
 
-  async cancel(ctx: TenantContext, id: string, reason: string | null | undefined, opts: ActOpts = {}): Promise<MeetingDto> {
+  async cancel(
+    ctx: TenantContext,
+    id: string,
+    reason: string | null | undefined,
+    opts: ActOpts = {},
+  ): Promise<MeetingDto> {
     let changed = false;
     await this.db.transaction(async (tx) => {
       const l = await this.load(ctx.organizationId, id, tx);
@@ -465,7 +542,13 @@ export class MeetingsService {
       const at = new Date(this.now());
       await tx
         .update(meetings)
-        .set({ status: 'cancelled', cancelledAt: at, cancelReason: reason ?? null, version: m.version + 1, updatedAt: at })
+        .set({
+          status: 'cancelled',
+          cancelledAt: at,
+          cancelReason: reason ?? null,
+          version: m.version + 1,
+          updatedAt: at,
+        })
         .where(eq(meetings.id, id));
       await this.audit.fromCtx(
         ctx,
@@ -512,11 +595,18 @@ export class MeetingsService {
     const key = new Date(originalStart).toISOString();
     const all = seriesOccurrences(m.startLocal, m.durationMinutes, m.timeZone, m.recurrence);
     if (!all.some((o) => o.key === key))
-      throw Errors.validation([{ path: 'originalStart', message: 'not_an_occurrence', code: 'custom' }]);
+      throw Errors.validation([
+        { path: 'originalStart', message: 'not_an_occurrence', code: 'custom' },
+      ]);
     return key;
   }
 
-  async cancelOccurrence(ctx: TenantContext, id: string, originalStart: string, opts: ActOpts = {}): Promise<MeetingDto> {
+  async cancelOccurrence(
+    ctx: TenantContext,
+    id: string,
+    originalStart: string,
+    opts: ActOpts = {},
+  ): Promise<MeetingDto> {
     let key = '';
     let changed = false;
     await this.db.transaction(async (tx) => {
@@ -526,7 +616,12 @@ export class MeetingsService {
       if (existing?.status === 'cancelled') return;
       await tx
         .insert(meetingOverrides)
-        .values({ organizationId: ctx.organizationId, meetingId: id, originalStart: new Date(key), status: 'cancelled' })
+        .values({
+          organizationId: ctx.organizationId,
+          meetingId: id,
+          originalStart: new Date(key),
+          status: 'cancelled',
+        })
         .onConflictDoUpdate({
           target: [meetingOverrides.meetingId, meetingOverrides.originalStart],
           set: { status: 'cancelled', startAt: null, endAt: null, updatedAt: new Date(this.now()) },
@@ -550,7 +645,13 @@ export class MeetingsService {
           organizationId: ctx.organizationId,
           recipientUserIds: participants.map((p) => p.userId).filter((u) => u !== ctx.user.id),
           type: 'meeting.occurrence_cancelled',
-          data: { meetingId: id, title: m.title, start: existing?.startAt?.toISOString() ?? key, timeZone: m.timeZone, byName: ctx.user.displayName },
+          data: {
+            meetingId: id,
+            title: m.title,
+            start: existing?.startAt?.toISOString() ?? key,
+            timeZone: m.timeZone,
+            byName: ctx.user.displayName,
+          },
           link: link(id),
         },
         tx,
@@ -583,7 +684,12 @@ export class MeetingsService {
       if ((e - s) / 60000 < 5 || (e - s) / 60000 > 1440)
         throw Errors.validation([{ path: 'end', message: 'duration_range', code: 'custom' }]);
       const existing = overrides.find((o) => o.originalStart.toISOString() === key);
-      if (existing?.status === 'moved' && existing.startAt?.getTime() === s && existing.endAt?.getTime() === e) return;
+      if (
+        existing?.status === 'moved' &&
+        existing.startAt?.getTime() === s &&
+        existing.endAt?.getTime() === e
+      )
+        return;
       await tx
         .insert(meetingOverrides)
         .values({
@@ -596,7 +702,12 @@ export class MeetingsService {
         })
         .onConflictDoUpdate({
           target: [meetingOverrides.meetingId, meetingOverrides.originalStart],
-          set: { status: 'moved', startAt: new Date(s), endAt: new Date(e), updatedAt: new Date(this.now()) },
+          set: {
+            status: 'moved',
+            startAt: new Date(s),
+            endAt: new Date(e),
+            updatedAt: new Date(this.now()),
+          },
         });
       await tx
         .update(meetings)
@@ -659,7 +770,9 @@ export class MeetingsService {
       await tx
         .update(meetingParticipants)
         .set({ response: input.response, respondedAt: new Date(this.now()), note })
-        .where(and(eq(meetingParticipants.meetingId, id), eq(meetingParticipants.userId, ctx.user.id)));
+        .where(
+          and(eq(meetingParticipants.meetingId, id), eq(meetingParticipants.userId, ctx.user.id)),
+        );
       await this.audit.fromCtx(
         ctx,
         'meeting.responded',
@@ -670,7 +783,11 @@ export class MeetingsService {
         },
         tx,
       );
-      if (l.row.organizerUserId && l.row.organizerUserId !== ctx.user.id && me.response !== input.response)
+      if (
+        l.row.organizerUserId &&
+        l.row.organizerUserId !== ctx.user.id &&
+        me.response !== input.response
+      )
         await this.notifications.notify(
           {
             organizationId: ctx.organizationId,
@@ -711,7 +828,10 @@ export class MeetingsService {
         personal: integrationConnections.personal,
       })
       .from(integrationLinks)
-      .innerJoin(integrationConnections, eq(integrationConnections.id, integrationLinks.connectionId))
+      .innerJoin(
+        integrationConnections,
+        eq(integrationConnections.id, integrationLinks.connectionId),
+      )
       .where(
         and(
           eq(integrationLinks.meetingId, id),
@@ -719,22 +839,36 @@ export class MeetingsService {
           sql`${integrationConnections.status} <> 'disconnected'`,
         ),
       );
-    return this.toDto(ctx, l, links.filter((x) =>
-      x.personal ? x.ownerUserId === ctx.user.id : ctx.access.has('integrations.manage'),
-    ));
+    return this.toDto(
+      ctx,
+      l,
+      links.filter((x) =>
+        x.personal ? x.ownerUserId === ctx.user.id : ctx.access.has('integrations.manage'),
+      ),
+    );
   }
 
   toDto(
     ctx: TenantContext,
     l: LoadedMeeting,
-    links: { connectionId: string; provider: string; remoteUrl: string | null; lastSyncedAt: Date | null }[] = [],
+    links: {
+      connectionId: string;
+      provider: string;
+      remoteUrl: string | null;
+      lastSyncedAt: Date | null;
+    }[] = [],
   ): MeetingDto {
     const m = l.row;
     const organizer = l.participants.find((p) => p.userId === m.organizerUserId);
     const me = l.participants.find((p) => p.userId === ctx.user.id);
     const now = this.now();
     const upcoming = occurrencesBetween(
-      { startLocal: m.startLocal, durationMinutes: m.durationMinutes, timeZone: m.timeZone, recurrence: m.recurrence },
+      {
+        startLocal: m.startLocal,
+        durationMinutes: m.durationMinutes,
+        timeZone: m.timeZone,
+        recurrence: m.recurrence,
+      },
       l.overrides.map((o) => ({
         originalStart: o.originalStart.toISOString(),
         status: o.status as 'cancelled' | 'moved',
@@ -785,7 +919,9 @@ export class MeetingsService {
       })),
       upcoming,
       version: m.version,
-      canEdit: m.status !== 'cancelled' && canEdit(ctx.access, this.scopeOf(l), m.organizerUserId === ctx.user.id),
+      canEdit:
+        m.status !== 'cancelled' &&
+        canEdit(ctx.access, this.scopeOf(l), m.organizerUserId === ctx.user.id),
       canRespond: m.status !== 'cancelled' && !!me,
       syncLinks: links.map((x) => ({
         connectionId: x.connectionId,
@@ -819,7 +955,9 @@ export class MeetingsService {
       cancelled: o.cancelled || m.status === 'cancelled',
       moved: o.moved,
       recurring: !!m.recurrence,
-      myResponse: (l.participants.find((p) => p.userId === userId)?.response as RsvpResponse | undefined) ?? null,
+      myResponse:
+        (l.participants.find((p) => p.userId === userId)?.response as RsvpResponse | undefined) ??
+        null,
       isOrganizer: m.organizerUserId === userId,
     };
   }
@@ -848,7 +986,12 @@ export class MeetingsService {
       if (!canView(ctx.access, this.scopeOf(l), mine)) continue;
       if (q.mine === 'true' && !mine) continue;
       const occ = occurrencesBetween(
-        { startLocal: l.row.startLocal, durationMinutes: l.row.durationMinutes, timeZone: l.row.timeZone, recurrence: l.row.recurrence },
+        {
+          startLocal: l.row.startLocal,
+          durationMinutes: l.row.durationMinutes,
+          timeZone: l.row.timeZone,
+          recurrence: l.row.recurrence,
+        },
         l.overrides.map((o) => ({
           originalStart: o.originalStart.toISOString(),
           status: o.status as 'cancelled' | 'moved',

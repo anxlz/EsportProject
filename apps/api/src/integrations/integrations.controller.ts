@@ -64,7 +64,10 @@ export class IntegrationsController {
   @Get()
   @RequireOrg()
   async list(@TenantCtx() ctx: TenantContext) {
-    return { providers: this.integrations.providers(), connections: await this.integrations.list(ctx) };
+    return {
+      providers: this.integrations.providers(),
+      connections: await this.integrations.list(ctx),
+    };
   }
 
   // ---------- Google Calendar (OAuth through the browser) ----------
@@ -117,7 +120,10 @@ export class IntegrationsController {
 
   @Post('webhooks/outgoing')
   @RequireOrg()
-  async outgoing(@TenantCtx() ctx: TenantContext, @ZodBody(outgoingWebhookCreateSchema) body: OutgoingWebhookCreateInput) {
+  async outgoing(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(outgoingWebhookCreateSchema) body: OutgoingWebhookCreateInput,
+  ) {
     if (!ctx.access.has('integrations.manage')) throw Errors.forbidden();
     const { connection, secret } = await this.webhooks.createOutgoing(ctx, body);
     return { integration: await this.connections.toDto(connection), secret };
@@ -125,7 +131,10 @@ export class IntegrationsController {
 
   @Post('webhooks/incoming')
   @RequireOrg()
-  async incoming(@TenantCtx() ctx: TenantContext, @ZodBody(incomingWebhookCreateSchema) body: IncomingWebhookCreateInput) {
+  async incoming(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(incomingWebhookCreateSchema) body: IncomingWebhookCreateInput,
+  ) {
     if (!ctx.access.has('integrations.manage')) throw Errors.forbidden();
     const { connection, secret } = await this.webhooks.createIncoming(ctx, body);
     return { integration: await this.connections.toDto(connection), secret };
@@ -135,7 +144,10 @@ export class IntegrationsController {
 
   @Post('obsidian')
   @RequireOrg()
-  async obsidianConnect(@TenantCtx() ctx: TenantContext, @ZodBody(obsidianConnectSchema) body: ObsidianConnectInput) {
+  async obsidianConnect(
+    @TenantCtx() ctx: TenantContext,
+    @ZodBody(obsidianConnectSchema) body: ObsidianConnectInput,
+  ) {
     const { connection, token } = await this.obsidian.connect(ctx, body);
     return { integration: await this.connections.toDto(connection), secret: token };
   }
@@ -156,7 +168,10 @@ export class IntegrationsController {
   @Public()
   @HttpCode(200)
   @RateLimit('integrationToken')
-  async obsidianPush(@Headers('authorization') auth: string | undefined, @ZodBody(obsidianPushSchema) body: ObsidianPushInput) {
+  async obsidianPush(
+    @Headers('authorization') auth: string | undefined,
+    @ZodBody(obsidianPushSchema) body: ObsidianPushInput,
+  ) {
     const c = await this.obsidian.authenticate(auth);
     return this.obsidian.push(c, body);
   }
@@ -164,11 +179,18 @@ export class IntegrationsController {
   /** One meeting as an Obsidian note (download). */
   @Get('obsidian/notes/:meetingId')
   @RequireOrg()
-  async obsidianNote(@TenantCtx() ctx: TenantContext, @Param('meetingId', UuidPipe) id: string, @Res() res: Response) {
+  async obsidianNote(
+    @TenantCtx() ctx: TenantContext,
+    @Param('meetingId', UuidPipe) id: string,
+    @Res() res: Response,
+  ) {
     const note = await this.obsidian.note(ctx, id);
     const name = note.path.split('/').pop()!;
     res.setHeader('content-type', 'text/markdown; charset=utf-8');
-    res.setHeader('content-disposition', `attachment; filename="meeting.md"; filename*=UTF-8''${encodeURIComponent(name)}`);
+    res.setHeader(
+      'content-disposition',
+      `attachment; filename="meeting.md"; filename*=UTF-8''${encodeURIComponent(name)}`,
+    );
     res.send(note.content);
   }
 

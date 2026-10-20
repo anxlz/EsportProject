@@ -18,12 +18,24 @@ export class IntegrationError extends Error {
     super(message);
   }
 
-  static fromStatus(provider: string, status: number, retryAfter: string | null, detail = ''): IntegrationError {
+  static fromStatus(
+    provider: string,
+    status: number,
+    retryAfter: string | null,
+    detail = '',
+  ): IntegrationError {
     const msg = `${provider} returned ${status}${detail ? `: ${detail}` : ''}`;
     if (status === 401) return new IntegrationError('auth', 'auth_failed', msg, undefined, status);
     if (status === 429 || status === 529)
-      return new IntegrationError('rate_limited', 'rate_limited', msg, parseRetryAfter(retryAfter) ?? 60_000, status);
-    if (status >= 500 || status === 408) return new IntegrationError('retryable', 'provider_error', msg, undefined, status);
+      return new IntegrationError(
+        'rate_limited',
+        'rate_limited',
+        msg,
+        parseRetryAfter(retryAfter) ?? 60_000,
+        status,
+      );
+    if (status >= 500 || status === 408)
+      return new IntegrationError('retryable', 'provider_error', msg, undefined, status);
     return new IntegrationError('permanent', 'request_rejected', msg, undefined, status);
   }
 }

@@ -80,10 +80,7 @@ export const meetings = appSchema.table(
     uniqueIndex('meetings_external_id_unique')
       .on(t.sourceConnectionId, t.externalId)
       .where(sql`${t.externalId} is not null`),
-    check(
-      'meetings_duration_range',
-      sql`${t.durationMinutes} between 5 and 1440`,
-    ),
+    check('meetings_duration_range', sql`${t.durationMinutes} between 5 and 1440`),
     check('meetings_team_or_department', sql`${t.teamId} is null or ${t.departmentId} is null`),
     check(
       'meetings_administrative_org_wide',

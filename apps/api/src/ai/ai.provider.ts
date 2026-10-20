@@ -121,7 +121,6 @@ export interface AiProvider {
   converse(req: AiConverseRequest): Promise<AiConverseResult>;
 }
 
-
 const unavailable = (message: string) => new AppError('ai_unavailable', 502, message);
 
 /** The provider refused the web search tool (switched off for the API account). */

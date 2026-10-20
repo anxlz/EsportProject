@@ -87,7 +87,10 @@ export class QwenProvider implements AiProvider {
   private readonly logger = new Logger('QwenProvider');
 
   constructor(
-    private readonly env: Pick<Env, 'QWEN_API_KEY' | 'QWEN_MODEL' | 'QWEN_API_URL' | 'QWEN_TIMEOUT_MS'>,
+    private readonly env: Pick<
+      Env,
+      'QWEN_API_KEY' | 'QWEN_MODEL' | 'QWEN_API_URL' | 'QWEN_TIMEOUT_MS'
+    >,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
@@ -117,7 +120,9 @@ export class QwenProvider implements AiProvider {
       const type = typeof body?.error === 'object' ? (body.error?.type ?? '') : '';
       this.logger.warn(`Qwen API ${res.status} ${type}`.trim());
       if (res.status === 401 || res.status === 403)
-        throw unavailable('The assistant is misconfigured (API key rejected). Ask the Owner to check QWEN_API_KEY.');
+        throw unavailable(
+          'The assistant is misconfigured (API key rejected). Ask the Owner to check QWEN_API_KEY.',
+        );
       if (res.status === 429 || res.status === 503 || res.status === 529)
         throw unavailable('The assistant is busy. Try again in a moment.');
       throw unavailable('The assistant returned an error.');
@@ -155,7 +160,11 @@ export class QwenProvider implements AiProvider {
     const text = choice?.message?.content;
     if (!text) throw unavailable('The assistant returned no proposal.');
     try {
-      return { data: JSON.parse(cleanModelText(text)), model: body.model ?? this.env.QWEN_MODEL, usage: this.usage(body) };
+      return {
+        data: JSON.parse(cleanModelText(text)),
+        model: body.model ?? this.env.QWEN_MODEL,
+        usage: this.usage(body),
+      };
     } catch {
       throw unavailable('The assistant returned an unreadable proposal.');
     }
@@ -187,12 +196,15 @@ export class QwenProvider implements AiProvider {
             messages.push({
               role: 'tool',
               tool_call_id: r.toolUseId,
-              content: r.isError ? JSON.stringify({ error: true, result: safeJson(r.content) }) : r.content,
+              content: r.isError
+                ? JSON.stringify({ error: true, result: safeJson(r.content) })
+                : r.content,
             });
           break;
       }
     }
-    if (systemPending) messages.unshift({ role: 'user', content: `<instructions>\n${req.system}\n</instructions>` });
+    if (systemPending)
+      messages.unshift({ role: 'user', content: `<instructions>\n${req.system}\n</instructions>` });
     // req.webSearch is ignored: this provider has no server-side search (supportsWebSearch).
     const body = await this.post({
       max_tokens: Math.min(req.maxTokens, MAX_OUTPUT_TOKENS),
@@ -213,10 +225,15 @@ export class QwenProvider implements AiProvider {
     const blocks: AiOutputBlock[] = [];
     const text = typeof msg.content === 'string' ? cleanModelText(msg.content) : '';
     if (text) blocks.push({ type: 'text', text, citations: [] });
-    // Ids are needed to pair results with calls; some hosts omit them.
+    // Ids are needed to pair results with calls; some hosts omit them (or repeat them).
+    const seen = new Set<string>();
     const toolCalls = (msg.tool_calls ?? [])
       .filter((tc) => tc.function?.name)
-      .map((tc, i) => ({ ...tc, id: tc.id || `call_${i}`, type: 'function' }));
+      .map((tc, i) => {
+        const id = tc.id && !seen.has(tc.id) ? tc.id : `qwen_call_${i}`;
+        seen.add(id);
+        return { ...tc, id, type: 'function' };
+      });
     for (const tc of toolCalls) {
       let input: Record<string, unknown>;
       try {
@@ -243,7 +260,11 @@ export class QwenProvider implements AiProvider {
               : 'other';
     return {
       blocks,
-      raw: { role: 'assistant', content: msg.content ?? null, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) },
+      raw: {
+        role: 'assistant',
+        content: msg.content ?? null,
+        ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
+      },
       stopReason,
       model: body.model ?? this.env.QWEN_MODEL,
       usage: this.usage(body),

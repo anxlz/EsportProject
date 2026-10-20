@@ -15,15 +15,20 @@ const MARK = (name: string, edge: 'start' | 'end') => `<!-- platform:${name}:${e
 
 const L = {
   en: {
-    banner: 'Synced with the club platform. Edit the title property and the Purpose and Notes sections; other changes are replaced on the next sync.',
+    banner:
+      'Synced with the club platform. Edit the title property and the Purpose and Notes sections; other changes are replaced on the next sync.',
     purpose: 'Purpose',
     notes: 'Notes',
     upcoming: 'Upcoming',
     cancelled: 'cancelled',
-    responses: { pending: 'not answered', accepted: 'accepted', declined: 'declined' } as Record<string, string>,
+    responses: { pending: 'not answered', accepted: 'accepted', declined: 'declined' } as Record<
+      string,
+      string
+    >,
   },
   ar: {
-    banner: 'متزامن مع منصة النادي. عدّل خاصية العنوان وقسمي الغرض والملاحظات؛ أي تغيير آخر يُستبدل في المزامنة التالية.',
+    banner:
+      'متزامن مع منصة النادي. عدّل خاصية العنوان وقسمي الغرض والملاحظات؛ أي تغيير آخر يُستبدل في المزامنة التالية.',
     purpose: 'الغرض',
     notes: 'الملاحظات',
     upcoming: 'المواعيد القادمة',
@@ -49,7 +54,10 @@ export function notePath(l: LoadedMeeting): string {
 
 const q = (s: string) => JSON.stringify(s);
 
-export function renderNote(l: LoadedMeeting, opts: { locale: 'ar' | 'en'; upcoming: { start: number; cancelled: boolean }[] }): string {
+export function renderNote(
+  l: LoadedMeeting,
+  opts: { locale: 'ar' | 'en'; upcoming: { start: number; cancelled: boolean }[] },
+): string {
   const m = l.row;
   const t = L[opts.locale];
   const tz = m.timeZone;
@@ -64,9 +72,18 @@ export function renderNote(l: LoadedMeeting, opts: { locale: 'ar' | 'en'; upcomi
     `time_zone: ${q(tz)}`,
     ...(m.recurrence ? [`repeats: ${q(toRRule(m.recurrence, m.startLocal, tz).slice(6))}`] : []),
     `status: ${q(m.status)}`,
-    ...(l.team ? [`team: ${q(l.team.name)}`] : l.departmentName ? [`department: ${q(l.departmentName)}`] : []),
+    ...(l.team
+      ? [`team: ${q(l.team.name)}`]
+      : l.departmentName
+        ? [`department: ${q(l.departmentName)}`]
+        : []),
     ...(l.participants.length
-      ? ['participants:', ...l.participants.map((p) => `  - ${q(`${p.displayName} (${t.responses[p.response] ?? p.response})`)}`)]
+      ? [
+          'participants:',
+          ...l.participants.map(
+            (p) => `  - ${q(`${p.displayName} (${t.responses[p.response] ?? p.response})`)}`,
+          ),
+        ]
       : []),
     'tags:',
     '  - meeting',
@@ -97,7 +114,9 @@ export function renderNote(l: LoadedMeeting, opts: { locale: 'ar' | 'en'; upcomi
     MARK('notes', 'end'),
     '',
     `## ${t.upcoming}`,
-    ...opts.upcoming.map((o) => `- ${fmt.format(new Date(o.start))}${o.cancelled ? ` (${t.cancelled})` : ''}`),
+    ...opts.upcoming.map(
+      (o) => `- ${fmt.format(new Date(o.start))}${o.cancelled ? ` (${t.cancelled})` : ''}`,
+    ),
     '',
   ];
   return [...fm, ...body].join('\n');
@@ -128,7 +147,13 @@ export interface ParsedNote {
 /** Reads the editable parts of a note. A missing section means "unchanged" (undefined). */
 export function parseNote(content: string): ParsedNote {
   const text = content.replace(/\r\n/g, '\n');
-  const out: ParsedNote = { meetingId: null, version: null, title: null, description: undefined, notes: undefined };
+  const out: ParsedNote = {
+    meetingId: null,
+    version: null,
+    title: null,
+    description: undefined,
+    notes: undefined,
+  };
   const fm = /^---\n([\s\S]*?)\n---\n?/.exec(text);
   if (fm) {
     for (const line of fm[1]!.split('\n')) {
@@ -144,7 +169,11 @@ export function parseNote(content: string): ParsedNote {
     const a = text.indexOf(MARK(name, 'start'));
     const b = text.indexOf(MARK(name, 'end'));
     if (a < 0 || b < 0 || b < a) return undefined;
-    const inner = text.slice(a + MARK(name, 'start').length, b).replace(/^\n/, '').replace(/\n$/, '').trim();
+    const inner = text
+      .slice(a + MARK(name, 'start').length, b)
+      .replace(/^\n/, '')
+      .replace(/\n$/, '')
+      .trim();
     return inner === '' ? null : inner;
   };
   out.description = section('purpose');

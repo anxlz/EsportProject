@@ -54,7 +54,12 @@ export class RemindersService {
       for (const offset of m.reminderMinutes) {
         const ms = offset * 60_000;
         const due = occurrencesBetween(
-          { startLocal: m.startLocal, durationMinutes: m.durationMinutes, timeZone: m.timeZone, recurrence: m.recurrence },
+          {
+            startLocal: m.startLocal,
+            durationMinutes: m.durationMinutes,
+            timeZone: m.timeZone,
+            recurrence: m.recurrence,
+          },
           overrides.map((o) => ({
             originalStart: o.originalStart.toISOString(),
             status: o.status as 'cancelled' | 'moved',
@@ -63,7 +68,10 @@ export class RemindersService {
           })),
           at - REMINDER_LATENESS_MS + ms - 1,
           at + ms + 1,
-        ).filter((o) => !o.cancelled && o.startUtc - ms > at - REMINDER_LATENESS_MS && o.startUtc - ms <= at);
+        ).filter(
+          (o) =>
+            !o.cancelled && o.startUtc - ms > at - REMINDER_LATENESS_MS && o.startUtc - ms <= at,
+        );
         for (const o of due) {
           sent += await this.db.transaction(async (tx) => {
             const [claimed] = await tx
@@ -78,7 +86,10 @@ export class RemindersService {
               .returning({ meetingId: meetingReminderDeliveries.meetingId });
             if (!claimed) return 0;
             const people = await tx
-              .select({ userId: meetingParticipants.userId, response: meetingParticipants.response })
+              .select({
+                userId: meetingParticipants.userId,
+                response: meetingParticipants.response,
+              })
               .from(meetingParticipants)
               .where(eq(meetingParticipants.meetingId, m.id));
             const recipients = people.filter((p) => p.response !== 'declined').map((p) => p.userId);

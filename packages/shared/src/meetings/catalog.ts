@@ -88,7 +88,11 @@ export const WEBHOOK_EVENT_TYPES = [
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 
 /** What an incoming webhook may ask for (always as its owner, with their permissions). */
-export const INCOMING_WEBHOOK_ACTIONS = ['meeting.create', 'meeting.update', 'meeting.cancel'] as const;
+export const INCOMING_WEBHOOK_ACTIONS = [
+  'meeting.create',
+  'meeting.update',
+  'meeting.cancel',
+] as const;
 export type IncomingWebhookAction = (typeof INCOMING_WEBHOOK_ACTIONS)[number];
 
 /** Integration log entries (shown to the integration's owner, labels translated). */
