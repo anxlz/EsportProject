@@ -64,19 +64,32 @@ why, and whether it is easy to reverse.
 | Web search             | `ASSISTANT_WEB_SEARCH=off` by default (carried forward).                                                                                                                                                                                                                                                                      |
 | Production credentials | Still outstanding: SMTP, Supabase, Redis URL, `SESSION_SECRET`, hosting (Railway vs Fly.io), Discord OAuth (optional), product name, Anthropic API key, and now a Qwen3 hosted-inference key. Built against local stand-ins. Legal review and Federation confirmation stay outside this build.                                |
 
+## Decisions taken with the user (ID-document patch, 20 Oct 2026)
+
+| Topic                  | Decision                                                                                                                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Requirement            | Before signing, the **recipient** uploads a photo or scan of a passport or national/government ID; it becomes part of the signing round's record. **Not** asked of a guardian co-signer (extending it to guardians would be a separate decision). |
+| Access                 | Narrower than the contract: the Owner plus whoever is explicitly granted `contracts.view_signer_id`. Seeing, approving or exporting the contract does not include it. Every **view** is audited, not just the upload.                             |
+| Storage                | The existing file store, as a separate file linked to the signing round; never merged into the contract PDF pages. Validated by its bytes (image or PDF).                                                                                         |
+| AI boundary            | Never sent to any AI assistant, nor anything derived from it.                                                                                                                                                                                     |
+| Claims                 | No compliance claim: it strengthens the identity record; it is not a certified or legally guaranteed check.                                                                                                                                       |
+| Retention and deletion | **Not decided in code** — an open question for the product owner (below).                                                                                                                                                                         |
+
 ## Still open — needs your input
 
-| Topic                           | Needed by                     | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Email provider (SMTP)           | Before production             | Invitations, password-reset emails and (Phase 4) emailed signing codes need one. The code is provider-neutral SMTP (Resend, Postmark, Amazon SES, Mailgun, Brevo all offer SMTP). Until configured, Owners can still copy invitation links, and signers can use access codes; password reset will not work in production.                                                                                                                      |
-| Railway vs Fly.io               | Deployment                    | Dockerfile is portable to both (and AWS).                                                                                                                                                                                                                                                                                                                                                                                                      |
-| Supabase project + environments | Deployment                    | Whether you want separate dev/staging/prod projects pre-launch.                                                                                                                                                                                                                                                                                                                                                                                |
-| Discord OAuth app               | When you want Discord sign-in | Client id/secret + redirect URL; feature is fully built and hidden until configured.                                                                                                                                                                                                                                                                                                                                                           |
-| Product name                    | Any time                      | "Club Manager / إدارة النادي" is a placeholder in `apps/web/src/messages/*.json` (`app.name`).                                                                                                                                                                                                                                                                                                                                                 |
-| Anthropic API key               | To use any AI feature         | Not a blocker. Set `ANTHROPIC_API_KEY` on the API (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`). It powers the clause assistant and the five Phase 5 assistants. **The live API has never been called from here**; please run one live conversation per assistant first (spec §8.3). Web search is on unless an admin disabled it in the Claude Console; it costs extra per search (`ASSISTANT_WEB_SEARCH=off` turns it off here). |
-| Contract wording review         | Before using real contracts   | Happening outside this build (confirmed in Phase 4). The default clause wording is sample text, not legal advice; "Governing law and disputes" is a placeholder. Owners can edit the templates. The signing consent statement (`consentText` in `packages/shared/src/contracts/i18n.ts`) is in the same position.                                                                                                                              |
-| Federation confirmation         | Before relying on signatures  | Whether the Saudi Esports Federation accepts in-platform electronic signatures (and guardian consent) for registration is unconfirmed. The product makes no claim either way.                                                                                                                                                                                                                                                                  |
-| Docker image with Chromium      | Deployment                    | PDF export needs Chromium. The Dockerfile now installs Debian's `chromium`; the container could not be built here (no Docker daemon), so build it once before deploying. PDF rendering itself is tested against both the bundled and a standard Chromium build.                                                                                                                                                                                |
+| Topic                              | Needed by                           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Email provider (SMTP)              | Before production                   | Invitations, password-reset emails and (Phase 4) emailed signing codes need one. The code is provider-neutral SMTP (Resend, Postmark, Amazon SES, Mailgun, Brevo all offer SMTP). Until configured, Owners can still copy invitation links, and signers can use access codes; password reset will not work in production.                                                                                                                          |
+| Railway vs Fly.io                  | Deployment                          | Dockerfile is portable to both (and AWS).                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Supabase project + environments    | Deployment                          | Whether you want separate dev/staging/prod projects pre-launch.                                                                                                                                                                                                                                                                                                                                                                                    |
+| Discord OAuth app                  | When you want Discord sign-in       | Client id/secret + redirect URL; feature is fully built and hidden until configured.                                                                                                                                                                                                                                                                                                                                                               |
+| Product name                       | Any time                            | "Club Manager / إدارة النادي" is a placeholder in `apps/web/src/messages/*.json` (`app.name`).                                                                                                                                                                                                                                                                                                                                                     |
+| Anthropic API key                  | To use any AI feature               | Not a blocker. Set `ANTHROPIC_API_KEY` on the API (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`). It powers the clause assistant and the five Phase 5 assistants. **The live API has never been called from here**; please run one live conversation per assistant first (spec §8.3). Web search is on unless an admin disabled it in the Claude Console; it costs extra per search (`ASSISTANT_WEB_SEARCH=off` turns it off here).     |
+| ID document retention and deletion | Before collecting real ID documents | **Your decision.** How long signers' identity documents are kept (and replaced uploads), and whether a signer or the organization can ask for deletion. Until you decide, nothing is deleted: no automatic expiry, no delete button, and the database refuses deletes like the rest of the signing record. Whatever you choose is one migration plus a small admin action. Cross-border/PDPL considerations apply to where the database is hosted. |
+| `DOCUMENT_ENCRYPTION_KEY`          | Deployment (required in production) | Encrypts identity documents at rest; the API won't start in production without it. Store it like a backup key: losing it makes the documents unreadable.                                                                                                                                                                                                                                                                                           |
+| Contract wording review            | Before using real contracts         | Happening outside this build (confirmed in Phase 4). The default clause wording is sample text, not legal advice; "Governing law and disputes" is a placeholder. Owners can edit the templates. The signing consent statement (`consentText` in `packages/shared/src/contracts/i18n.ts`) is in the same position.                                                                                                                                  |
+| Federation confirmation            | Before relying on signatures        | Whether the Saudi Esports Federation accepts in-platform electronic signatures (and guardian consent) for registration is unconfirmed. The product makes no claim either way.                                                                                                                                                                                                                                                                      |
+| Docker image with Chromium         | Deployment                          | PDF export needs Chromium. The Dockerfile now installs Debian's `chromium`; the container could not be built here (no Docker daemon), so build it once before deploying. PDF rendering itself is tested against both the bundled and a standard Chromium build.                                                                                                                                                                                    |
 
 ## Stack and runtime
 
@@ -874,3 +887,60 @@ budgets, and tax calculation (spec §6.7).
   tool-call round trips, JSON parsing, errors, timeouts), and the full assistant suite runs with
   either provider. **Never called live**: real Qwen3 tool-calling quality, Arabic quality and
   latency are unverified until a key is set.
+
+## ID documents at signing (patch to Phase 4)
+
+**What and who**
+
+- After the 6-digit code check, the **recipient** uploads a photo or scan of a passport or national
+  ID (they choose which) before they can sign; the signing page shows it as a step and the Sign
+  button stays disabled until it is in. A guardian is never asked (`id_document_not_needed`).
+- The API refuses the signature without it (`id_document_required`), and so does the database:
+  a recipient's signature row needs `id_document_id` (a `NOT VALID` check, so signatures recorded
+  before the patch are left as they were), pointing at that signer's current upload (trigger).
+- Uploads can be replaced until the signature is given; the earlier one is kept, marked replaced.
+  The signature binds the current one, and the upload and the signature take the same row lock,
+  so a document can't be swapped while signing.
+
+**Validation**
+
+- PNG, JPEG, WebP or PDF, up to 8 MB, identified by its bytes with the same sniffing as other
+  uploads. Refused: empty files, any other type, and disguised files (an executable, HTML or GIF
+  labelled as an image or PDF, or a PDF labelled as a JPEG — the declared type must match the
+  bytes). Uploads are rate limited (10 per 15 minutes per address). HEIC isn't accepted (iPhones normally hand web pages a JPEG; not checked on a real device).
+
+**Storage and integrity**
+
+- The file goes to the existing file store as kind `signer_id_document`, **encrypted** with
+  AES-256-GCM (key from `DOCUMENT_ENCRYPTION_KEY`, required in production; HKDF of
+  `SESSION_SECRET` otherwise; the organization and document id are bound in), stored as
+  `application/octet-stream`. Its metadata (type, real content type, size, SHA-256 of the original,
+  link, time, IP, browser) is in `signer_id_documents`, linked to the round and the signer.
+- The signature record's SHA-256 now covers the document's id and fingerprint, and the signed
+  PDF's signature record shows "Identity document (kept separately; SHA-256 …)" — the fingerprint
+  only, never the image, so the contract pages and the signed PDF never contain it.
+- Before serving, the bytes are decrypted and re-hashed; a mismatch is a 500 and nothing is served.
+- Rows and their files can't be edited or deleted (triggers), pending the retention decision.
+
+**Access**
+
+- New permission `contracts.view_signer_id` (scopable by the contract's team; Owner holds it; in no
+  default template). The viewer must also be able to see the contract (otherwise 404, as
+  elsewhere). Without the permission, the Signatures tab shows only "Identity document:
+  Provided / Not uploaded yet".
+- `GET /contracts/:id/signing/id-documents/:documentId` serves it with `Cache-Control: no-store`,
+  `nosniff` and a sandbox CSP (images inline, PDFs as a download). Each successful view writes
+  `contract.signer_id_viewed` to the audit log **before** the bytes are sent; uploads write
+  `contract.signer_id_uploaded`. Audit entries hold facts (ids, type, fingerprint), never content.
+- The signing page never gets the file back: it shows only what was received (type, format, size,
+  time). The generic `/files/:id` route never serves this kind.
+
+**AI boundary**
+
+- No assistant tool touches it; tools return explicit field lists, so nothing from a signing round
+  is in their results. ESLint forbids `src/assistants` and `src/ai` from importing the
+  document service, the signing service, the file store or the signing tables, and the
+  service isn't exported from the contracts module. Tests check the tool catalog, scan the source,
+  and run every lookup as an Owner (who may view the document) against the signed contract: none
+  of the document's ids, fingerprint, type or content reaches the model, and made-up document
+  tools are refused and logged.

@@ -7,6 +7,7 @@ import {
   EMAIL_TONES,
   ERROR_CODES,
   GUARDRAIL_CODES,
+  ID_DOCUMENT_TYPES,
   INCOMING_WEBHOOK_ACTIONS,
   INTEGRATION_EVENT_CODES,
   INTEGRATION_PROVIDERS,
@@ -111,6 +112,9 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
     'file.uploaded',
     'assistant.email_sent',
     'assistant.offer_applied',
+    // ID-document patch
+    'contract.signer_id_uploaded',
+    'contract.signer_id_viewed',
     // Phase 6
     'meeting.created',
     'meeting.updated',
@@ -177,6 +181,9 @@ const meetingGroups: [string, readonly string[]][] = [
   ['integrations.webhookEvents', WEBHOOK_EVENT_TYPES],
   ['integrations.actions', INCOMING_WEBHOOK_ACTIONS],
   ['assistants.providerNames', ['anthropic', 'qwen']],
+  // ID-document patch
+  ['signPage.id.types', ID_DOCUMENT_TYPES],
+  ['contracts.signing.idDocument.types', ID_DOCUMENT_TYPES],
 ];
 
 describe('assistant vocabularies all have labels', () => {

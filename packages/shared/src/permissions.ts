@@ -123,6 +123,12 @@ export const PERMISSIONS = {
   'contracts.manage_templates': def('contracts', { ownerOnly: true }),
   /** Phase 4: start signing an approved contract, create/revoke signing links, cancel signing. */
   'contracts.send_for_signature': def('contracts', { scopable: true }),
+  /**
+   * ID-document patch: view the identity document a recipient uploaded while signing. Seeing or
+   * exporting the contract does NOT include it. Owners hold it; anyone else only by an explicit
+   * grant (it is in no default template). Every view is audited.
+   */
+  'contracts.view_signer_id': def('contracts', { scopable: true }),
 
   // Audit log
   'audit.view': def('audit'),

@@ -199,6 +199,22 @@ async function openWithAccessCode(c: Client, l: SigningLinkCreatedDto) {
   return { token, session: v.body.sessionToken, state: v.body.session };
 }
 
+/** A real 1×1 PNG, standing in for a photo of an identity document. */
+const ID_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+/** ID-document patch: the recipient uploads their identity document before signing. */
+async function uploadId(c: Client, token: string, session: string, type = 'passport') {
+  const res = await c.request('POST', `/public/signing/${token}/id-document?type=${type}`, ID_PNG, {
+    'content-type': 'image/png',
+    'x-signing-session': session,
+  });
+  expect(res.status).toBe(200);
+  return res;
+}
+
 const typed = (name: string, fontKey = 'dancing-script', locale = 'en') => ({
   method: 'typed',
   typedName: name,
@@ -349,6 +365,13 @@ describe('signing a contract for a minor (Phase 4 Definition of Done)', () => {
     expect(early.status).toBe(409);
     expect(early.body.error.code).toBe('not_your_turn');
 
+    // --- The recipient uploads an identity document (ID-document patch); the guardian isn't asked.
+    expect(g.state.idDocument).toEqual({ required: false, uploaded: null });
+    expect((await uploadId(rc, rToken, rSession)).body.idDocument.uploaded).toMatchObject({
+      documentType: 'passport',
+      contentType: 'image/png',
+    });
+
     // --- The recipient signs (typed, blue, chosen font).
     const signed1 = await withSession(
       rc,
@@ -487,6 +510,8 @@ describe('signing a contract for a minor (Phase 4 Definition of Done)', () => {
           signedAt: r0.signedAt!.toISOString(),
           ip: r0.ip,
           userAgent: r0.userAgent,
+          // ID-document patch: the document is bound in by its fingerprint.
+          idDocument: { id: r0.idDocumentId, sha256: sha(ID_PNG) },
         }),
       ),
     );
@@ -518,6 +543,7 @@ describe('signing a contract for a minor (Phase 4 Definition of Done)', () => {
       ['contract.signing_code_sent', 'anonymous'],
       ['contract.signer_verified', 'anonymous'],
       ['contract.signer_verified', 'anonymous'],
+      ['contract.signer_id_uploaded', 'anonymous'],
       ['contract.signed', 'anonymous'],
       ['contract.signed', 'anonymous'],
       ['contract.fully_signed', 'system'],
@@ -557,6 +583,7 @@ describe('who signs', () => {
     const l = await link(org, c.id, s.rounds[0]!.signers[0]!.id);
     const pc = pub();
     const o = await openWithAccessCode(pc, l);
+    await uploadId(pc, o.token, o.session, 'national_id');
     const res = await withSession(
       pc,
       'POST',
@@ -569,6 +596,9 @@ describe('who signs', () => {
     expect((await org.manager.get<ContractDto>(`/contracts/${c.id}`)).body.status).toBe('signed');
     const text = pdfText((await org.manager.get(`/contracts/${c.id}/signed.pdf`)).bytes, 'adult');
     expect(text).toContain('Access code handed over by the organization');
+    // Only the identity document's fingerprint is in the record, never the document.
+    expect(text).toContain('Identity document (kept separately; SHA-256)');
+    expect(text.replace(/\s/g, '')).toContain(sha(ID_PNG));
     expect(
       pdfFonts((await org.manager.get(`/contracts/${c.id}/signed.pdf`)).bytes, 'adult'),
     ).toMatch(/ArefRuqaa/);
@@ -808,6 +838,7 @@ describe('cancelling and permissions', () => {
     const [recipient, guardian] = s.rounds[0]!.signers;
     const rc = pub();
     const r = await openWithAccessCode(rc, await link(org, c.id, recipient!.id));
+    await uploadId(rc, r.token, r.session);
     expect(
       (
         await withSession(
@@ -924,6 +955,7 @@ describe('storage', () => {
     const s = await startSigning(org, c.id);
     const pc = pub();
     const o = await openWithAccessCode(pc, await link(org, c.id, s.rounds[0]!.signers[0]!.id));
+    await uploadId(pc, o.token, o.session);
     await withSession(
       pc,
       'POST',
@@ -935,14 +967,19 @@ describe('storage', () => {
       .select({ kind: storedFiles.kind, sha256: storedFiles.sha256 })
       .from(storedFiles)
       .orderBy(asc(storedFiles.createdAt));
-    expect(files.map((f) => f.kind)).toEqual(['contract_approved', 'contract_signed']);
+    // The identity document is its own (encrypted) file, apart from both contract documents.
+    expect(files.map((f) => f.kind)).toEqual([
+      'contract_approved',
+      'signer_id_document',
+      'contract_signed',
+    ]);
     const [req] = await t.db
       .select()
       .from(approvalRequests)
       .where(eq(approvalRequests.contractId, c.id));
     expect(req!.documentSha256).toBe(files[0]!.sha256);
     const [round] = await t.db.select().from(signingRounds);
-    expect(round!.signedDocumentSha256).toBe(files[1]!.sha256);
+    expect(round!.signedDocumentSha256).toBe(files[2]!.sha256);
     expect(round!.approvedDocumentSha256).toBe(files[0]!.sha256);
   });
 });

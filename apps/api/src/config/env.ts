@@ -147,8 +147,24 @@ const envSchema = z
      */
     WEBHOOK_ALLOW_PRIVATE_URLS: bool(false),
     INTEGRATIONS_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(20000),
+
+    /**
+     * ID-document patch: key for encrypting signers' identity documents at rest (AES-256-GCM).
+     * REQUIRED in production, so that rotating SESSION_SECRET can never make them unreadable.
+     * Outside production, unset: derived from SESSION_SECRET (HKDF). Losing it loses the
+     * documents; store it like a database backup key.
+     */
+    DOCUMENT_ENCRYPTION_KEY: z.string().min(32).optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.NODE_ENV === 'production' && !env.DOCUMENT_ENCRYPTION_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['DOCUMENT_ENCRYPTION_KEY'],
+        message:
+          "DOCUMENT_ENCRYPTION_KEY (32+ characters) is required in production: it encrypts signers' identity documents.",
+      });
+    }
     if (env.NODE_ENV === 'production' && env.MAIL_TRANSPORT === 'outbox') {
       ctx.addIssue({
         code: 'custom',

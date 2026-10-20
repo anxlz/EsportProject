@@ -206,9 +206,27 @@ describe('environment validation', () => {
       MAIL_TRANSPORT: 'smtp',
       SMTP_HOST: 'smtp.example.com',
       MAIL_FROM: 'a@example.com',
+      DOCUMENT_ENCRYPTION_KEY: 'k'.repeat(40), // required in production since the ID-document patch
     });
     expect(env.cookieSecure).toBe(true);
     expect(env.apiDocsEnabled).toBe(false);
+  });
+
+  test('production requires a dedicated key for identity documents (ID-document patch)', () => {
+    const prod = {
+      ...base,
+      NODE_ENV: 'production',
+      MAIL_TRANSPORT: 'smtp',
+      SMTP_HOST: 'smtp.example.com',
+      MAIL_FROM: 'a@example.com',
+    };
+    expect(() => loadEnv(prod)).toThrow(/DOCUMENT_ENCRYPTION_KEY/);
+    expect(() => loadEnv({ ...prod, DOCUMENT_ENCRYPTION_KEY: 'short' })).toThrow(
+      /DOCUMENT_ENCRYPTION_KEY/,
+    );
+    expect(loadEnv({ ...prod, DOCUMENT_ENCRYPTION_KEY: 'k'.repeat(40) }).NODE_ENV).toBe(
+      'production',
+    );
   });
 
   test('partial Discord configuration is rejected', () => {

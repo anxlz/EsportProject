@@ -138,6 +138,24 @@ export const DRAW_CANVAS = { width: 600, height: 200 } as const;
 /** A drawn signature's minimum total path length, in canvas units (a dot isn't a signature). */
 export const MIN_DRAWN_LENGTH = 60;
 
+/**
+ * ID-document patch: before signing, the RECIPIENT (not a guardian) uploads a photo or scan of a
+ * passport or a national/government ID. It is stored encrypted, apart from the contract, and is
+ * viewable only with `contracts.view_signer_id`. It strengthens the record of who signed; it is
+ * not an official or certified identity check.
+ */
+export const ID_DOCUMENT_TYPES = ['passport', 'national_id'] as const;
+export type IdDocumentType = (typeof ID_DOCUMENT_TYPES)[number];
+/** Signer roles that must upload one. A guardian may be signing for a minor without either. */
+export const ID_DOCUMENT_ROLES: readonly SignerRole[] = ['recipient'];
+export const ID_DOCUMENT_CONTENT_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+] as const;
+export const ID_DOCUMENT_MAX_BYTES = 8 * 1024 * 1024;
+
 export const SIGNING_LINK_DEFAULT_DAYS = 7;
 export const SIGNING_LINK_MAX_DAYS = 30;
 /** Wrong codes allowed per link before it locks (a new link is then needed). */

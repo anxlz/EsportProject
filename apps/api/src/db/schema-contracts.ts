@@ -462,6 +462,11 @@ export const contractSigners = appSchema.table(
     recordSha256: text('record_sha256'),
     ip: text('ip'),
     userAgent: text('user_agent'),
+    /**
+     * ID-document patch: the identity document this signature was given with (recipients).
+     * Foreign key and "must belong to this signer" rule in migration 0013.
+     */
+    idDocumentId: uuid('id_document_id'),
     createdAt: createdAt(),
   },
   (t) => [
@@ -516,6 +521,63 @@ export const signingLinks = appSchema.table(
       name: 'signing_links_signer_fk',
       columns: [t.organizationId, t.signerId],
       foreignColumns: [contractSigners.organizationId, contractSigners.id],
+    }).onDelete('restrict'),
+  ],
+);
+
+/**
+ * ID-document patch: the identity document (passport or national ID) a recipient uploads before
+ * signing. The bytes are in `stored_files` (kind `signer_id_document`), ENCRYPTED with AES-256-GCM
+ * (see contracts/signer-id.service.ts); this row holds what is needed to find, decrypt and check
+ * them. It is never part of the contract PDF and is served only to holders of
+ * `contracts.view_signer_id`, each view audited.
+ *
+ * Rows are never deleted or edited (migration 0013): how long they are kept is an open product
+ * decision. The only change allowed is marking an upload superseded when the signer replaces it
+ * before signing.
+ */
+export const signerIdDocuments = appSchema.table(
+  'signer_id_documents',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id').notNull(),
+    roundId: uuid('round_id').notNull(),
+    signerId: uuid('signer_id').notNull(),
+    fileId: uuid('file_id').notNull(),
+    documentType: text('document_type').notNull(),
+    /** The real type of the original bytes (sniffed, not declared). */
+    contentType: text('content_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    /** SHA-256 of the original (decrypted) bytes. */
+    sha256: text('sha256').notNull(),
+    uploadedViaLinkId: uuid('uploaded_via_link_id')
+      .notNull()
+      .references(() => signingLinks.id),
+    uploadedAt: tstz('uploaded_at').notNull().defaultNow(),
+    ip: text('ip'),
+    userAgent: text('user_agent'),
+    supersededAt: tstz('superseded_at'),
+  },
+  (t) => [
+    unique('signer_id_documents_org_id_unique').on(t.organizationId, t.id),
+    uniqueIndex('signer_id_documents_one_current')
+      .on(t.signerId)
+      .where(sql`${t.supersededAt} is null`),
+    index('signer_id_documents_round_idx').on(t.roundId),
+    foreignKey({
+      name: 'signer_id_documents_round_fk',
+      columns: [t.organizationId, t.roundId],
+      foreignColumns: [signingRounds.organizationId, signingRounds.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'signer_id_documents_signer_fk',
+      columns: [t.organizationId, t.signerId],
+      foreignColumns: [contractSigners.organizationId, contractSigners.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'signer_id_documents_file_fk',
+      columns: [t.organizationId, t.fileId],
+      foreignColumns: [storedFiles.organizationId, storedFiles.id],
     }).onDelete('restrict'),
   ],
 );

@@ -13,6 +13,7 @@ import { ContractsService } from './contracts.service';
 import { DocumentSettingsService } from './document-settings.service';
 import { CLOCK, systemClock } from '../finance/clock';
 import { PublicSigningController, SigningController } from './signing.controller';
+import { SignerIdService } from './signer-id.service';
 import { SigningService } from './signing.service';
 
 @Module({
@@ -30,6 +31,8 @@ import { SigningService } from './signing.service';
     ContractsService,
     ClauseAssistantService,
     SigningService,
+    // Not exported: identity documents stay inside the contracts module (never the assistants).
+    SignerIdService,
     { provide: CLOCK, useValue: systemClock },
   ],
   exports: [ContractsService],

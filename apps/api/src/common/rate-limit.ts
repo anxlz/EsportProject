@@ -45,6 +45,8 @@ export const RATE_LIMIT_POLICIES = {
   signingCode: [{ by: 'ip', limit: 10, windowSeconds: 3600 }],
   signingVerify: [{ by: 'ip', limit: 20, windowSeconds: 900 }],
   signingSign: [{ by: 'ip', limit: 10, windowSeconds: 900 }],
+  /** ID-document patch: uploads (and replacements) of an identity document. */
+  signingIdUpload: [{ by: 'ip', limit: 10, windowSeconds: 900 }],
   // Phase 6: the Obsidian companion script (bearer token) and provider callbacks / webhooks.
   integrationToken: [{ by: 'ip', limit: 300, windowSeconds: 900 }],
   integrationHook: [{ by: 'ip', limit: 600, windowSeconds: 300 }],

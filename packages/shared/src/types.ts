@@ -74,6 +74,8 @@ export const ERROR_CODES = [
   'integration_unavailable',
   'url_not_allowed',
   'invalid_signature',
+  'id_document_required',
+  'id_document_not_needed',
   'internal_error',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];

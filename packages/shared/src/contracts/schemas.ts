@@ -6,6 +6,7 @@ import {
   CLAUSE_SOURCES,
   DOCUMENT_LANGUAGES,
   DRAW_CANVAS,
+  ID_DOCUMENT_TYPES,
   MIN_DRAWN_LENGTH,
   LOGO_POSITIONS,
   RECIPIENT_KINDS,
@@ -307,3 +308,7 @@ export const signSchema = z
   )
   .refine((v) => v.method !== 'drawn' || !!v.strokes, 'drawn_needs_strokes');
 export type SignInput = z.infer<typeof signSchema>;
+
+/** ID-document patch: the query of the raw upload (the body is the file itself). */
+export const idDocumentUploadQuerySchema = z.object({ type: z.enum(ID_DOCUMENT_TYPES) });
+export type IdDocumentUploadQuery = z.infer<typeof idDocumentUploadQuerySchema>;

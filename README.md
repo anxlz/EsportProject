@@ -6,7 +6,9 @@ contracts with approvals and e-signatures, bilingual AI assistants, meetings and
 
 **Status: all six phases built and tested. Phase 6 (Meetings, Calendar & Integrations, plus a
 Qwen3 AI provider) complete — Google Calendar, Notion and both AI providers tested against local
-stand-ins; no live external call yet.** See [`docs/PHASE-6-SUMMARY.md`](docs/PHASE-6-SUMMARY.md),
+stand-ins; no live external call yet.** Since then, one patch to Phase 4: signers upload an
+identity document before signing ([`docs/PATCH-ID-DOCUMENT-SUMMARY.md`](docs/PATCH-ID-DOCUMENT-SUMMARY.md)).
+See [`docs/PHASE-6-SUMMARY.md`](docs/PHASE-6-SUMMARY.md),
 [`docs/PHASE-5-SUMMARY.md`](docs/PHASE-5-SUMMARY.md),
 [`docs/PHASE-4-SUMMARY.md`](docs/PHASE-4-SUMMARY.md),
 [`docs/PHASE-3-SUMMARY.md`](docs/PHASE-3-SUMMARY.md),
@@ -25,7 +27,7 @@ apps/api         NestJS 12 on Bun. REST API, auth, authorization, all business l
   src/finance      Ledger, exchange rates, budgets + alerts, reports, exports (PDF/CSV/XLSX/TXT)
   src/rosters      Team rosters and pay terms         src/tournaments  Tournament research
   src/contracts    Contract types/templates, document setup, drafting, approval, clause assistant,
-                   electronic signatures (links, codes, signing, signature record)
+                   electronic signatures (links, codes, ID documents, signing, signature record)
   src/versioning   Append-only version history        src/files  File store (Postgres)
   src/pdf          Shared PDF engine (Chromium + pdf-lib underlay)
   src/ai           AI provider interface: Anthropic and Qwen3 adapters, per-feature routing
@@ -144,6 +146,9 @@ Production checklist:
 12. Optional: Google Calendar needs an OAuth app (`GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI`, redirect
     `https://<web-app>/api/integrations/google/callback`); Google's verification is required for
     the `calendar.events` scope beyond 100 users. Run one live sync check after connecting.
+13. `DOCUMENT_ENCRYPTION_KEY` (32+ characters) encrypts signers' identity documents; the API
+    refuses to start in production without it. Keep it like a backup key. Decide the retention
+    policy for those documents before collecting real ones (see DECISIONS.md).
 
 The browser only talks to the web origin; Next.js forwards `/api/*` to the API, which keeps the
 session cookie first-party. Don't expose the API's own URL to users.

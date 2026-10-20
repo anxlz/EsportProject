@@ -5,6 +5,7 @@ import type {
   ClauseSource,
   ContractStatus,
   DocumentLanguage,
+  IdDocumentType,
   LogoPosition,
   SignatureFontKey,
   SignatureMethod,
@@ -249,6 +250,27 @@ export interface SignerDto {
     consentText: string;
     documentSha256: string;
   } | null;
+  /**
+   * ID-document patch. `required` and `provided` are shown to everyone who sees the signing
+   * status; `details` only to holders of `contracts.view_signer_id` (null otherwise).
+   */
+  idDocument: {
+    required: boolean;
+    provided: boolean;
+    details: SignerIdDocumentDto[] | null;
+  };
+}
+
+/** Metadata of an uploaded ID document (never its content). Newest first; one is current. */
+export interface SignerIdDocumentDto {
+  id: string;
+  documentType: IdDocumentType;
+  contentType: string;
+  sizeBytes: number;
+  sha256: string;
+  uploadedAt: string;
+  /** The one the signature was given with (or, before signing, the latest upload). */
+  current: boolean;
 }
 
 export interface SigningRoundDto {
@@ -321,6 +343,19 @@ export interface PublicSigningSession {
   /** This person's own signature once given. */
   signedAt: string | null;
   sessionExpiresAt: string;
+  /**
+   * ID-document patch: whether this signer must upload an identity document before signing, and
+   * what was received (metadata only; the file itself is never sent back to the signing page).
+   */
+  idDocument: {
+    required: boolean;
+    uploaded: {
+      documentType: IdDocumentType;
+      contentType: string;
+      sizeBytes: number;
+      uploadedAt: string;
+    } | null;
+  };
 }
 
 /** Returned by a successful code check; the token goes in the `x-signing-session` header. */

@@ -41,6 +41,29 @@ export default tseslint.config(
     rules: { 'no-restricted-syntax': 'off' },
   },
   {
+    // ID-document patch, hard boundary: no AI code may reach signers' identity documents, the
+    // signing records around them, or the raw file store.
+    files: ['apps/api/src/assistants/**', 'apps/api/src/ai/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/signer-id*', '**/signing.service*', '**/files/files.service*'],
+              message: 'AI assistants must never reach identity documents or the file store.',
+            },
+            {
+              group: ['**/db/schema-contracts*'],
+              importNames: ['signerIdDocuments', 'storedFiles', 'contractSigners', 'signingLinks'],
+              message: 'AI assistants must never reach identity documents or signing records.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['apps/web/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: {

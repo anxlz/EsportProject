@@ -14,6 +14,7 @@ import {
   type NestInterceptor,
   Param,
   Post,
+  Req,
   Res,
   StreamableFile,
   UseInterceptors,
@@ -23,11 +24,13 @@ import {
   cancelSigningSchema,
   type CreateSigningLinkInput,
   createSigningLinkSchema,
+  type IdDocumentUploadQuery,
+  idDocumentUploadQuerySchema,
   type SignInput,
   signSchema,
   verifySigningCodeSchema,
 } from '@esports/shared';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import type { Observable } from 'rxjs';
 import type { z } from 'zod';
 import {
@@ -40,9 +43,11 @@ import {
   TenantCtx,
 } from '../authz/context';
 import { RateLimit } from '../common/rate-limit';
-import { UuidPipe, ZodBody } from '../common/zod';
+import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
 import { requireAny } from './contract-types.controller';
+import { ContractsService } from './contracts.service';
 import { asciiFilename, sendPreviewHtml } from './http';
+import { SignerIdService } from './signer-id.service';
 import { SigningService } from './signing.service';
 
 const SEE: Parameters<typeof requireAny>[1] = ['contracts.view', 'contracts.approve'];
@@ -58,7 +63,11 @@ const pdfFile = (res: Response, f: { pdf: Buffer; filename: string; sha256: stri
 @ApiTags('contracts')
 @Controller('contracts')
 export class SigningController {
-  constructor(private readonly signing: SigningService) {}
+  constructor(
+    private readonly signing: SigningService,
+    private readonly contracts: ContractsService,
+    private readonly signerIds: SignerIdService,
+  ) {}
 
   @Get(':id/signing')
   @RequireOrg()
@@ -108,6 +117,36 @@ export class SigningController {
     @ZodBody(cancelSigningSchema) body: z.infer<typeof cancelSigningSchema>,
   ) {
     return this.signing.cancel(ctx, id, body.reason);
+  }
+
+  /**
+   * ID-document patch: one signer's identity document. Needs `contracts.view_signer_id` on the
+   * contract's team (seeing the contract is not enough); every view is audited. Never cached.
+   */
+  @Get(':id/signing/id-documents/:documentId')
+  @RequireOrg()
+  async idDocument(
+    @TenantCtx() ctx: TenantContext,
+    @Param('id', UuidPipe) id: string,
+    @Param('documentId', UuidPipe) documentId: string,
+    @Res() res: Response,
+  ) {
+    const c = await this.contracts.loadVisible(ctx, id);
+    const f = await this.signerIds.view(ctx, c, documentId);
+    const image = f.contentType.startsWith('image/');
+    res
+      .status(200)
+      .set({
+        'Content-Type': f.contentType,
+        'Content-Length': String(f.data.length),
+        'Content-Disposition': `${image ? 'inline' : 'attachment'}; filename="${asciiFilename(f.filename)}"`,
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "default-src 'none'; sandbox",
+        'Referrer-Policy': 'no-referrer',
+        'X-Document-SHA256': f.sha256,
+      })
+      .end(f.data);
   }
 
   /** The fully signed document (approved PDF + signature record), exactly as stored. */
@@ -200,6 +239,32 @@ export class PublicSigningController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return pdfFile(res, await this.signing.documentPdf(token, session));
+  }
+
+  /**
+   * ID-document patch: the recipient's identity document (raw body: PNG, JPEG, WebP or PDF;
+   * `?type=passport|national_id`). Checked by its bytes, stored encrypted, never sent back.
+   */
+  @Post(':token/id-document')
+  @Public()
+  @HttpCode(200)
+  @RateLimit('signingIdUpload')
+  uploadIdDocument(
+    @Param('token') token: string,
+    @Headers(SESSION_HEADER) session: string | undefined,
+    @ZodQuery(idDocumentUploadQuerySchema) q: IdDocumentUploadQuery,
+    @Req() req: Request,
+    @Meta() meta: ClientMeta,
+  ) {
+    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    return this.signing.uploadIdDocument(
+      token,
+      session,
+      q.type,
+      body,
+      req.headers['content-type'],
+      meta,
+    );
   }
 
   @Post(':token/sign')

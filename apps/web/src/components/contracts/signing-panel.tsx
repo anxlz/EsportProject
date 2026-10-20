@@ -4,6 +4,9 @@
  * The Signatures tab of a contract (spec §7.7): send the approved contract for signature, create
  * and withdraw each signer's link, follow who has signed, cancel signing, and download the fully
  * signed document. Every action is re-checked by the API.
+ *
+ * ID-document patch: each recipient's identity document shows as provided or not; only holders
+ * of `contracts.view_signer_id` get its details and can open it (every view is audited).
  */
 import {
   type ContractDto,
@@ -13,6 +16,7 @@ import {
   requiredSigners,
   SIGNING_LINK_DEFAULT_DAYS,
   type SignerDto,
+  type SignerIdDocumentDto,
   type SigningLinkCreatedDto,
   type SigningRoundDto,
   type VerificationMethod,
@@ -21,6 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   CheckCircle2,
   Download,
+  IdCard,
   Info,
   KeyRound,
   Link2,
@@ -29,7 +34,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Badge,
   Button,
@@ -44,7 +49,7 @@ import {
   TextArea,
   TextField,
 } from '@/components/ui';
-import { api, apiPost } from '@/lib/api';
+import { api, ApiError, apiPost } from '@/lib/api';
 import { downloadGet, pick, useContractLabels, useContractLocale } from '@/lib/contracts';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { useAction } from '@/lib/mutation';
@@ -382,6 +387,8 @@ function SignerItem({
         </div>
       </div>
 
+      {s.idDocument.required && <IdDocumentRow c={c} signer={s} name={name} />}
+
       {sig ? (
         <div className="grid gap-4 rounded-md border border-line bg-panel-2/50 p-4 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
           <div className="flex min-h-16 items-end border-b border-line-strong pb-1">
@@ -460,6 +467,167 @@ function SignerItem({
         onClose={() => setDialog(null)}
       />
     </li>
+  );
+}
+
+const FORMAT: Record<string, string> = {
+  'image/jpeg': 'JPEG',
+  'image/png': 'PNG',
+  'image/webp': 'WebP',
+  'application/pdf': 'PDF',
+};
+const bytes = (n: number, loc: string) =>
+  new Intl.NumberFormat(loc === 'ar' ? 'ar-u-nu-latn' : 'en', {
+    style: 'unit',
+    unit: n >= 1048576 ? 'megabyte' : 'kilobyte',
+    maximumFractionDigits: 1,
+  }).format(n >= 1048576 ? n / 1048576 : Math.max(1, Math.round(n / 1024)));
+
+/** ID-document patch: provided or not; details and "View" only with the permission. */
+function IdDocumentRow({
+  c,
+  signer: s,
+  name,
+}: {
+  c: ContractDto;
+  signer: SignerDto;
+  name: string;
+}) {
+  const t = useTranslations('contracts.signing.idDocument');
+  const loc = useContractLocale();
+  const [viewing, setViewing] = useState<SignerIdDocumentDto | null>(null);
+  const d = s.idDocument;
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-line px-3 py-2 text-sm">
+      <p className="flex flex-wrap items-center gap-2">
+        <IdCard className="size-4 text-muted" aria-hidden="true" />
+        <span className="font-medium">{t('label')}</span>
+        <Badge tone={d.provided ? 'turf' : 'amber'}>
+          {d.provided ? t('provided') : t('missing')}
+        </Badge>
+      </p>
+      {d.details ? (
+        <ul className="flex flex-col gap-1.5">
+          {d.details.map((doc) => (
+            <li key={doc.id} className="flex flex-wrap items-center gap-2">
+              <span className={cx(!doc.current && 'text-muted')}>
+                {t('meta', {
+                  type: t(`types.${doc.documentType}`),
+                  format: FORMAT[doc.contentType] ?? doc.contentType,
+                  size: bytes(doc.sizeBytes, loc),
+                  date: formatDateTime(doc.uploadedAt, loc),
+                })}
+              </span>
+              <Badge tone={doc.current ? 'turf' : 'neutral'}>
+                {doc.current
+                  ? s.status === 'signed'
+                    ? t('current')
+                    : t('currentPending')
+                  : t('replaced')}
+              </Badge>
+              <Button size="sm" variant="ghost" onClick={() => setViewing(doc)}>
+                {t('view')}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        d.provided && <p className="text-[0.8125rem] text-muted">{t('needsPermission')}</p>
+      )}
+      {viewing && (
+        <IdDocumentDialog c={c} doc={viewing} name={name} onClose={() => setViewing(null)} />
+      )}
+    </div>
+  );
+}
+
+/** Opens one stored document. Each open is a view the API records in the audit log. */
+function IdDocumentDialog({
+  c,
+  doc,
+  name,
+  onClose,
+}: {
+  c: ContractDto;
+  doc: SignerIdDocumentDto;
+  name: string;
+  onClose: () => void;
+}) {
+  const t = useTranslations('contracts.signing.idDocument');
+  const tc = useTranslations('common');
+  const path = `/contracts/${c.id}/signing/id-documents/${doc.id}`;
+  const image = doc.contentType.startsWith('image/');
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => {
+    if (!image) return;
+    let revoke: string | null = null;
+    let live = true;
+    fetch(`/api${path}`, { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as {
+            error?: { code?: string; message?: string };
+          } | null;
+          throw new ApiError(
+            res.status,
+            (body?.error?.code as never) ?? 'internal_error',
+            body?.error?.message ?? '',
+          );
+        }
+        const blob = await res.blob();
+        revoke = URL.createObjectURL(blob);
+        if (live) setUrl(revoke);
+      })
+      .catch((e: unknown) => live && setError(e));
+    return () => {
+      live = false;
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
+  }, [image, path]);
+  return (
+    <Dialog
+      open
+      wide
+      onClose={onClose}
+      title={t('viewTitle', { name })}
+      lead={t('viewLead')}
+      footer={
+        <>
+          {!image && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setError(null);
+                downloadGet(path, 'id-document.pdf').catch(setError);
+              }}
+            >
+              <Download className="size-4" aria-hidden="true" />
+              {t('download')}
+            </Button>
+          )}
+          <Button onClick={onClose}>{tc('close')}</Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <ErrorBanner error={error} />
+        {image ? (
+          url ? (
+            <img
+              src={url}
+              alt={t('imageAlt', { name })}
+              className="mx-auto max-h-[60vh] max-w-full rounded-md border border-line object-contain"
+            />
+          ) : (
+            !error && <Spinner />
+          )
+        ) : (
+          <p className="text-sm text-muted">{t('pdfNote')}</p>
+        )}
+        <Fingerprint label="SHA-256" value={doc.sha256} />
+      </div>
+    </Dialog>
   );
 }
 

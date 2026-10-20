@@ -94,6 +94,8 @@ export interface CertificateSigner {
   consentText: string;
   consentLocale: ContractLocale;
   recordSha256: string;
+  /** ID-document patch: the uploaded identity document's SHA-256 (the file is kept apart). */
+  idDocumentSha256: string | null;
 }
 
 export interface CertificateInput {
@@ -186,6 +188,7 @@ export function certificateHtml(input: CertificateInput): string {
         (l) => C(l).consent,
         `<div lang="${s.consentLocale}" dir="${s.consentLocale === 'ar' ? 'rtl' : 'ltr'}" class="consent">${esc(s.consentText)}</div>`,
       ),
+      ...(s.idDocumentSha256 ? [same((l) => C(l).idDocument, hash(s.idDocumentSha256))] : []),
       same((l) => C(l).recordHash, hash(s.recordSha256)),
     ];
     return `<section class="signer"><h2><span class="n">${i + 1}</span> ${names}</h2>

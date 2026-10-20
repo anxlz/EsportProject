@@ -2,8 +2,9 @@
 
 /**
  * The public signing page (spec §7.7): no account needed. The signer confirms who they are with
- * a 6-digit code, reads the approved contract, signs (typed in blue or drawn), reviews a preview,
- * agrees to the statement and confirms. Only this contract and this signer's details are shown.
+ * a 6-digit code, uploads an identity document (the recipient only; ID-document patch), reads the
+ * approved contract, signs (typed in blue or drawn), reviews a preview, agrees to the statement
+ * and confirms. Only this contract and this signer's details are shown.
  *
  * The verified session lives in sessionStorage for this tab only and is sent as a header; the
  * API re-checks the link and the session on every request.
@@ -11,6 +12,10 @@
 import {
   type ApiErrorBody,
   CONSENT_VERSION,
+  ID_DOCUMENT_CONTENT_TYPES,
+  ID_DOCUMENT_MAX_BYTES,
+  ID_DOCUMENT_TYPES,
+  type IdDocumentType,
   MIN_DRAWN_LENGTH,
   type PublicSigningInfo,
   type PublicSigningSession,
@@ -22,7 +27,17 @@ import {
   strokeLength,
 } from '@esports/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Clock, Download, FileText, Lock, PenLine, ShieldCheck } from 'lucide-react';
+import {
+  CheckCircle2,
+  Clock,
+  Download,
+  FileText,
+  IdCard,
+  Lock,
+  PenLine,
+  ShieldCheck,
+  Upload,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
@@ -529,6 +544,15 @@ function Signing({
           <Button onClick={onRefresh}>{t('refresh')}</Button>
         </Card>
       )}
+      {s.idDocument.required && (
+        <IdDocumentStep
+          token={token}
+          session={session}
+          s={s}
+          onUpdate={onUpdate}
+          onSessionLost={onSessionLost}
+        />
+      )}
       <DocumentReview token={token} session={session} s={s} />
       {s.state === 'ready' && (
         <SignForm
@@ -540,6 +564,220 @@ function Signing({
         />
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// ID-document patch: the recipient uploads a passport or national ID before signing. It is
+// checked by its bytes on the server and never sent back to this page.
+
+const FORMAT: Record<string, string> = {
+  'image/jpeg': 'JPEG',
+  'image/png': 'PNG',
+  'image/webp': 'WebP',
+  'application/pdf': 'PDF',
+};
+
+function formatBytes(n: number, locale: string) {
+  const mb = n >= 1024 * 1024;
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en', {
+    style: 'unit',
+    unit: mb ? 'megabyte' : 'kilobyte',
+    maximumFractionDigits: 1,
+  }).format(mb ? n / (1024 * 1024) : Math.max(1, Math.round(n / 1024)));
+}
+
+function IdDocumentStep({
+  token,
+  session,
+  s,
+  onUpdate,
+  onSessionLost,
+}: {
+  token: string;
+  session: string;
+  s: PublicSigningSession;
+  onUpdate: (s: PublicSigningSession) => void;
+  onSessionLost: () => void;
+}) {
+  const t = useTranslations('signPage.id');
+  const tc = useTranslations('common');
+  const locale = useLocale();
+  const uploaded = s.idDocument.uploaded;
+  const [replacing, setReplacing] = useState(false);
+  const [type, setType] = useState<IdDocumentType>(uploaded?.documentType ?? 'passport');
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => {
+    if (!file || !file.type.startsWith('image/')) {
+      setPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  const tooBig = !!file && file.size > ID_DOCUMENT_MAX_BYTES;
+  const badType = !!file && !(ID_DOCUMENT_CONTENT_TYPES as readonly string[]).includes(file.type);
+  const editable = s.state === 'ready' || s.state === 'waiting';
+
+  const upload = async () => {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      let res: Response;
+      try {
+        res = await fetch(
+          `/api/public/signing/${encodeURIComponent(token)}/id-document?type=${type}`,
+          {
+            method: 'POST',
+            headers: { 'content-type': file.type, [SESSION_HEADER]: session },
+            body: file,
+            cache: 'no-store',
+            credentials: 'omit',
+          },
+        );
+      } catch {
+        throw new ApiError(0, 'network', 'Network error');
+      }
+      const data = (await res.json().catch(() => null)) as unknown;
+      if (!res.ok) {
+        const err = (data as ApiErrorBody | null)?.error;
+        throw new ApiError(res.status, err?.code ?? 'internal_error', err?.message ?? '');
+      }
+      onUpdate(data as PublicSigningSession);
+      setFile(null);
+      setReplacing(false);
+    } catch (e) {
+      if (isCode(e, 'verification_required')) onSessionLost();
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card
+      icon={<IdCard className="size-5" aria-hidden="true" />}
+      title={t('title')}
+      lead={t('lead')}
+    >
+      <div className="flex flex-col gap-4">
+        {uploaded && !replacing ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-turf/30 bg-turf-soft/40 px-4 py-3">
+            <div className="flex min-w-0 items-start gap-2">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-turf" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="font-medium">
+                  {t('received', { type: t(`types.${uploaded.documentType}`) })}
+                </p>
+                <p className="text-sm text-muted">
+                  {t('receivedMeta', {
+                    format: FORMAT[uploaded.contentType] ?? uploaded.contentType,
+                    size: formatBytes(uploaded.sizeBytes, locale),
+                    time: formatDateTime(uploaded.uploadedAt, locale),
+                  })}
+                </p>
+              </div>
+            </div>
+            {editable && (
+              <Button size="sm" onClick={() => setReplacing(true)}>
+                {t('replace')}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <>
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium">{t('typeLabel')}</legend>
+              <div className="flex flex-wrap gap-2">
+                {ID_DOCUMENT_TYPES.map((k) => (
+                  <label
+                    key={k}
+                    className={cx(
+                      'flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                      type === k ? 'border-turf bg-turf-soft/40' : 'border-line bg-panel',
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="id-type"
+                      checked={type === k}
+                      onChange={() => setType(k)}
+                      className="accent-[var(--turf)]"
+                    />
+                    {t(`types.${k}`)}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium" id="id-file-label">
+                {t('fileLabel')}
+              </p>
+              <label className="flex w-fit cursor-pointer items-center gap-2 rounded-md border border-line-strong bg-panel px-4 py-2 text-[0.9375rem] font-medium hover:bg-panel-2 focus-within:ring-2 focus-within:ring-turf">
+                <Upload className="size-4" aria-hidden="true" />
+                {t('choose')}
+                <input
+                  type="file"
+                  className="sr-only"
+                  aria-labelledby="id-file-label"
+                  accept={ID_DOCUMENT_CONTENT_TYPES.join(',')}
+                  onChange={(e) => {
+                    setError(null);
+                    setFile(e.target.files?.[0] ?? null);
+                  }}
+                />
+              </label>
+              <p className="text-[0.8125rem] text-muted">{t('fileHint')}</p>
+              {file && (
+                <p className="text-sm break-all" dir="auto">
+                  {t('selected', { name: file.name })} · {formatBytes(file.size, locale)}
+                </p>
+              )}
+              {preview && (
+                // A local preview only: the file is not sent anywhere until "Upload".
+                <img
+                  src={preview}
+                  alt={t('previewAlt')}
+                  className="max-h-56 w-fit max-w-full rounded-md border border-line object-contain"
+                />
+              )}
+              {tooBig && <p className="text-sm text-brick">{t('tooBig')}</p>}
+              {badType && !tooBig && <p className="text-sm text-brick">{t('badType')}</p>}
+            </div>
+            <ErrorBanner error={error} />
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                disabled={!file || tooBig || badType || busy}
+                onClick={() => void upload()}
+              >
+                {busy ? t('uploading') : t('upload')}
+              </Button>
+              {replacing && (
+                <Button
+                  onClick={() => {
+                    setReplacing(false);
+                    setFile(null);
+                    setError(null);
+                  }}
+                >
+                  {tc('cancel')}
+                </Button>
+              )}
+            </div>
+          </>
+        )}
+        <p className="flex gap-2 text-[0.8125rem] text-muted">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>{t('privacy')}</span>
+        </p>
+      </div>
+    </Card>
   );
 }
 
@@ -589,7 +827,9 @@ function SignForm({
     consent: agree,
     confirm: true,
   };
-  const valid = signSchema.safeParse(payload).success;
+  // ID-document patch: the recipient's identity document must be in first.
+  const idMissing = s.idDocument.required && !s.idDocument.uploaded;
+  const valid = signSchema.safeParse(payload).success && !idMissing;
   const drawnTooShort =
     method === 'drawn' && strokes.length > 0 && strokeLength(strokes) < MIN_DRAWN_LENGTH;
   const statement = locale === 'ar' ? s.consent.ar : s.consent.en;
@@ -728,6 +968,7 @@ function SignForm({
         </div>
 
         <ErrorBanner error={confirming ? null : error} />
+        {idMissing && <p className="text-sm text-brick">{t('idFirst')}</p>}
         <Button
           variant="primary"
           disabled={!valid}

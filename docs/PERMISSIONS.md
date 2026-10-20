@@ -55,6 +55,7 @@ editable and deletable by Owners, and Owners can create any number of custom rol
 | `contracts.approve` | Scopable | ✓ |  |  |  |
 | `contracts.manage_templates` | Owner-only | ✓ |  |  |  |
 | `contracts.send_for_signature` | Scopable | ✓ | ✓ | ✓ |  |
+| `contracts.view_signer_id` | Scopable | ✓ |  |  |  |
 | `assistants.general` | Org-level | ✓ | ✓ | ✓ | ✓ |
 | `assistants.formal_message` | Org-level | ✓ | ✓ | ✓ | ✓ |
 | `assistants.email` | Org-level | ✓ | ✓ | ✓ | ✓ |

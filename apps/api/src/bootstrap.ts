@@ -22,7 +22,8 @@ export function configureApp(app: INestApplication, env: Env): void {
   express.useBodyParser('json', { limit: '1mb' });
   express.useBodyParser('raw', {
     type: ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'],
-    limit: '6mb',
+    // 8 MB identity documents (ID-document patch) plus headroom; other kinds have lower limits.
+    limit: '9mb',
   });
   app.enableShutdownHooks();
   // Browsers reach the API through the web app's own origin (Next.js rewrite), so CORS is only

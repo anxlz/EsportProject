@@ -35,6 +35,7 @@ import {
   type ContractSnapshot,
   type CreateSigningLinkInput,
   EMAIL_CODE_MINUTES,
+  type IdDocumentType,
   maskEmail,
   type PublicSigningInfo,
   type PublicSigningSession,
@@ -82,6 +83,7 @@ import { canonicalJson, sha256Hex, VersioningService } from '../versioning/versi
 import { CONTRACT_ENTITY, ContractsService, type LoadedContract } from './contracts.service';
 import { DocumentSettingsService } from './document-settings.service';
 import { renderGuard } from './http';
+import { idDocumentRequired, SignerIdService } from './signer-id.service';
 import { certificateFooter, certificateHtml, type CertificateSigner } from './signing-document';
 
 const PERM = 'contracts.send_for_signature';
@@ -144,6 +146,7 @@ export class SigningService {
     private readonly versions: VersioningService,
     private readonly contracts: ContractsService,
     private readonly settings: DocumentSettingsService,
+    private readonly signerIds: SignerIdService,
   ) {}
 
   // ================================================================ manager side
@@ -521,6 +524,10 @@ export class SigningService {
     const who = (uid: string | null) =>
       uid ? { id: uid, displayName: names.get(uid) ?? '' } : null;
     const now = new Date();
+    // ID-document patch: whether each signer's document is in for everyone who sees this;
+    // what was uploaded only for holders of contracts.view_signer_id.
+    const idDocs = await this.signerIds.list(signers.map((s) => s.id));
+    const idDetails = this.signerIds.canView(ctx, c);
 
     const out: SigningRoundDto[] = [];
     for (const r of rounds) {
@@ -589,6 +596,7 @@ export class SigningService {
                     documentSha256: s.documentSha256!,
                   }
                 : null,
+            idDocument: this.signerIds.status(s, idDocs, idDetails),
           };
         }),
       });
@@ -678,6 +686,7 @@ export class SigningService {
       round.approvalRequestId,
     );
     const settings = await this.settings.get(organizationId);
+    const idDocs = await this.signerIds.list(signers.map((s) => s.id));
     const completedAt = new Date(
       Math.max(...signers.map((s) => s.signedAt!.getTime()), Date.now()),
     );
@@ -713,6 +722,8 @@ export class SigningService {
         consentText: s.consentText!,
         consentLocale: s.consentLocale as ContractLocale,
         recordSha256: s.recordSha256!,
+        // Only the fingerprint: the document itself is never part of the signed PDF.
+        idDocumentSha256: idDocs.find((d) => d.id === s.idDocumentId)?.sha256 ?? null,
       })),
     });
     const record = await renderGuard(() =>
@@ -1129,6 +1140,7 @@ export class SigningService {
       })),
       signedAt: r.signer.signedAt?.toISOString() ?? null,
       sessionExpiresAt: expiresAt.toISOString(),
+      idDocument: await this.signerIds.forSession(r.signer),
     };
   }
 
@@ -1168,6 +1180,20 @@ export class SigningService {
     return { pdf: f.data, filename: `${r.contract.number}-signed.pdf`, sha256: f.sha256 };
   }
 
+  /** ID-document patch: the recipient uploads (or replaces) their identity document. */
+  async uploadIdDocument(
+    token: string,
+    sessionToken: string | undefined,
+    documentType: IdDocumentType,
+    data: Buffer,
+    declaredType: string | undefined,
+    meta: ClientMeta,
+  ): Promise<PublicSigningSession> {
+    const { r, expiresAt } = await this.requireSession(token, sessionToken);
+    await this.signerIds.upload(r, documentType, data, declaredType, meta);
+    return this.sessionDto(await this.resolve(token), expiresAt);
+  }
+
   async sign(
     token: string,
     sessionToken: string | undefined,
@@ -1182,6 +1208,11 @@ export class SigningService {
     const signers = await this.roundSigners(this.db, r.round.id);
     if (signers.some((s) => s.signOrder < r.signer.signOrder && s.status !== 'signed'))
       throw Errors.conflict('not_your_turn', 'An earlier signer has not signed yet');
+    // ID-document patch: the recipient's identity document must be in before they can sign.
+    const needsId = idDocumentRequired(r.signer.role);
+    const idDoc = needsId ? await this.signerIds.current(r.signer.id) : null;
+    if (needsId && !idDoc)
+      throw Errors.conflict('id_document_required', 'Upload your identity document before signing');
 
     // The document must still be exactly the one approved.
     const approved = await this.contracts.approvedFile(
@@ -1214,6 +1245,8 @@ export class SigningService {
       signedAt: signedAt.toISOString(),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      // The identity document is bound into the record by its fingerprint (never its content).
+      ...(idDoc ? { idDocument: { id: idDoc.id, sha256: idDoc.sha256 } } : {}),
     };
     const recordSha256 = sha256Hex(canonicalJson(record));
 
@@ -1236,6 +1269,20 @@ export class SigningService {
         );
       if (earlier.some((s) => s.status !== 'signed'))
         throw Errors.conflict('not_your_turn', 'An earlier signer has not signed yet');
+      if (idDoc) {
+        // Same lock as an upload takes, so the document can't be replaced while signing.
+        await tx
+          .select({ id: contractSigners.id })
+          .from(contractSigners)
+          .where(eq(contractSigners.id, r.signer.id))
+          .for('update');
+        const still = await this.signerIds.current(r.signer.id, tx);
+        if (still?.id !== idDoc.id)
+          throw Errors.conflict(
+            'id_document_required',
+            'Your identity document changed; check it and sign again',
+          );
+      }
       const [link] = await tx
         .update(signingLinks)
         .set({ usedAt: signedAt })
@@ -1269,6 +1316,7 @@ export class SigningService {
           recordSha256,
           ip: meta.ip,
           userAgent: meta.userAgent,
+          idDocumentId: idDoc?.id ?? null,
         })
         .where(and(eq(contractSigners.id, r.signer.id), eq(contractSigners.status, 'pending')))
         .returning({ id: contractSigners.id });
@@ -1292,6 +1340,7 @@ export class SigningService {
             verificationMethod: r.link.method,
             documentSha256: approved.sha256,
             recordSha256,
+            idDocumentId: idDoc?.id ?? null,
           },
           ip: meta.ip,
           userAgent: meta.userAgent,

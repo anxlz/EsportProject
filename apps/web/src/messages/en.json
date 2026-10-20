@@ -185,7 +185,9 @@
     "integration_not_configured": "This integration isn't set up on the server yet.",
     "integration_unavailable": "The service couldn't be reached or refused the request. Check the details and try again.",
     "url_not_allowed": "Use an https address on the public internet (private and local addresses aren't allowed).",
-    "invalid_signature": "The request wasn't signed correctly."
+    "invalid_signature": "The request wasn't signed correctly.",
+    "id_document_required": "Upload your identity document before signing.",
+    "id_document_not_needed": "No identity document is needed from you."
   },
   "overview": {
     "greeting": "Welcome, {name}",
@@ -429,7 +431,8 @@
       "export": "Download contract documents",
       "approve": "Approve or reject contracts (approval authority)",
       "manage_templates": "Change contract types and clause templates",
-      "send_for_signature": "Send approved contracts for signature, manage signing links and cancel signing"
+      "send_for_signature": "Send approved contracts for signature, manage signing links and cancel signing",
+      "view_signer_id": "View signers' identity documents (the passport or ID uploaded when signing)"
     },
     "assistants": {
       "general": "Use the General Esports Assistant",
@@ -572,7 +575,9 @@
         "signer_verification_failed": "Wrong signing code entered",
         "signed": "Signed a contract",
         "fully_signed": "Contract fully signed",
-        "signing_cancelled": "Cancelled signing"
+        "signing_cancelled": "Cancelled signing",
+        "signer_id_uploaded": "Uploaded an identity document while signing",
+        "signer_id_viewed": "Viewed a signer's identity document"
       },
       "contract_type": {
         "created": "Created a contract type",
@@ -1401,7 +1406,27 @@
       "verifiedFailed": "It doesn't match its recorded fingerprint. Don't rely on it and contact support.",
       "earlierRounds": "Earlier attempts",
       "legalNote": "Requirements for electronic signatures, and for a parent or guardian's consent for players under 18, can depend on the situation. Before relying on signed contracts, confirm the approach with the Saudi Esports Federation or legal counsel.",
-      "signers": "Signers"
+      "signers": "Signers",
+      "idDocument": {
+        "label": "Identity document",
+        "provided": "Provided",
+        "missing": "Not uploaded yet",
+        "needsPermission": "Viewing it needs the “View signers' identity documents” permission.",
+        "current": "Used for the signature",
+        "currentPending": "Latest",
+        "replaced": "Replaced",
+        "meta": "{type} · {format} · {size} · {date}",
+        "view": "View",
+        "viewTitle": "Identity document: {name}",
+        "viewLead": "Each view is recorded in the audit log. Don't download or share it unless you need to.",
+        "imageAlt": "Identity document uploaded by {name}",
+        "pdfNote": "This document is a PDF. Download it to view it.",
+        "download": "Download",
+        "types": {
+          "passport": "Passport",
+          "national_id": "National ID card"
+        }
+      }
     }
   },
   "signPage": {
@@ -1459,7 +1484,30 @@
     "sessionEnded": "Your session ended. Confirm it's you again to continue.",
     "unusable": "This link can't be used",
     "contactOrg": "If you think this is a mistake, contact the organization that sent it.",
-    "revisitSigned": "You've already signed with this link. Confirm it's you to see the status or download the signed copy."
+    "revisitSigned": "You've already signed with this link. Confirm it's you to see the status or download the signed copy.",
+    "idFirst": "Upload your identity document above before you sign.",
+    "id": {
+      "title": "Your identity document",
+      "lead": "Upload a clear photo or scan of your passport or national ID card before you sign.",
+      "typeLabel": "Document",
+      "types": {
+        "passport": "Passport",
+        "national_id": "National ID card"
+      },
+      "fileLabel": "Photo or scan",
+      "fileHint": "JPEG, PNG, WebP or PDF, up to 8 MB. Make sure your name and photo are readable.",
+      "choose": "Choose a file or take a photo",
+      "selected": "Selected: {name}",
+      "previewAlt": "Preview of the selected document",
+      "upload": "Upload",
+      "uploading": "Uploading…",
+      "received": "Received: {type}",
+      "receivedMeta": "{format} · {size} · {time}",
+      "replace": "Replace",
+      "tooBig": "This file is larger than 8 MB. Choose a smaller photo or scan.",
+      "badType": "Choose a JPEG, PNG, WebP or PDF file.",
+      "privacy": "Only people your organization has specifically authorized can view it, and every view is recorded. It is kept separately from the contract and is never shared with AI assistants. It adds to the record of who signed; it is not an official identity check."
+    }
   },
   "assistants": {
     "title": "AI assistants",
