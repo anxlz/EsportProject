@@ -59,6 +59,8 @@ describe('invitations', () => {
       'assistants.general',
       'departments.view',
       'games.view',
+      // Phase 6: operations staff see the meetings of their teams (and any they're invited to).
+      'meetings.view',
       // Phase 2: operations staff can see rosters and the tournament calendar (no pay data).
       'rosters.view',
       'teams.view',

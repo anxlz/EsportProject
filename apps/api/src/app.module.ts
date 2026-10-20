@@ -29,6 +29,10 @@ import { AssistantsModule } from './assistants/assistants.module';
 import { FilesService } from './files/files.service';
 import { PdfService } from './pdf/pdf.service';
 import { VersioningService } from './versioning/versioning.service';
+import { MeetingsModule } from './meetings/meetings.module';
+import { IntegrationsModule } from './integrations/integrations.module';
+import { SchedulerService } from './scheduler/scheduler.service';
+import { NOW, systemNow } from './common/now';
 import { NotificationsController } from './notifications/notifications.controller';
 import { OrganizationController } from './organizations/organization.controller';
 import { ProvisioningService } from './organizations/provisioning.service';
@@ -41,7 +45,8 @@ import { TeamsService } from './teams/teams.service';
 /**
  * Cross-cutting services every feature module can inject: authorization, audit log,
  * notifications, sessions, mail, rate limiting, plus (Phase 3) the version history, file store
- * and PDF engine. Built once, reused everywhere (spec §3.3).
+ * and PDF engine, and (Phase 6) the scheduler and an injectable clock. Built once, reused
+ * everywhere (spec §3.3).
  */
 const SHARED = [
   AccessService,
@@ -54,10 +59,14 @@ const SHARED = [
   VersioningService,
   FilesService,
   PdfService,
+  SchedulerService,
 ];
 
 @Global()
-@Module({ providers: SHARED, exports: SHARED })
+@Module({
+  providers: [...SHARED, { provide: NOW, useValue: systemNow }],
+  exports: [...SHARED, NOW],
+})
 export class SharedServicesModule {}
 
 @Module({
@@ -113,6 +122,8 @@ export class AppModule {
         FinanceModule,
         ContractsModule,
         AssistantsModule,
+        MeetingsModule,
+        IntegrationsModule,
       ],
       providers: [
         // Guard order matters: CSRF origin check → rate limit → session/permission enforcement.

@@ -25,7 +25,7 @@ import {
 } from '@esports/shared';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { AI_PROVIDER, type AiProvider } from '../ai/ai.provider';
+import { AiRouter } from '../ai/ai.router';
 import type { TenantContext } from '../authz/context';
 import { AuditService } from '../audit/audit.service';
 import { AppError, Errors } from '../common/errors';
@@ -92,12 +92,17 @@ Rules:
 export class ClauseAssistantService {
   constructor(
     @Inject(DB) private readonly db: Database,
-    @Inject(AI_PROVIDER) private readonly ai: AiProvider,
+    private readonly router: AiRouter,
     private readonly contracts: ContractsService,
     private readonly versions: VersioningService,
     private readonly audit: AuditService,
     private readonly rateLimit: RateLimitService,
   ) {}
+
+  /** The provider routed to the clause assistant (AI_PROVIDER_DEFAULT / _OVERRIDES). */
+  private get ai() {
+    return this.router.for('clause_assistant');
+  }
 
   status(): AssistantStatusDto {
     return {
@@ -215,7 +220,7 @@ export class ClauseAssistantService {
       throw new AppError(
         'ai_not_configured',
         503,
-        'The AI assistant is not configured (ANTHROPIC_API_KEY is not set).',
+        `The AI assistant is not configured (${this.router.keyVar('clause_assistant')} is not set).`,
       );
     await this.editableContract(ctx, contractId);
     let previous: ClauseText | null = null;

@@ -9,7 +9,9 @@ import { Test } from '@nestjs/testing';
 import type { MeResponse, RoleAssignmentInput } from '@esports/shared';
 import { desc, eq, sql } from 'drizzle-orm';
 import Redis from 'ioredis';
-import { AI_PROVIDER, type AiProvider } from '../src/ai/ai.provider';
+import { type AiProvider, UnconfiguredProvider } from '../src/ai/ai.provider';
+import { AI_PROVIDERS } from '../src/ai/ai.router';
+import { NOW, type Now } from '../src/common/now';
 import { AppModule } from '../src/app.module';
 import { DISCORD_CLIENT, type DiscordOAuthClient } from '../src/auth/discord.client';
 import { configureApp } from '../src/bootstrap';
@@ -37,6 +39,10 @@ const BASE_ENV: Record<string, string> = {
   ENABLE_API_DOCS: 'false',
   // Tests never call the real exchange-rate service; individual tests inject a fake provider.
   FX_PROVIDER: 'none',
+  // Phase 6: tests drive reminders and integration jobs themselves (no background ticks), and
+  // their stand-in provider servers listen on localhost.
+  SCHEDULER_INTERVAL_SECONDS: '0',
+  WEBHOOK_ALLOW_PRIVATE_URLS: 'true',
 };
 
 let migrated = false;
@@ -57,7 +63,11 @@ export async function startApp(
     discord?: DiscordOAuthClient;
     fx?: FxRateProvider;
     clock?: Clock;
+    /** The Anthropic slot (the default provider). */
     ai?: AiProvider;
+    /** The Qwen slot (Phase 6); route features to it with AI_PROVIDER_DEFAULT / _OVERRIDES. */
+    qwen?: AiProvider;
+    now?: Now;
   } = {},
 ): Promise<TestApp> {
   if (!migrated) {
@@ -74,7 +84,12 @@ export async function startApp(
   if (opts.discord) builder = builder.overrideProvider(DISCORD_CLIENT).useValue(opts.discord);
   if (opts.fx) builder = builder.overrideProvider(FX_PROVIDER).useValue(opts.fx);
   if (opts.clock) builder = builder.overrideProvider(CLOCK).useValue(opts.clock);
-  if (opts.ai) builder = builder.overrideProvider(AI_PROVIDER).useValue(opts.ai);
+  if (opts.ai || opts.qwen)
+    builder = builder.overrideProvider(AI_PROVIDERS).useValue({
+      anthropic: opts.ai ?? new UnconfiguredProvider('anthropic'),
+      qwen: opts.qwen ?? new UnconfiguredProvider('qwen'),
+    });
+  if (opts.now) builder = builder.overrideProvider(NOW).useValue(opts.now);
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({
     logger: process.env.TEST_LOGS ? ['error', 'warn'] : false,

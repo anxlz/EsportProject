@@ -47,7 +47,7 @@ import {
 } from '@esports/shared';
 import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { AI_PROVIDER, type AiProvider } from '../ai/ai.provider';
+import { AiRouter } from '../ai/ai.router';
 import type { TenantContext } from '../authz/context';
 import { AuditService } from '../audit/audit.service';
 import { AppError, Errors } from '../common/errors';
@@ -74,7 +74,7 @@ const busy = () =>
 export class AssistantsService {
   constructor(
     @Inject(DB) private readonly db: Database,
-    @Inject(AI_PROVIDER) private readonly ai: AiProvider,
+    private readonly router: AiRouter,
     private readonly engine: AssistantEngine,
     private readonly limiter: RateLimitService,
     private readonly audit: AuditService,
@@ -117,19 +117,29 @@ export class AssistantsService {
   }
 
   overview(ctx: TenantContext): AssistantsOverviewDto {
-    return {
-      configured: this.ai.configured,
-      provider: this.ai.configured ? this.ai.name : null,
-      model: this.ai.model,
-      webSearch: this.engine.webSearchEnabled,
-      canSendEmail: ctx.access.has('assistants.send_email'),
-      assistants: ASSISTANT_KEYS.map((key) => ({
+    const assistants = ASSISTANT_KEYS.map((key) => {
+      const d = this.router.describe(key);
+      return {
         key,
         allowed: this.allowed(ctx, key),
         tools: ASSISTANT_FEATURES[key].tools,
         webSearchDefault: ASSISTANT_FEATURES[key].webSearchDefault,
         proposal: ASSISTANT_FEATURES[key].proposal,
-      })),
+        provider: d.provider,
+        configured: d.configured,
+        model: d.model,
+        // Web search needs both the deployment switch and a provider that can search.
+        webSearchAvailable: this.engine.webSearchEnabled && d.webSearch && ASSISTANT_FEATURES[key].tools,
+      };
+    });
+    const first = assistants.find((a) => a.configured);
+    return {
+      configured: !!first,
+      provider: first?.provider ?? null,
+      model: first?.model ?? null,
+      webSearch: this.engine.webSearchEnabled,
+      canSendEmail: ctx.access.has('assistants.send_email'),
+      assistants,
     };
   }
 
@@ -297,11 +307,12 @@ export class AssistantsService {
 
   async send(ctx: TenantContext, id: string, text: string): Promise<ConversationDto> {
     const c = await this.own(ctx, id);
-    if (!this.ai.configured)
+    const key = c.assistant as AssistantKey;
+    if (!this.router.for(key).configured)
       throw new AppError(
         'ai_not_configured',
         503,
-        'The AI assistants are not configured (ANTHROPIC_API_KEY is not set).',
+        `The AI assistants are not configured (${this.router.keyVar(key)} is not set).`,
       );
     if (c.archivedAt) throw Errors.conflict('conflict', 'This conversation is archived');
     const wait = await this.limiter.consume(

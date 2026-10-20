@@ -221,7 +221,8 @@ const toolUse = (
 const ai = new ScriptedAi();
 let t: TestApp;
 beforeAll(async () => {
-  t = await startApp({ ai, clock: { today: () => '2026-10-18' } });
+  // Web search is off by default since Phase 6 (billed per search); these tests exercise it.
+  t = await startApp({ ai, clock: { today: () => '2026-10-18' }, env: { ASSISTANT_WEB_SEARCH: 'on' } });
 });
 afterAll(async () => {
   await t.close();

@@ -4,8 +4,15 @@ import * as coreSchema from './schema';
 import * as assistantsSchema from './schema-assistants';
 import * as contractsSchema from './schema-contracts';
 import * as financeSchema from './schema-finance';
+import * as meetingsSchema from './schema-meetings';
 
-const schema = { ...coreSchema, ...financeSchema, ...contractsSchema, ...assistantsSchema };
+const schema = {
+  ...coreSchema,
+  ...financeSchema,
+  ...contractsSchema,
+  ...assistantsSchema,
+  ...meetingsSchema,
+};
 
 export type Database = PostgresJsDatabase<typeof schema>;
 /** Either the root database handle or an open transaction. */

@@ -9,6 +9,7 @@ export default defineConfig({
     './src/db/schema-finance.ts',
     './src/db/schema-contracts.ts',
     './src/db/schema-assistants.ts',
+    './src/db/schema-meetings.ts',
   ],
   out: './drizzle',
   schemaFilter: ['app'],

@@ -61,4 +61,9 @@ editable and deletable by Owners, and Owners can create any number of custom rol
 | `assistants.offer_optimizer` | Org-level | ✓ | ✓ | ✓ |  |
 | `assistants.player_analyst` | Org-level | ✓ | ✓ | ✓ |  |
 | `assistants.send_email` | Org-level | ✓ | ✓ | ✓ |  |
+| `meetings.view` | Scopable | ✓ | ✓ | ✓ | ✓ |
+| `meetings.create` | Scopable | ✓ | ✓ | ✓ |  |
+| `meetings.manage` | Scopable | ✓ | ✓ | ✓ |  |
+| `meetings.administrative` | Owner-only | ✓ |  |  |  |
+| `integrations.manage` | Org-level | ✓ |  |  |  |
 | `audit.view` | Org-level | ✓ | ✓ |  |  |

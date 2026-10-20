@@ -4,3 +4,4 @@ export * from './types';
 export * from './finance';
 export * from './contracts';
 export * from './assistants';
+export * from './meetings';

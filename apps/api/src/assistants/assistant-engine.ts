@@ -39,12 +39,13 @@ import {
 } from '@esports/shared';
 import { and, asc, eq, lt } from 'drizzle-orm';
 import {
-  AI_PROVIDER,
   type AiConverseMessage,
   type AiProvider,
   type AiUsage,
   WebSearchUnavailableError,
 } from '../ai/ai.provider';
+import { AiRouter } from '../ai/ai.router';
+import { UNPARSEABLE_ARGUMENTS } from '../ai/qwen.provider';
 import type { TenantContext } from '../authz/context';
 import { AppError } from '../common/errors';
 import { type Env, ENV } from '../config/env';
@@ -106,7 +107,7 @@ export class AssistantEngine implements OnModuleDestroy {
 
   constructor(
     @Inject(DB) private readonly db: Database,
-    @Inject(AI_PROVIDER) private readonly ai: AiProvider,
+    private readonly router: AiRouter,
     @Inject(ENV) private readonly env: Env,
     private readonly tools: AssistantTools,
   ) {}
@@ -138,6 +139,7 @@ export class AssistantEngine implements OnModuleDestroy {
   }
 
   private async run(ctx: TenantContext, conv: TurnConversation, messageId: string, text: string) {
+    const ai = this.router.for(conv.assistant as AssistantKey);
     try {
       const r = await this.turn(ctx, conv, messageId, text);
       await this.db
@@ -148,7 +150,7 @@ export class AssistantEngine implements OnModuleDestroy {
           sources: r.sources,
           flags: r.flags,
           language: r.language,
-          provider: this.ai.name,
+          provider: ai.name,
           model: r.model,
           usage: r.usage,
           completedAt: new Date(),
@@ -160,7 +162,7 @@ export class AssistantEngine implements OnModuleDestroy {
         this.logger.error(`Assistant turn failed: ${e instanceof Error ? e.message : String(e)}`);
       await this.db
         .update(aiMessages)
-        .set({ status: 'failed', errorCode: code, provider: this.ai.name, completedAt: new Date() })
+        .set({ status: 'failed', errorCode: code, provider: ai.name, completedAt: new Date() })
         .where(and(eq(aiMessages.id, messageId), eq(aiMessages.status, 'pending')))
         .catch(() => undefined);
     }
@@ -173,6 +175,7 @@ export class AssistantEngine implements OnModuleDestroy {
     text: string,
   ): Promise<TurnResult> {
     const key = conv.assistant as AssistantKey;
+    const ai = this.router.for(key);
     const features = ASSISTANT_FEATURES[key];
     const language = replyLanguageFor(conv.replyLanguage as ReplyLanguage, text);
     const registry = new SourceRegistry();
@@ -198,9 +201,13 @@ export class AssistantEngine implements OnModuleDestroy {
     // 1. Research.
     let notes: string | null = null;
     const tools = features.tools ? this.tools.forUser(ctx, key) : [];
-    const webSearch = features.tools && conv.webSearch && this.webSearchEnabled;
+    // A provider without server-side search (Qwen3 hosts) can't search: say so, don't pretend.
+    const wantsWeb = features.tools && conv.webSearch && this.webSearchEnabled;
+    const webSearch = wantsWeb && ai.supportsWebSearch !== false;
+    if (wantsWeb && !webSearch) flags.add('web_search_unavailable');
     if (tools.length || webSearch) {
       notes = await this.research({
+        ai,
         ctx,
         key,
         orgName,
@@ -224,9 +231,9 @@ export class AssistantEngine implements OnModuleDestroy {
       JSON.stringify(conv.context),
     ];
     let answer: AssistantAnswer | null = null;
-    let model = this.ai.model ?? this.ai.name;
+    let model = ai.model ?? ai.name;
     for (let attempt = 0; attempt < 2 && !answer; attempt++) {
-      const res = await this.ai.generateJson({
+      const res = await ai.generateJson({
         system: composeSystem(key, orgName, language),
         prompt: composePrompt({
           history,
@@ -290,6 +297,7 @@ export class AssistantEngine implements OnModuleDestroy {
   }
 
   private async research(p: {
+    ai: AiProvider;
     ctx: TenantContext;
     key: AssistantKey;
     orgName: string;
@@ -322,7 +330,7 @@ export class AssistantEngine implements OnModuleDestroy {
     for (let call = 0; call < MAX_RESEARCH_CALLS; call++) {
       let res;
       try {
-        res = await this.ai.converse({
+        res = await p.ai.converse({
           system: researchSystem(p.key, p.orgName, p.language),
           messages,
           tools: p.tools.map((t) => ({
@@ -396,6 +404,16 @@ export class AssistantEngine implements OnModuleDestroy {
               message:
                 'There is no such tool. You can only look things up; you cannot change, save or send anything.',
             }),
+          });
+          continue;
+        }
+        if (tu.input[UNPARSEABLE_ARGUMENTS]) {
+          // The provider couldn't give readable arguments: never run the lookup on a guess.
+          await p.log({ tool: tool.name, kind: 'platform', input: {}, outcome: 'error', summary: { error: 'invalid_arguments' }, startedAt });
+          results.push({
+            toolUseId: tu.id,
+            isError: true,
+            content: JSON.stringify({ error: 'invalid_arguments', message: 'The arguments were not valid JSON. Call the tool again with valid arguments.' }),
           });
           continue;
         }

@@ -67,6 +67,13 @@ export const ERROR_CODES = [
   'email_unavailable',
   'not_your_turn',
   'already_signed',
+  'meeting_not_editable',
+  'version_conflict',
+  'not_a_participant',
+  'integration_not_configured',
+  'integration_unavailable',
+  'url_not_allowed',
+  'invalid_signature',
   'internal_error',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -208,6 +215,14 @@ export const NOTIFICATION_TYPES = [
   'contract.rejected',
   'contract.signature_received',
   'contract.fully_signed',
+  'meeting.invited',
+  'meeting.updated',
+  'meeting.cancelled',
+  'meeting.occurrence_cancelled',
+  'meeting.response',
+  'meeting.reminder',
+  'integration.failed',
+  'integration.conflict',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

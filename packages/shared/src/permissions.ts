@@ -26,6 +26,8 @@ export const PERMISSION_DOMAINS = [
   'finance',
   'contracts',
   'assistants',
+  'meetings',
+  'integrations',
   'audit',
 ] as const;
 
@@ -134,6 +136,20 @@ export const PERMISSIONS = {
   'assistants.player_analyst': def('assistants'),
   /** Send an Email Assistant proposal from the platform, after reviewing it. */
   'assistants.send_email': def('assistants'),
+
+  // Meetings (Phase 6). Scopable by the meeting's team or department; meetings with neither need
+  // an organization-wide grant. No approval: a manager who may create a meeting creates it and
+  // invites people, who confirm or decline. Everyone always sees the meetings they're invited to.
+  'meetings.view': def('meetings', { scopable: true }),
+  'meetings.create': def('meetings', { scopable: true }),
+  /** Change or cancel any meeting in scope (organizers can always change their own). */
+  'meetings.manage': def('meetings', { scopable: true }),
+  /** Organization-wide administrative meetings (spec §14: the Owner calls them). */
+  'meetings.administrative': def('meetings', { ownerOnly: true }),
+
+  // Integrations (Phase 6): organization-level connections — Notion, outgoing and incoming
+  // webhooks. Members connect their own Google Calendar or Obsidian vault without it.
+  'integrations.manage': def('integrations'),
 } as const satisfies Record<string, PermissionDefinition>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -226,6 +242,9 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'assistants.offer_optimizer',
       'assistants.player_analyst',
       'assistants.send_email',
+      'meetings.view',
+      'meetings.create',
+      'meetings.manage',
     ],
   },
   {
@@ -261,6 +280,9 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'assistants.offer_optimizer',
       'assistants.player_analyst',
       'assistants.send_email',
+      'meetings.view',
+      'meetings.create',
+      'meetings.manage',
     ],
   },
   {
@@ -279,6 +301,7 @@ export const DEFAULT_ROLE_TEMPLATES: DefaultRoleTemplate[] = [
       'assistants.general',
       'assistants.formal_message',
       'assistants.email',
+      'meetings.view',
     ],
   },
 ];

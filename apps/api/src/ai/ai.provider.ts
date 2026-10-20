@@ -111,12 +111,16 @@ export interface AiProvider {
   readonly name: string;
   readonly model: string | null;
   readonly configured: boolean;
+  /**
+   * Whether `converse()` can search the web itself (Anthropic: yes). A provider without it
+   * (Qwen3 hosts) sets false; the engine then skips web search and says so. Unset = true.
+   */
+  readonly supportsWebSearch?: boolean;
   generateJson(req: AiJsonRequest): Promise<AiJsonResult>;
   /** One model call that may request tools; the caller runs the loop. */
   converse(req: AiConverseRequest): Promise<AiConverseResult>;
 }
 
-export const AI_PROVIDER = Symbol('AI_PROVIDER');
 
 const unavailable = (message: string) => new AppError('ai_unavailable', 502, message);
 
@@ -335,26 +339,30 @@ export class AnthropicProvider implements AiProvider {
   }
 }
 
-const notConfigured = () =>
-  new AppError(
-    'ai_not_configured',
-    503,
-    'The AI assistant is not configured (ANTHROPIC_API_KEY is not set).',
-  );
+const KEY_VAR = { anthropic: 'ANTHROPIC_API_KEY', qwen: 'QWEN_API_KEY' } as const;
 
 /** Used when no API key is set: the assistant says it is not configured; nothing else changes. */
 export class UnconfiguredProvider implements AiProvider {
   readonly name = 'none';
   readonly model = null;
   readonly configured = false;
+  constructor(private readonly slot: keyof typeof KEY_VAR = 'anthropic') {}
+  private error() {
+    return new AppError(
+      'ai_not_configured',
+      503,
+      `The AI assistant is not configured (${KEY_VAR[this.slot]} is not set).`,
+    );
+  }
   generateJson(): Promise<AiJsonResult> {
-    return Promise.reject(notConfigured());
+    return Promise.reject(this.error());
   }
   converse(): Promise<AiConverseResult> {
-    return Promise.reject(notConfigured());
+    return Promise.reject(this.error());
   }
 }
 
+/** The Anthropic slot (kept for Phase 3–5 callers and tests). */
 export function aiProviderFromEnv(env: Env): AiProvider {
-  return env.ANTHROPIC_API_KEY ? new AnthropicProvider(env) : new UnconfiguredProvider();
+  return env.ANTHROPIC_API_KEY ? new AnthropicProvider(env) : new UnconfiguredProvider('anthropic');
 }
