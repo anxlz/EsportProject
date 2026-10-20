@@ -57,7 +57,9 @@
     "finance": "المالية",
     "tournaments": "البطولات",
     "contracts": "العقود",
-    "assistants": "المساعدون الذكيون"
+    "assistants": "المساعدون الذكيون",
+    "meetings": "الاجتماعات",
+    "integrations": "التكاملات"
   },
   "auth": {
     "signInTitle": "تسجيل الدخول",
@@ -176,7 +178,14 @@
     "already_signed": "سبق تقديم هذا التوقيع.",
     "assistant_busy": "لا يزال المساعد يعمل على الرد السابق. انتظر حتى ينتهي ثم أرسل مجددًا.",
     "assistant_not_allowed": "ليست لديك صلاحية استخدام هذا المساعد.",
-    "email_send_failed": "تعذّر إرسال البريد الإلكتروني، فلم يُسلَّم شيء. حاول مرة أخرى لاحقًا."
+    "email_send_failed": "تعذّر إرسال البريد الإلكتروني، فلم يُسلَّم شيء. حاول مرة أخرى لاحقًا.",
+    "meeting_not_editable": "أُلغي هذا الاجتماع ولا يمكن تعديله.",
+    "version_conflict": "عدّل شخص آخر هذا الاجتماع أثناء تحريرك. أعد تحميله وحاول مرة أخرى.",
+    "not_a_participant": "الرد على الاجتماع متاح للمدعوين إليه فقط.",
+    "integration_not_configured": "هذا التكامل غير مُعدّ على الخادم بعد.",
+    "integration_unavailable": "تعذّر الوصول إلى الخدمة أو رفضت الطلب. راجع البيانات وحاول مرة أخرى.",
+    "url_not_allowed": "استخدم عنوان https على الإنترنت العام (العناوين الخاصة والمحلية غير مسموح بها).",
+    "invalid_signature": "الطلب غير موقّع بشكل صحيح."
   },
   "overview": {
     "greeting": "مرحبًا، {name}",
@@ -345,7 +354,9 @@
     "tournaments": "البطولات",
     "finance": "المالية",
     "contracts": "العقود",
-    "assistants": "المساعدون الذكيون"
+    "assistants": "المساعدون الذكيون",
+    "meetings": "الاجتماعات",
+    "integrations": "التكاملات"
   },
   "permissions": {
     "org": {
@@ -427,6 +438,15 @@
       "offer_optimizer": "استخدام محسّن العروض وتطبيق بدائله على مسودات العقود التي يمكنه تعديلها",
       "player_analyst": "استخدام محلل الاستثمار في اللاعبين",
       "send_email": "إرسال رسائل المساعد من المنصة بعد مراجعتها"
+    },
+    "meetings": {
+      "view": "عرض الاجتماعات",
+      "create": "إنشاء الاجتماعات ودعوة الأشخاص",
+      "manage": "تعديل أي اجتماع أو إلغاؤه",
+      "administrative": "الدعوة إلى اجتماعات إدارية على مستوى المنظمة"
+    },
+    "integrations": {
+      "manage": "إدارة تكاملات المنظمة (نوشن والويب هوك)"
     }
   },
   "audit": {
@@ -574,6 +594,20 @@
       "assistant": {
         "email_sent": "أرسل بريدًا من المساعد",
         "offer_applied": "طبّق بديلًا من محسّن العروض على عقد"
+      },
+      "meeting": {
+        "created": "أنشأ اجتماعًا",
+        "updated": "عدّل اجتماعًا",
+        "cancelled": "ألغى اجتماعًا",
+        "occurrence_cancelled": "ألغى موعدًا واحدًا من اجتماع متكرر",
+        "occurrence_moved": "نقل موعدًا واحدًا من اجتماع متكرر",
+        "responded": "ردّ على دعوة اجتماع"
+      },
+      "integration": {
+        "connected": "ربط تكاملًا",
+        "updated": "عدّل تكاملًا",
+        "disconnected": "فصل تكاملًا",
+        "secret_rotated": "استبدل مفتاحًا سريًا لتكامل"
       }
     },
     "nav": {
@@ -604,6 +638,18 @@
         "rejected": "طلب {rejectedBy} تعديلات على العقد {number}: {reason}",
         "signature_received": "وقّع {signerName} العقد {number}.",
         "fully_signed": "اكتملت توقيعات العقد {number}، والمستند الموقّع جاهز."
+      },
+      "meeting": {
+        "invited": "دعاك {byName} إلى {title} ({when}).",
+        "updated": "عدّل {byName} ‏{title}: {when}.",
+        "cancelled": "ألغى {byName} ‏{title}.",
+        "occurrence_cancelled": "ألغى {byName} ‏{title} في {when}.",
+        "response": "ردّ {participantName} على {title}: {response}.",
+        "reminder": "تذكير: يبدأ {title} في {when}."
+      },
+      "integration": {
+        "failed": "توقفت المزامنة مع {name} ‏({code}). افتح صفحة التكاملات لمعرفة السبب.",
+        "conflict": "تغيّر {title} في {name} وهنا في الوقت نفسه؛ احتُفظ بنسخة المنصة ({fields})."
       }
     },
     "markRead": "تعليم كمقروء",
@@ -1443,7 +1489,7 @@
     "noAccess": "لا توجد صلاحية",
     "notAllowed": "ليست لديك صلاحية استخدام هذا المساعد. اطلبها من أحد المسؤولين إن احتجت إليها.",
     "unknown": "لا يوجد مساعد بهذا العنوان.",
-    "notConfigured": "لم تُعدّ المساعدات لهذه المساحة بعد. يحتاج أحد المسؤولين إلى إضافة مفتاح Anthropic API إلى الخادم. يمكنك التصفح وتجهيز السياق، لكن لا يمكن إعداد الردود حتى ذلك الحين.",
+    "notConfigured": "هذا المساعد غير مُعدّ بعد: يحتاج الخادم إلى مفتاح API لمزوّد الذكاء الاصطناعي الذي يستخدمه. يمكنك التصفح وتجهيز السياق، لكن لا يمكن إنشاء الردود حتى ذلك الحين.",
     "provider": "تُعدّ الردود باستخدام {model}.",
     "webSearchDisabled": "البحث في الويب متوقف في هذه المساحة، لذا تعتمد الإجابات على بيانات المنصة وسياقك فقط.",
     "rules": {
@@ -1729,6 +1775,332 @@
       "results": "{count, plural, zero {لا نتائج} one {نتيجة واحدة} two {نتيجتان} few {# نتائج} many {# نتيجة} other {# نتيجة}}",
       "ms": "{ms} ملي ثانية",
       "empty": "لا توجد استعلامات بعد."
+    },
+    "answeredBy": "يجيب عنه {provider} ({model}).",
+    "answeredByShort": "يجيب عنه {provider}",
+    "providerNotConfigured": "{provider}: غير مُعدّ بعد",
+    "providerNames": {
+      "anthropic": "Claude (Anthropic)",
+      "qwen": "Qwen3 (نموذج مفتوح)"
+    }
+  },
+  "meetings": {
+    "title": "الاجتماعات",
+    "lead": "اجتماعات الفرق والمنظمة. يؤكد المدعوون الحضور أو يعتذرون، ويصل التذكير إلى كل من لم يعتذر.",
+    "new": "اجتماع جديد",
+    "newTitle": "اجتماع جديد",
+    "editTitle": "تعديل الاجتماع",
+    "formLead": "يُنشأ الاجتماع فورًا وتُرسل الدعوات مباشرة — دون حاجة إلى موافقة.",
+    "create": "إنشاء الاجتماع",
+    "edit": "تعديل",
+    "back": "كل الاجتماعات",
+    "previous": "الأسابيع السابقة",
+    "next": "الأسابيع التالية",
+    "window": "{from} – {to}",
+    "show": "عرض",
+    "views": {
+      "all": "كل ما يمكنني رؤيته",
+      "mine": "اجتماعاتي فقط"
+    },
+    "filterTeam": "الفريق",
+    "allTeams": "كل الفرق",
+    "empty": "لا توجد اجتماعات في هذه الأسابيع الأربعة.",
+    "emptyLead": "أنشئ اجتماعًا، أو انتقل إلى أسابيع أخرى.",
+    "today": "اليوم",
+    "organizer": "المنظم",
+    "recurring": "متكرر",
+    "created": "أُنشئ الاجتماع وأُرسلت الدعوات.",
+    "saved": "حُفظ الاجتماع.",
+    "responded": "أُرسل ردك.",
+    "cancelledToast": "أُلغي الاجتماع وأُبلغ جميع المدعوين.",
+    "kinds": {
+      "standard": "اجتماع",
+      "administrative": "اجتماع إداري (المنظمة كلها)"
+    },
+    "responses": {
+      "pending": "لم يرد",
+      "accepted": "سيحضر",
+      "declined": "معتذر"
+    },
+    "status": {
+      "scheduled": "مجدول",
+      "cancelled": "ملغى"
+    },
+    "respond": {
+      "title": "ردك",
+      "current": "ردك: {response}",
+      "accept": "سأحضر",
+      "decline": "أعتذر",
+      "note": "ملاحظة للمنظم"
+    },
+    "occurrence": {
+      "cancelled": "ملغى",
+      "moved": "تم نقله",
+      "cancelOne": "إلغاء هذا الموعد",
+      "cancelOneTitle": "إلغاء هذا الموعد؟",
+      "cancelOneBody": "سيُلغى موعد {when} فقط وتبقى بقية السلسلة. سيُبلغ جميع المدعوين.",
+      "cancelledToast": "أُلغي الموعد."
+    },
+    "cancel": {
+      "action": "إلغاء الاجتماع",
+      "title": "إلغاء هذا الاجتماع؟",
+      "body": "سيُبلغ جميع المدعوين وتُلغى كل المواعيد المتبقية. لا يمكن إعادة فتح اجتماع ملغى.",
+      "reason": "السبب",
+      "banner": "أُلغي هذا الاجتماع.",
+      "bannerWithReason": "أُلغي هذا الاجتماع: {reason}"
+    },
+    "detail": {
+      "details": "التفاصيل",
+      "when": "الموعد",
+      "yourTime": "{time} بتوقيتك",
+      "repeats": "التكرار",
+      "noReminders": "بلا تذكير",
+      "upcoming": "المواعيد القادمة",
+      "upcomingLead": "يمكن إلغاء موعد واحد دون تغيير السلسلة.",
+      "nothingUpcoming": "لا توجد مواعيد متبقية.",
+      "participants": "المدعوون",
+      "answered": "ردّ {count} من {total}",
+      "syncedTo": "متزامن مع",
+      "obsidian": "تنزيل لأوبسيديان"
+    },
+    "fields": {
+      "title": "العنوان",
+      "description": "الغرض",
+      "notes": "الملاحظات",
+      "administrative": "اجتماع إداري على مستوى المنظمة",
+      "administrativeHint": "يدعو إليه المالكون فقط، ويخص المنظمة كلها لا فريقًا بعينه.",
+      "scope": "لِمن",
+      "wholeOrganization": "المنظمة كلها",
+      "departments": "الأقسام",
+      "teams": "الفرق",
+      "when": "الموعد",
+      "date": "التاريخ",
+      "startTime": "يبدأ",
+      "endTime": "ينتهي",
+      "nextDay": "ينتهي في اليوم التالي",
+      "timeZone": "المنطقة الزمنية",
+      "repeat": "التكرار",
+      "repeatLabel": "يتكرر",
+      "every": "كل",
+      "onDays": "في هذه الأيام",
+      "firstDay": "يُضمَّن يوم التاريخ الأول دائمًا",
+      "ends": "ينتهي",
+      "endsAfter": "بعد عدد من المرات",
+      "endsOn": "في تاريخ",
+      "occurrences": "عدد المرات",
+      "lastDate": "آخر تاريخ",
+      "participants": "الدعوة",
+      "participantsHint": "يصل إشعار إلى المدعوين ويمكنهم تأكيد الحضور أو الاعتذار. تُضاف أنت بصفتك المنظم.",
+      "searchPeople": "ابحث عن الأشخاص",
+      "invitedCount": "{count, plural, =0 {لم يُدعَ أحد بعد} one {شخص واحد مدعو} two {شخصان مدعوان} few {# أشخاص مدعوون} many {# شخصًا مدعوًا} other {# شخص مدعو}}",
+      "reminders": "التذكيرات",
+      "remindersHint": "حتى ثلاثة تذكيرات، تُرسل إشعارًا إلى كل من لم يعتذر."
+    },
+    "repeat": {
+      "none": "لا يتكرر",
+      "daily": "يوميًا",
+      "weekly": "أسبوعيًا",
+      "monthly": "شهريًا",
+      "unit": {
+        "daily": "{count, plural, one {يوم} two {يومين} few {أيام} many {يومًا} other {يوم}}",
+        "weekly": "{count, plural, one {أسبوع} two {أسبوعين} few {أسابيع} many {أسبوعًا} other {أسبوع}}",
+        "monthly": "{count, plural, one {شهر} two {شهرين} few {أشهر} many {شهرًا} other {شهر}}"
+      }
+    },
+    "recurrenceText": {
+      "once": "لا يتكرر",
+      "daily": "{interval, plural, one {كل يوم} two {كل يومين} few {كل # أيام} many {كل # يومًا} other {كل # يوم}}",
+      "weekly": "{interval, plural, one {كل أسبوع} two {كل أسبوعين} few {كل # أسابيع} many {كل # أسبوعًا} other {كل # أسبوع}} أيام {days}",
+      "monthly": "{interval, plural, one {كل شهر} two {كل شهرين} few {كل # أشهر} many {كل # شهرًا} other {كل # شهر}} في اليوم {day}",
+      "count": "، {count, plural, one {مرة واحدة} two {مرتين} few {# مرات} many {# مرة} other {# مرة}}",
+      "until": "، حتى {date}"
+    },
+    "reminderLabels": {
+      "minutes": "قبل {count, plural, one {دقيقة} two {دقيقتين} few {# دقائق} many {# دقيقة} other {# دقيقة}}",
+      "hours": "قبل {count, plural, one {ساعة} two {ساعتين} few {# ساعات} many {# ساعة} other {# ساعة}}",
+      "days": "قبل {count, plural, one {يوم} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}"
+    },
+    "validation": {
+      "duration_range": "مدة الاجتماع بين 5 دقائق و24 ساعة.",
+      "start_not_on_weekday": "يجب أن يقع التاريخ الأول في أحد الأيام المختارة.",
+      "until_before_start": "لا يمكن أن يسبق آخر تاريخ التاريخ الأول.",
+      "until_too_far": "يمكن أن تمتد السلسلة حتى 3 سنوات.",
+      "series_too_long": "يمكن أن تمتد السلسلة حتى 3 سنوات.",
+      "invalid_count": "اختر من 1 إلى 365 مرة.",
+      "invalid_interval": "التكرار كل 1 إلى 30.",
+      "unknown_participant": "أحد الأشخاص في القائمة لم يعد عضوًا نشطًا.",
+      "team_or_department": "اختر فريقًا أو قسمًا، لا الاثنين معًا.",
+      "administrative_is_org_wide": "الاجتماعات الإدارية تخص المنظمة كلها.",
+      "not_an_occurrence": "هذا الموعد ليس جزءًا من هذا الاجتماع.",
+      "time_zone_invalid": "اختر منطقة زمنية صحيحة.",
+      "local_datetime_format": "أدخل التاريخ والوقت.",
+      "date_format": "أدخل التاريخ."
+    }
+  },
+  "integrations": {
+    "title": "التكاملات",
+    "lead": "اربط تقويمك ونوشن وأوبسيديان والويب هوك. تتزامن الاجتماعات في الاتجاهين ما لم تختر الإرسال فقط.",
+    "personal": "اتصالاتك",
+    "personalLead": "الاجتماعات المدعو إليها فقط. لا يستطيع غيرك رؤية هذه الاتصالات أو تعديلها.",
+    "organization": "اتصالات المنظمة",
+    "organizationLead": "يديرها أصحاب صلاحية التكاملات، ويعمل كل اتصال بصلاحيات الشخص الذي أعدّه.",
+    "noOrgConnections": "لا توجد اتصالات للمنظمة بعد.",
+    "noOrgConnectionsLead": "اربط قاعدة بيانات في نوشن، أو أضف ويب هوك.",
+    "conflictRule": "إذا تغيّر اجتماع في مكانين قبل مزامنتهما، تُدمج التغييرات على الحقول المختلفة؛ وإذا تغيّر الحقل نفسه في المكانين، تُعتمد نسخة المنصة وتُكتب في الطرف الآخر وتُسجَّل ويُبلَّغ صاحب الاتصال.",
+    "providers": {
+      "google_calendar": "تقويم Google",
+      "notion": "نوشن",
+      "obsidian": "أوبسيديان",
+      "webhook_outgoing": "ويب هوك صادر",
+      "webhook_incoming": "ويب هوك وارد"
+    },
+    "descriptions": {
+      "google_calendar": "اجتماعاتك في تقويم Google الخاص بك. تعود التغييرات على العنوان والوقت والتكرار إلى المنصة، وحذف الدعوة يعني الاعتذار.",
+      "notion": "الاجتماعات صفحاتٍ في قاعدة بيانات نوشن: يتزامن العنوان والوقت والحالة والغرض والملاحظات في الاتجاهين.",
+      "obsidian": "اجتماعاتك ملاحظاتٍ في خزنة أوبسيديان، عبر برنامج صغير على جهازك (أوبسيديان لا يوفر واجهة برمجة على الإنترنت).",
+      "webhook_outgoing": "يرسل أحداث الاجتماعات موقّعةً إلى نظام آخر فور وقوعها.",
+      "webhook_incoming": "يتيح لنظام آخر إنشاء الاجتماعات أو تعديلها أو إلغاءها بطلبات موقّعة."
+    },
+    "direction": {
+      "label": "المزامنة",
+      "two_way": "في الاتجاهين",
+      "push_only": "إرسال فقط (دون قراءة التغييرات)"
+    },
+    "status": {
+      "active": "متصل",
+      "error": "يحتاج إلى مراجعة",
+      "disconnected": "مفصول",
+      "paused": "متوقف مؤقتًا"
+    },
+    "teamFilter": "الاجتماعات",
+    "allTeams": "كل الاجتماعات",
+    "onlyTeam": "{team} فقط",
+    "actsAs": "يعمل باسم {name}",
+    "lastSync": "آخر مزامنة {when}",
+    "neverSynced": "لم تتم المزامنة بعد",
+    "linked": "{count, plural, =0 {لا اجتماعات مرتبطة} one {اجتماع واحد مرتبط} two {اجتماعان مرتبطان} few {# اجتماعات مرتبطة} many {# اجتماعًا مرتبطًا} other {# اجتماع مرتبط}}",
+    "pending": "{count} بالانتظار",
+    "lastError": "آخر مشكلة {when}:",
+    "connect": "ربط",
+    "disconnect": "فصل",
+    "disconnectTitle": "فصل هذا التكامل؟",
+    "disconnectBody": "تتوقف المزامنة وتُحذف المفاتيح السرية. تبقى الأحداث والصفحات التي أُنشئت في الخدمة الأخرى كما هي.",
+    "disconnected": "تم الفصل.",
+    "syncNow": "مزامنة الآن",
+    "syncQueued": "بدأت المزامنة.",
+    "pause": "إيقاف مؤقت",
+    "resume": "استئناف",
+    "retry": "إعادة المحاولة",
+    "saved": "تم الحفظ.",
+    "activity": "النشاط",
+    "logEmpty": "لا شيء بعد.",
+    "technical": "تفاصيل تقنية",
+    "name": "الاسم",
+    "endpoint": "أرسل الطلبات إلى",
+    "secretTitle": "انسخه الآن",
+    "secretOnce": "لن يُعرض مرة أخرى. إن فقدته فأنشئ واحدًا جديدًا.",
+    "google": {
+      "notConfigured": "تقويم Google غير مُعدّ على هذا الخادم بعد (يحتاج إلى تطبيق OAuth من Google — راجع ملاحظات النشر).",
+      "calendar": "التقويم",
+      "primary": "تقويمي الرئيسي",
+      "dedicated": "تقويم مخصص",
+      "calendarId": "معرّف التقويم",
+      "primaryHint": "تُزامَن اجتماعات المنصة فقط؛ تبقى أحداثك الأخرى خاصة ولا تُستورد أبدًا.",
+      "dedicatedHint": "الأحداث التي تُنشئها في هذا التقويم تصبح اجتماعات أيضًا (في الفريق الذي تختاره).",
+      "connect": "ربط تقويم Google",
+      "connected": "تم ربط تقويم Google. ستظهر اجتماعاتك خلال لحظات.",
+      "denied": "لم يُربط تقويم Google: لم يُمنح الإذن."
+    },
+    "notion": {
+      "add": "ربط نوشن",
+      "connectTitle": "ربط قاعدة بيانات في نوشن",
+      "connectLead": "أنشئ تكاملًا داخليًا من notion.so/my-integrations، وشارك قاعدة البيانات معه، ثم الصق مفتاحه السري ورابط قاعدة البيانات هنا.",
+      "token": "المفتاح السري للتكامل",
+      "tokenHint": "يُحفظ مشفّرًا ولا يُعرض مرة أخرى.",
+      "database": "رابط قاعدة البيانات أو معرّفها",
+      "databaseHint": "تُضاف الخصائص الناقصة (When وStatus وPurpose وNotes…) تلقائيًا.",
+      "timeZone": "المنطقة الزمنية الافتراضية",
+      "timeZoneHint": "تُستخدم للتواريخ المُدخلة في نوشن دون منطقة زمنية.",
+      "connected": "تم ربط نوشن.",
+      "webhookUrl": "عنوان الويب هوك (الصقه في تبويب Webhooks للتكامل في نوشن)",
+      "verificationToken": "رمز التحقق (الصقه في نوشن لإكمال الربط)",
+      "waiting": "بانتظار طلب التحقق من نوشن. حتى ذلك الحين تُلتقط التغييرات في نوشن كل بضع دقائق.",
+      "resetVerification": "بدء التحقق من جديد"
+    },
+    "obsidian": {
+      "explain": "أنشئ رمز مزامنة للخزنة، ثم شغّل البرنامج المرافق على الجهاز الذي فيه خزنتك. يكتب اجتماعاتك ملاحظاتٍ في مجلد Meetings، ويرسل ما تعدّله في وضع الاتجاهين.",
+      "create": "إنشاء رمز مزامنة للخزنة",
+      "token": "رمز مزامنة الخزنة",
+      "newToken": "رمز جديد",
+      "howTo": "على الجهاز الذي فيه خزنتك، نزّل الملف scripts/obsidian-vault-sync.mjs من مستودع المنصة وشغّل:",
+      "command": "الأمر",
+      "howToHint": "يحتاج إلى Node.js بإصدار 18 أو أحدث. عدّل خاصية العنوان وقسمي الغرض والملاحظات؛ وإذا تعذّر تطبيق تعديل، تُحفظ نسختك بجانب الملاحظة نسخةَ تعارض."
+    },
+    "webhooks": {
+      "addOutgoing": "إضافة ويب هوك صادر",
+      "addIncoming": "إضافة ويب هوك وارد",
+      "url": "عنوان نقطة الاستقبال",
+      "urlHint": "يجب أن يكون https ومتاحًا على الإنترنت العام.",
+      "events": "أرسل هذه الأحداث",
+      "actions": "اقبل هذه الطلبات",
+      "secret": "مفتاح التوقيع",
+      "newSecret": "مفتاح جديد",
+      "signingHint": "تُوقَّع الطلبات بترويسات Standard Webhooks ‏(webhook-id وwebhook-timestamp وwebhook-signature). تُرفض الطلبات غير الموقّعة أو القديمة أو المكررة.",
+      "sends": "يرسل: {events}",
+      "accepts": "يقبل: {actions}",
+      "incomingActsAs": "تعمل الطلبات بصلاحياتك. إن فقدتها توقف الويب هوك عن العمل."
+    },
+    "webhookEvents": {
+      "meeting": {
+        "created": "إنشاء اجتماع",
+        "updated": "تعديل اجتماع",
+        "cancelled": "إلغاء اجتماع",
+        "response": "الرد على دعوة"
+      }
+    },
+    "actions": {
+      "meeting": {
+        "create": "إنشاء الاجتماعات",
+        "update": "تعديل الاجتماعات",
+        "cancel": "إلغاء الاجتماعات"
+      }
+    },
+    "eventCodes": {
+      "connected": "تم الربط",
+      "settings_changed": "تغيّرت الإعدادات",
+      "disconnected": "تم الفصل",
+      "synced": "وصلت تغييرات",
+      "pushed": "أُرسل اجتماع",
+      "pulled": "طُبّق تغيير",
+      "imported": "استُورد اجتماع جديد",
+      "conflict_resolved": "تعارض: اعتُمدت نسخة المنصة",
+      "remote_change_rejected": "لم يُطبّق تغيير من هناك",
+      "remote_change_ignored": "تُجوهل تغيير من هناك",
+      "import_skipped": "لم يُستورد",
+      "unsupported_recurrence": "قاعدة تكرار لا تدعمها المنصة",
+      "full_resync": "مزامنة كاملة",
+      "rate_limited": "انتظار (حد الطلبات)",
+      "retry_scheduled": "ستُعاد المحاولة",
+      "failed": "فشل",
+      "auth_failed": "رُفض الوصول",
+      "channel_renewed": "جُدّدت الإشعارات",
+      "verification_received": "وصل رمز التحقق",
+      "signature_rejected": "رُفض طلب غير موقّع",
+      "delivered": "تم التسليم",
+      "delivery_failed": "فشل التسليم",
+      "endpoint_disabled": "عُطّلت نقطة الاستقبال",
+      "webhook_received": "وصل طلب",
+      "webhook_rejected": "رُفض طلب"
+    },
+    "fieldNames": {
+      "title": "العنوان",
+      "description": "الغرض",
+      "notes": "الملاحظات",
+      "startLocal": "البداية",
+      "endLocal": "النهاية",
+      "timeZone": "المنطقة الزمنية",
+      "recurrence": "التكرار",
+      "status": "الحالة"
     }
   }
 }

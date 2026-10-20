@@ -16,6 +16,7 @@ import {
   integrationConnections,
   integrationJobs,
   integrationLinks,
+  meetings,
 } from '../src/db/schema-meetings';
 import { googleEventId } from '../src/integrations/providers/google-calendar';
 import { IntegrationsWorker } from '../src/integrations/worker.service';
@@ -398,6 +399,58 @@ describe('Google Calendar: occurrences, deletions, re-sync, failures', () => {
     expect(
       google.events.get('createdingoogle01')!.extendedProperties?.private?.platformMeetingId,
     ).toBe(imported.meetingId);
+  });
+
+  test('an import interrupted before its link was saved is linked on the next pass, not imported twice', async () => {
+    const o = await org();
+    const conn = await connect(
+      o.manager.client,
+      'manager',
+      `direction=two_way&calendarId=team-calendar%40group.calendar.google.com&teamId=${o.teamA.id}`,
+    );
+    await drain();
+    google.userCreate({
+      id: 'createdingoogle02',
+      owner: 'manager',
+      summary: 'Kit fitting',
+      start: { dateTime: '2026-10-24T16:00:00', timeZone: 'Asia/Riyadh' },
+      end: { dateTime: '2026-10-24T17:00:00', timeZone: 'Asia/Riyadh' },
+    });
+    await worker.process((await enqueuePull(conn.id))!);
+    await drain();
+    const [first] = await t.db
+      .select()
+      .from(integrationLinks)
+      .where(
+        and(
+          eq(integrationLinks.connectionId, conn.id),
+          eq(integrationLinks.remoteId, 'createdingoogle02'),
+        ),
+      );
+    // As if the worker died right after creating the meeting: no link, nothing written back.
+    await t.db.delete(integrationLinks).where(eq(integrationLinks.id, first!.id));
+    google.userEdit('createdingoogle02', { extendedProperties: undefined });
+    await worker.process((await enqueuePull(conn.id))!);
+    await drain();
+
+    const fromGoogle = await t.db
+      .select({ id: meetings.id })
+      .from(meetings)
+      .where(eq(meetings.sourceConnectionId, conn.id));
+    expect(fromGoogle).toEqual([{ id: first!.meetingId }]); // the same meeting, not a second one
+    const [again] = await t.db
+      .select()
+      .from(integrationLinks)
+      .where(
+        and(
+          eq(integrationLinks.connectionId, conn.id),
+          eq(integrationLinks.remoteId, 'createdingoogle02'),
+        ),
+      );
+    expect(again).toMatchObject({ meetingId: first!.meetingId, state: 'active' });
+    expect(
+      google.events.get('createdingoogle02')!.extendedProperties?.private?.platformMeetingId,
+    ).toBe(first!.meetingId);
   });
 
   test('an import the owner isn’t allowed to create is skipped and logged, not forced', async () => {

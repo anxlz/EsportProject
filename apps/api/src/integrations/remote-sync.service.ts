@@ -430,6 +430,13 @@ export class RemoteSyncService {
     }
     const s = rec.snapshot;
     if (s.status === 'cancelled' || !s.time) return false;
+    // An import interrupted before its link was saved left a meeting carrying this record's id
+    // (unique per connection): link that one instead of importing the record twice.
+    const [earlier] = await this.db
+      .select({ id: meetings.id })
+      .from(meetings)
+      .where(and(eq(meetings.sourceConnectionId, c.id), eq(meetings.externalId, rec.id)));
+    if (earlier) return this.linkImported(c, owner, p, rec, earlier.id);
     const parsed = meetingCreateSchema.safeParse({
       kind: 'standard',
       title: s.title?.trim() || 'Untitled meeting',
@@ -461,6 +468,7 @@ export class RemoteSyncService {
         ...this.via(c),
         source: c.provider as 'google_calendar' | 'notion',
         sourceConnectionId: c.id,
+        externalId: rec.id,
       });
       meetingId = dto.id;
       for (const x of s.exdates ?? [])
@@ -474,8 +482,19 @@ export class RemoteSyncService {
       }
       throw e;
     }
+    return this.linkImported(c, owner, p, rec, meetingId);
+  }
+
+  /** Links an imported meeting to its record and writes the meeting's id back to it. */
+  private async linkImported(
+    c: ConnectionRow,
+    owner: TenantContext,
+    p: RemoteProvider,
+    rec: RemoteRecord,
+    meetingId: string,
+  ): Promise<boolean> {
     const l = (await this.meetings.load(c.organizationId, meetingId))!;
-    const [link] = await this.db
+    await this.db
       .insert(integrationLinks)
       .values({
         organizationId: c.organizationId,
@@ -483,15 +502,12 @@ export class RemoteSyncService {
         meetingId,
         state: 'pending_create',
       })
-      .returning();
+      .onConflictDoNothing();
+    const link = (await this.link(c, meetingId))!;
     // Write back so the record carries the meeting's id from now on.
     const local = this.localSnapshot(c, l, owner);
-    const written = await p.update(
-      c,
-      { ...link!, remoteId: rec.id },
-      this.view(c, l, owner, local),
-    );
-    await this.saveLink(link!, written, local, l.row.version);
+    const written = await p.update(c, { ...link, remoteId: rec.id }, this.view(c, l, owner, local));
+    await this.saveLink(link, written, local, l.row.version);
     await this.connections.log(c, 'info', 'imported', `Imported "${l.row.title}" as a meeting.`, {
       meetingId,
     });

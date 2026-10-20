@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button, cx, EmptyState, ErrorBanner, PageHeader, Section, Spinner } from '@/components/ui';
 import { api, apiPost } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
+import { formatWhen } from '@/lib/meetings';
 import { useAction } from '@/lib/mutation';
 import { useRiyalSign } from '@/lib/riyal';
 
@@ -23,9 +24,33 @@ export default function NotificationsPage() {
 
   const fl = locale === 'ar' ? 'ar' : 'en';
   const riyalSign = useRiyalSign();
+  const tm = useTranslations('meetings');
+  const ti = useTranslations('integrations');
   /** Budget alerts carry raw amounts and a category key; format them for the reader. */
   const values = (n: NotificationDto): Record<string, string> => {
     const d = n.data as Record<string, string | null>;
+    if (n.type.startsWith('meeting.')) {
+      // Meeting times are shown in the reader's own time zone.
+      return {
+        ...(d as Record<string, string>),
+        title: d.title ?? '',
+        when: d.start ? formatWhen(d.start, locale) : '',
+        response: d.response ? tm(`responses.${d.response}` as never) : '',
+      };
+    }
+    if (n.type.startsWith('integration.')) {
+      return {
+        ...(d as Record<string, string>),
+        name: d.provider ? ti(`providers.${d.provider}` as never) : (d.name ?? ''),
+        title: d.title ?? '',
+        code: d.code ?? '',
+        fields: (d.fields ?? '')
+          .split(', ')
+          .filter(Boolean)
+          .map((f) => (ti.has(`fieldNames.${f}` as never) ? ti(`fieldNames.${f}` as never) : f))
+          .join(locale === 'ar' ? '، ' : ', '),
+      };
+    }
     if (n.type !== 'budget.exceeded') return d as Record<string, string>;
     const c = d.currency ?? 'USD';
     return {

@@ -11,7 +11,7 @@
  *   node obsidian-vault-sync.mjs … --watch 300        # keep running, sync every 5 minutes
  *
  * The same settings can come from ESPORTS_VAULT, ESPORTS_API_URL and ESPORTS_SYNC_TOKEN.
- * Create the token in the platform: Settings → Integrations → Obsidian (it is shown once).
+ * Create the token in the platform: Integrations → Obsidian (it is shown once).
  *
  * Safety:
  * - Nothing you write is lost. If an edit can't be applied (changed on the platform too, or you

@@ -717,6 +717,19 @@ function ConversationList({
 export function AssistantWorkspace({ assistant }: { assistant: AssistantKey }) {
   const t = useTranslations('assistants');
   const overview = useAssistantsOverview();
+  // Phase 6: each assistant may be answered by a different provider (set by the deployer), so
+  // "configured", the model and web search are per assistant.
+  const info = overview.data?.assistants.find((a) => a.key === assistant);
+  const mine =
+    overview.data && info
+      ? {
+          ...overview.data,
+          ...info,
+          configured: info.configured,
+          model: info.model,
+          webSearch: info.webSearchAvailable,
+        }
+      : overview.data;
   const allowed = useCanUseAssistant()(assistant);
   const params = useSearchParams();
   const router = useRouter();
@@ -757,10 +770,15 @@ export function AssistantWorkspace({ assistant }: { assistant: AssistantKey }) {
         <Icon className="mt-1.5 size-6 shrink-0 text-turf" aria-hidden="true" />
         <div className="min-w-0 flex-1">{header}</div>
       </div>
-      {overview.data && !overview.data.configured && (
+      {mine && !mine.configured && (
         <div className="mb-5">
           <NotConfiguredBanner />
         </div>
+      )}
+      {mine?.configured && mine.model && (
+        <p className="mb-4 text-sm text-muted">
+          {t('answeredBy', { provider: t(`providerNames.${mine.provider}`), model: mine.model })}
+        </p>
       )}
       <div className="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <ConversationList assistant={assistant} selected={selected} onSelect={select} />
@@ -769,14 +787,14 @@ export function AssistantWorkspace({ assistant }: { assistant: AssistantKey }) {
             key={selected}
             id={selected}
             assistant={assistant}
-            overview={overview.data}
+            overview={mine}
             onGone={() => select(null)}
           />
         ) : (
           <NewConversation
             key={assistant}
             assistant={assistant}
-            overview={overview.data}
+            overview={mine}
             onStarted={select}
           />
         )}

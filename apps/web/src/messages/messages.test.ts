@@ -7,15 +7,26 @@ import {
   EMAIL_TONES,
   ERROR_CODES,
   GUARDRAIL_CODES,
+  INCOMING_WEBHOOK_ACTIONS,
+  INTEGRATION_EVENT_CODES,
+  INTEGRATION_PROVIDERS,
+  INTEGRATION_STATUSES,
+  MEETING_KINDS,
+  MEETING_STATUSES,
   NOTIFICATION_TYPES,
   type OfferCostNote,
   PERMISSION_DOMAINS,
   PERMISSION_KEYS,
   REPLY_LANGUAGES,
+  RECURRENCE_FREQUENCIES,
   RISK_LEVELS,
+  RSVP_RESPONSES,
   SOURCE_KINDS,
   SOURCE_LABELS,
+  SYNC_DIRECTIONS,
+  SYNCED_FIELDS,
   TOOL_CALL_OUTCOMES,
+  WEBHOOK_EVENT_TYPES,
 } from '@esports/shared';
 import ar from './ar.json';
 import en from './en.json';
@@ -34,7 +45,11 @@ function leaves(tree: Tree, prefix = ''): Map<string, string> {
 
 const enLeaves = leaves(en as Tree);
 const arLeaves = leaves(ar as Tree);
-const placeholders = (s: string) => [...s.matchAll(/\{(\w+)(?:,|\})/g)].map((m) => m[1]).sort();
+// A `{word}` right after a plural selector (`one {day}`) is branch text, not a placeholder.
+const placeholders = (s: string) =>
+  [...s.matchAll(/(?<!(?:zero|one|two|few|many|other|=\d+)\s?)\{(\w+)(?:,|\})/g)]
+    .map((m) => m[1])
+    .sort();
 
 describe('message catalogs', () => {
   test('Arabic and English have exactly the same keys', () => {
@@ -96,6 +111,17 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
     'file.uploaded',
     'assistant.email_sent',
     'assistant.offer_applied',
+    // Phase 6
+    'meeting.created',
+    'meeting.updated',
+    'meeting.cancelled',
+    'meeting.occurrence_cancelled',
+    'meeting.occurrence_moved',
+    'meeting.responded',
+    'integration.connected',
+    'integration.updated',
+    'integration.disconnected',
+    'integration.secret_rotated',
   ];
   for (const [locale, messages] of [
     ['en', en],
@@ -123,11 +149,35 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
           rejectedBy: 'J',
           reason: 'Why',
           signerName: 'S',
+          title: 'T',
+          when: 'W',
+          participantName: 'P',
+          response: 'Going',
+          name: 'N',
+          code: 'auth',
+          fields: 'title',
         });
       for (const a of auditActions) resolved(`audit.actions.${a}`);
     });
   }
 });
+
+/** Phase 6: every meeting / integration vocabulary value has a label. Dotted values nest. */
+const meetingGroups: [string, readonly string[]][] = [
+  ['meetings.kinds', MEETING_KINDS],
+  ['meetings.status', MEETING_STATUSES],
+  ['meetings.responses', RSVP_RESPONSES],
+  ['meetings.repeat', RECURRENCE_FREQUENCIES],
+  ['integrations.providers', INTEGRATION_PROVIDERS],
+  ['integrations.status', INTEGRATION_STATUSES],
+  ['integrations.direction', SYNC_DIRECTIONS],
+  ['integrations.eventCodes', INTEGRATION_EVENT_CODES],
+  ['integrations.descriptions', INTEGRATION_PROVIDERS],
+  ['integrations.fieldNames', SYNCED_FIELDS],
+  ['integrations.webhookEvents', WEBHOOK_EVENT_TYPES],
+  ['integrations.actions', INCOMING_WEBHOOK_ACTIONS],
+  ['assistants.providerNames', ['anthropic', 'qwen']],
+];
 
 describe('assistant vocabularies all have labels', () => {
   const groups: [string, readonly string[]][] = [
@@ -156,7 +206,7 @@ describe('assistant vocabularies all have labels', () => {
     ],
   ];
   test('in English and Arabic', () => {
-    for (const [prefix, values] of groups)
+    for (const [prefix, values] of [...groups, ...meetingGroups])
       for (const v of values) {
         expect({ key: `${prefix}.${v}`, en: enLeaves.has(`${prefix}.${v}`) }).toEqual({
           key: `${prefix}.${v}`,
@@ -169,6 +219,35 @@ describe('assistant vocabularies all have labels', () => {
       }
   });
   test('plural messages render in both languages', () => {
+    for (const [locale, messages] of [
+      ['en', en],
+      ['ar', ar],
+    ] as const) {
+      const t = createTranslator({ locale, messages: messages as never });
+      for (const n of [0, 1, 2, 3, 11, 100]) {
+        for (const key of [
+          'meetings.fields.invitedCount',
+          'meetings.repeat.unit.daily',
+          'meetings.repeat.unit.weekly',
+          'meetings.repeat.unit.monthly',
+          'meetings.recurrenceText.count',
+          'meetings.reminderLabels.minutes',
+          'meetings.reminderLabels.hours',
+          'meetings.reminderLabels.days',
+          'integrations.linked',
+        ])
+          expect(t(key as never, { count: n } as never)).not.toContain('{');
+        for (const key of ['daily', 'weekly', 'monthly'])
+          expect(
+            t(
+              `meetings.recurrenceText.${key}` as never,
+              { interval: n, days: 'MO', day: '3' } as never,
+            ),
+          ).not.toContain('{');
+      }
+    }
+  });
+  test('legacy plural messages render in both languages', () => {
     for (const [locale, messages] of [
       ['en', en],
       ['ar', ar],

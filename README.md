@@ -4,8 +4,10 @@ Multi-tenant platform for running esports organizations: people, custom roles wi
 department scoping, teams and games (Phase 1), followed by accounting and investment analysis,
 contracts with approvals and e-signatures, bilingual AI assistants, meetings and integrations.
 
-**Status: Phase 5 (AI Assistants) complete — built and tested against a fake AI provider; no
-live Anthropic call yet.** See [`docs/PHASE-5-SUMMARY.md`](docs/PHASE-5-SUMMARY.md),
+**Status: all six phases built and tested. Phase 6 (Meetings, Calendar & Integrations, plus a
+Qwen3 AI provider) complete — Google Calendar, Notion and both AI providers tested against local
+stand-ins; no live external call yet.** See [`docs/PHASE-6-SUMMARY.md`](docs/PHASE-6-SUMMARY.md),
+[`docs/PHASE-5-SUMMARY.md`](docs/PHASE-5-SUMMARY.md),
 [`docs/PHASE-4-SUMMARY.md`](docs/PHASE-4-SUMMARY.md),
 [`docs/PHASE-3-SUMMARY.md`](docs/PHASE-3-SUMMARY.md),
 [`docs/PHASE-2-SUMMARY.md`](docs/PHASE-2-SUMMARY.md) and
@@ -25,9 +27,12 @@ apps/api         NestJS 12 on Bun. REST API, auth, authorization, all business l
   src/contracts    Contract types/templates, document setup, drafting, approval, clause assistant,
                    electronic signatures (links, codes, signing, signature record)
   src/versioning   Append-only version history        src/files  File store (Postgres)
-  src/pdf          Shared PDF engine (Chromium + pdf-lib underlay)   src/ai  AI provider interface
+  src/pdf          Shared PDF engine (Chromium + pdf-lib underlay)
+  src/ai           AI provider interface: Anthropic and Qwen3 adapters, per-feature routing
   src/assistants   The five AI assistants: read-only lookups, guardrails, background replies,
                    the explicit send-email / apply-offer actions, the lookup log
+  src/meetings     Meetings, recurrence, RSVP, reminders (scheduler)
+  src/integrations Google Calendar, Notion, Obsidian feed, webhooks; sync engine, job queue
   assets/fonts     Saudi riyal sign font (OFL), embedded in PDFs (signature fonts come from @fontsource)
   test/            Integration tests (real Postgres + Redis) and unit tests
 apps/web         Next.js 16 dashboard, Arabic/English with right-to-left support
@@ -36,6 +41,8 @@ packages/shared  Permission catalog, request schemas, response types (used by bo
   src/finance      Money math, payroll projection, the report engine and export table model
   src/contracts    Contract schemas, labels, default clause templates, merge fields
   src/assistants   Assistant catalog, request schemas, answer types, Offer Optimizer cost math
+  src/meetings     Recurrence and time-zone engine (no date library), meeting/integration schemas
+scripts/         obsidian-vault-sync.mjs: companion script members run next to their Obsidian vault
 docs/            Phase summaries and the generated permission matrix
 ```
 
@@ -91,8 +98,8 @@ bun run test            # shared + API integration tests + web catalog tests
 
 API tests need Postgres and Redis. The PDF tests also need Chromium (the bundled
 `@sparticuz/chromium` is used unless `CHROMIUM_EXECUTABLE_PATH` points to one) and `pdftotext` /
-`pdffonts` / `pdfimages` from poppler-utils. Tests never call the Anthropic API (a fake provider is
-injected, for the clause assistant and the five AI assistants alike). Set `TEST_LOGS=1` to see API error logs while debugging a test. They default to
+`pdffonts` / `pdfimages` from poppler-utils. Tests never call an external service: the AI
+providers (Anthropic, Qwen3), Google Calendar and Notion are replaced by local stand-ins. Set `TEST_LOGS=1` to see API error logs while debugging a test. They default to
 `postgres://postgres:devpass@127.0.0.1:5432/esports_test` and `redis://127.0.0.1:6379/1`; override
 with `TEST_DATABASE_URL` / `TEST_REDIS_URL`. **They truncate that database**, so never point them at
 real data. CI (`.github/workflows/ci.yml`) runs all of the above plus the web build.
@@ -121,13 +128,22 @@ Production checklist:
 7. The API image includes Chromium for PDF exports (the Dockerfile installs it); try one PDF
    download after deploying.
 8. Optional: `ANTHROPIC_API_KEY` for the clause assistant and the five AI assistants (they show
-   "not configured" without it). Before relying on them, run one real conversation with each
-   assistant — this build has only been tested against a fake provider. `ASSISTANT_WEB_SEARCH=off`
-   turns web search off (it is billed per search).
+   "not configured" without it), and/or `QWEN_API_KEY` with `AI_PROVIDER_DEFAULT` /
+   `AI_PROVIDER_OVERRIDES` to route some of them to Qwen3. Before relying on them, run one real
+   conversation with each assistant — this build has only been tested against stand-ins. Web
+   search is off unless `ASSISTANT_WEB_SEARCH=on` (it is billed per search). Check cross-border
+   data-transfer rules before routing personal data to either provider.
 9. Have counsel review the default contract templates (and the signing statement) before using
    them for real contracts, and confirm the use of electronic signatures with the Saudi Esports
    Federation or counsel.
 10. Signing codes by email need the SMTP provider; until then use the access-code method.
+11. Meetings and integrations: set `PUBLIC_API_URL` (https, reachable by Google and Notion) and a
+    dedicated `INTEGRATIONS_ENCRYPTION_KEY`. The scheduler (reminders, sync jobs) runs in every API
+    instance; jobs are claimed with row locks, so several instances are safe
+    (`SCHEDULER_INTERVAL_SECONDS=0` turns it off on an instance).
+12. Optional: Google Calendar needs an OAuth app (`GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI`, redirect
+    `https://<web-app>/api/integrations/google/callback`); Google's verification is required for
+    the `calendar.events` scope beyond 100 users. Run one live sync check after connecting.
 
 The browser only talks to the web origin; Next.js forwards `/api/*` to the API, which keeps the
 session cookie first-party. Don't expose the API's own URL to users.

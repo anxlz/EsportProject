@@ -10,12 +10,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
   Building2,
+  CalendarClock,
   CalendarDays,
   FileSignature,
   Gamepad2,
   LayoutDashboard,
   LogOut,
   Menu,
+  Plug,
   ScrollText,
   Settings,
   ShieldCheck,
@@ -80,6 +82,8 @@ function useNav(me: MeResponse): NavItem[] {
       ],
       needsOrg: true,
     },
+    // Phase 6: everyone can be invited to meetings, so everyone sees the calendar.
+    { href: '/dashboard/meetings', label: t('meetings'), icon: CalendarClock, needsOrg: true },
     {
       href: '/dashboard/tournaments',
       label: t('tournaments'),
@@ -115,6 +119,8 @@ function useNav(me: MeResponse): NavItem[] {
       anyOf: ['audit.view'],
       needsOrg: true,
     },
+    // Personal calendar / vault connections for everyone; organization ones need the permission.
+    { href: '/dashboard/integrations', label: t('integrations'), icon: Plug, needsOrg: true },
     { href: '/dashboard/settings', label: t('settings'), icon: Settings },
     { href: '/platform', label: t('platform'), icon: Building2, platformOnly: true },
     // One entry per assistant, each gated by its own permission (spec §4.2).

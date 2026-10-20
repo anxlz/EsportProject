@@ -20,9 +20,6 @@ export default function AssistantsPage() {
       <div className="flex flex-col gap-6">
         <ErrorBanner error={overview.error} />
         {overview.data && !overview.data.configured && <NotConfiguredBanner />}
-        {overview.data?.configured && overview.data.model && (
-          <p className="text-sm text-muted">{t('provider', { model: overview.data.model })}</p>
-        )}
 
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {ASSISTANT_KEYS.map((key) => {
@@ -38,6 +35,18 @@ export default function AssistantsPage() {
                 </div>
                 <h2 className="mt-3 font-semibold">{t(`names.${key}`)}</h2>
                 <p className="mt-1 flex-1 text-sm text-muted">{t(`descriptions.${key}`)}</p>
+                {(() => {
+                  const info = overview.data?.assistants.find((a) => a.key === key);
+                  return info ? (
+                    <p className="mt-2 text-[0.8125rem] text-muted">
+                      {info.configured
+                        ? t('answeredByShort', { provider: t(`providerNames.${info.provider}`) })
+                        : t('providerNotConfigured', {
+                            provider: t(`providerNames.${info.provider}`),
+                          })}
+                    </p>
+                  ) : null;
+                })()}
                 {allowed && (
                   <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-turf">
                     {t('open')}

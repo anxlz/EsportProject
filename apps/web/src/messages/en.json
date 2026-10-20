@@ -57,7 +57,9 @@
     "finance": "Finance",
     "tournaments": "Tournaments",
     "contracts": "Contracts",
-    "assistants": "AI assistants"
+    "assistants": "AI assistants",
+    "meetings": "Meetings",
+    "integrations": "Integrations"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -176,7 +178,14 @@
     "already_signed": "This signature has already been given.",
     "assistant_busy": "The assistant is still working on the previous reply. Wait for it to finish, then send again.",
     "assistant_not_allowed": "You don't have access to this assistant.",
-    "email_send_failed": "The email couldn't be sent, so nothing was delivered. Try again later."
+    "email_send_failed": "The email couldn't be sent, so nothing was delivered. Try again later.",
+    "meeting_not_editable": "This meeting has been cancelled and can't be changed.",
+    "version_conflict": "Someone changed this meeting while you were editing. Reload it and try again.",
+    "not_a_participant": "Only people invited to this meeting can answer it.",
+    "integration_not_configured": "This integration isn't set up on the server yet.",
+    "integration_unavailable": "The service couldn't be reached or refused the request. Check the details and try again.",
+    "url_not_allowed": "Use an https address on the public internet (private and local addresses aren't allowed).",
+    "invalid_signature": "The request wasn't signed correctly."
   },
   "overview": {
     "greeting": "Welcome, {name}",
@@ -345,7 +354,9 @@
     "tournaments": "Tournaments",
     "finance": "Finance",
     "contracts": "Contracts",
-    "assistants": "AI assistants"
+    "assistants": "AI assistants",
+    "meetings": "Meetings",
+    "integrations": "Integrations"
   },
   "permissions": {
     "org": {
@@ -427,6 +438,15 @@
       "offer_optimizer": "Use the Offer Optimizer and apply its alternatives to draft contracts they can edit",
       "player_analyst": "Use the Player Investment Analyst",
       "send_email": "Send reviewed assistant emails from the platform"
+    },
+    "meetings": {
+      "view": "See meetings",
+      "create": "Create meetings and invite people",
+      "manage": "Change or cancel any meeting",
+      "administrative": "Call organization-wide administrative meetings"
+    },
+    "integrations": {
+      "manage": "Manage organization integrations (Notion, webhooks)"
     }
   },
   "audit": {
@@ -574,6 +594,20 @@
       "assistant": {
         "email_sent": "Sent an assistant email",
         "offer_applied": "Applied an Offer Optimizer alternative to a contract"
+      },
+      "meeting": {
+        "created": "Created a meeting",
+        "updated": "Changed a meeting",
+        "cancelled": "Cancelled a meeting",
+        "occurrence_cancelled": "Cancelled one occurrence of a meeting",
+        "occurrence_moved": "Moved one occurrence of a meeting",
+        "responded": "Answered a meeting invitation"
+      },
+      "integration": {
+        "connected": "Connected an integration",
+        "updated": "Changed an integration",
+        "disconnected": "Disconnected an integration",
+        "secret_rotated": "Replaced an integration secret"
       }
     },
     "nav": {
@@ -604,6 +638,18 @@
         "rejected": "{rejectedBy} requested changes to {number}: {reason}",
         "signature_received": "{signerName} signed {number}.",
         "fully_signed": "{number} is fully signed. The signed document is ready."
+      },
+      "meeting": {
+        "invited": "{byName} invited you to {title} ({when}).",
+        "updated": "{byName} changed {title}: {when}.",
+        "cancelled": "{byName} cancelled {title}.",
+        "occurrence_cancelled": "{byName} cancelled {title} on {when}.",
+        "response": "{participantName} answered {title}: {response}.",
+        "reminder": "Reminder: {title} starts {when}."
+      },
+      "integration": {
+        "failed": "{name} stopped syncing ({code}). Open Integrations to see why.",
+        "conflict": "{title} was changed in {name} and here at the same time; the platform's version was kept ({fields})."
       }
     },
     "markRead": "Mark as read",
@@ -1443,7 +1489,7 @@
     "noAccess": "No access",
     "notAllowed": "You don't have access to this assistant. Ask an administrator if you need it.",
     "unknown": "There's no assistant at this address.",
-    "notConfigured": "The assistants aren't set up for this workspace yet. An administrator needs to add an Anthropic API key to the server. You can look around and prepare context, but replies can't be generated until then.",
+    "notConfigured": "This assistant isn't set up yet: the server needs an API key for the AI provider it uses. You can look around and prepare context, but replies can't be generated until then.",
     "provider": "Replies are prepared with {model}.",
     "webSearchDisabled": "Web search is switched off for this workspace, so answers use platform data and your own context only.",
     "rules": {
@@ -1729,6 +1775,332 @@
       "results": "{count, plural, one {# result} other {# results}}",
       "ms": "{ms} ms",
       "empty": "No lookups yet."
+    },
+    "answeredBy": "Answered by {provider} ({model}).",
+    "answeredByShort": "Answered by {provider}",
+    "providerNotConfigured": "{provider}: not set up yet",
+    "providerNames": {
+      "anthropic": "Claude (Anthropic)",
+      "qwen": "Qwen3 (open model)"
+    }
+  },
+  "meetings": {
+    "title": "Meetings",
+    "lead": "Team and organization meetings. Invitees confirm or decline; reminders reach everyone who hasn't declined.",
+    "new": "New meeting",
+    "newTitle": "New meeting",
+    "editTitle": "Edit meeting",
+    "formLead": "Meetings are created straight away and invitations go out at once — no approval needed.",
+    "create": "Create meeting",
+    "edit": "Edit",
+    "back": "All meetings",
+    "previous": "Earlier",
+    "next": "Later",
+    "window": "{from} – {to}",
+    "show": "Show",
+    "views": {
+      "all": "Everything I can see",
+      "mine": "Only mine"
+    },
+    "filterTeam": "Team",
+    "allTeams": "All teams",
+    "empty": "No meetings in these four weeks.",
+    "emptyLead": "Create one, or look at other weeks.",
+    "today": "Today",
+    "organizer": "Organizer",
+    "recurring": "Repeats",
+    "created": "Meeting created. Invitations sent.",
+    "saved": "Meeting saved.",
+    "responded": "Answer sent.",
+    "cancelledToast": "Meeting cancelled. Everyone invited was told.",
+    "kinds": {
+      "standard": "Meeting",
+      "administrative": "Administrative meeting (whole organization)"
+    },
+    "responses": {
+      "pending": "Not answered",
+      "accepted": "Going",
+      "declined": "Not going"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "cancelled": "Cancelled"
+    },
+    "respond": {
+      "title": "Your answer",
+      "current": "You answered: {response}",
+      "accept": "Going",
+      "decline": "Not going",
+      "note": "Note to the organizer"
+    },
+    "occurrence": {
+      "cancelled": "Cancelled",
+      "moved": "Moved",
+      "cancelOne": "Cancel this one",
+      "cancelOneTitle": "Cancel this occurrence?",
+      "cancelOneBody": "Only {when} is cancelled; the rest of the series stays. Everyone invited is told.",
+      "cancelledToast": "Occurrence cancelled."
+    },
+    "cancel": {
+      "action": "Cancel meeting",
+      "title": "Cancel this meeting?",
+      "body": "Everyone invited is told, and every remaining occurrence is cancelled. A cancelled meeting can't be reopened.",
+      "reason": "Reason",
+      "banner": "This meeting was cancelled.",
+      "bannerWithReason": "This meeting was cancelled: {reason}"
+    },
+    "detail": {
+      "details": "Details",
+      "when": "When",
+      "yourTime": "{time} in your time zone",
+      "repeats": "Repeats",
+      "noReminders": "No reminders",
+      "upcoming": "Next occurrences",
+      "upcomingLead": "A single occurrence can be cancelled without changing the series.",
+      "nothingUpcoming": "No occurrences left.",
+      "participants": "Invited",
+      "answered": "{count} of {total} answered",
+      "syncedTo": "Synced to",
+      "obsidian": "Download for Obsidian"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Purpose",
+      "notes": "Notes",
+      "administrative": "Organization-wide administrative meeting",
+      "administrativeHint": "Only Owners can call these. They belong to the whole organization, not a team.",
+      "scope": "For",
+      "wholeOrganization": "Whole organization",
+      "departments": "Departments",
+      "teams": "Teams",
+      "when": "When",
+      "date": "Date",
+      "startTime": "Starts",
+      "endTime": "Ends",
+      "nextDay": "Ends the next day",
+      "timeZone": "Time zone",
+      "repeat": "Repeat",
+      "repeatLabel": "Repeats",
+      "every": "Every",
+      "onDays": "On these days",
+      "firstDay": "The first date's weekday is always included",
+      "ends": "Ends",
+      "endsAfter": "After a number of times",
+      "endsOn": "On a date",
+      "occurrences": "Number of times",
+      "lastDate": "Last date",
+      "participants": "Invite",
+      "participantsHint": "Invited people get a notification and can confirm or decline. You're added as the organizer.",
+      "searchPeople": "Search people",
+      "invitedCount": "{count, plural, =0 {Nobody invited yet} one {# person invited} other {# people invited}}",
+      "reminders": "Reminders",
+      "remindersHint": "Up to three. Sent as notifications to everyone who hasn't declined."
+    },
+    "repeat": {
+      "none": "Does not repeat",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "unit": {
+        "daily": "{count, plural, one {day} other {days}}",
+        "weekly": "{count, plural, one {week} other {weeks}}",
+        "monthly": "{count, plural, one {month} other {months}}"
+      }
+    },
+    "recurrenceText": {
+      "once": "Does not repeat",
+      "daily": "{interval, plural, one {Every day} other {Every # days}}",
+      "weekly": "{interval, plural, one {Every week} other {Every # weeks}} on {days}",
+      "monthly": "{interval, plural, one {Every month} other {Every # months}} on day {day}",
+      "count": ", {count, plural, one {once} other {# times}}",
+      "until": ", until {date}"
+    },
+    "reminderLabels": {
+      "minutes": "{count, plural, one {# minute} other {# minutes}} before",
+      "hours": "{count, plural, one {# hour} other {# hours}} before",
+      "days": "{count, plural, one {# day} other {# days}} before"
+    },
+    "validation": {
+      "duration_range": "A meeting lasts between 5 minutes and 24 hours.",
+      "start_not_on_weekday": "The first date must fall on one of the chosen days.",
+      "until_before_start": "The last date can't be before the first.",
+      "until_too_far": "A series can run for up to 3 years.",
+      "series_too_long": "A series can run for up to 3 years.",
+      "invalid_count": "Choose between 1 and 365 times.",
+      "invalid_interval": "Repeat every 1 to 30.",
+      "unknown_participant": "Someone on the list is no longer an active member.",
+      "team_or_department": "Choose a team or a department, not both.",
+      "administrative_is_org_wide": "Administrative meetings belong to the whole organization.",
+      "not_an_occurrence": "That occurrence isn't part of this meeting.",
+      "time_zone_invalid": "Choose a valid time zone.",
+      "local_datetime_format": "Enter a date and time.",
+      "date_format": "Enter a date."
+    }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "lead": "Connect your calendar, Notion, Obsidian and webhooks. Meetings sync both ways unless you choose push only.",
+    "personal": "Your connections",
+    "personalLead": "Only the meetings you're invited to. Nobody else can see or change these connections.",
+    "organization": "Organization connections",
+    "organizationLead": "Managed by people with the integrations permission. Each acts with the permissions of the person who set it up.",
+    "noOrgConnections": "No organization connections yet.",
+    "noOrgConnectionsLead": "Connect a Notion database, or add a webhook.",
+    "conflictRule": "When a meeting changes in two places before they sync, changes to different fields are combined; if the same field changed in both, the platform's version is kept, written back, logged, and the connection's owner is notified.",
+    "providers": {
+      "google_calendar": "Google Calendar",
+      "notion": "Notion",
+      "obsidian": "Obsidian",
+      "webhook_outgoing": "Outgoing webhook",
+      "webhook_incoming": "Incoming webhook"
+    },
+    "descriptions": {
+      "google_calendar": "Your meetings in your own Google Calendar. Changes to the title, time and repeat settings come back; deleting an invitation declines it.",
+      "notion": "Meetings as pages in a Notion database: title, time, status, purpose and notes sync both ways.",
+      "obsidian": "Your meetings as notes in your Obsidian vault, through a small script on your computer (Obsidian has no online API).",
+      "webhook_outgoing": "Sends signed meeting events to another system as they happen.",
+      "webhook_incoming": "Lets another system create, change or cancel meetings with signed requests."
+    },
+    "direction": {
+      "label": "Sync",
+      "two_way": "Two-way",
+      "push_only": "Push only (never read back)"
+    },
+    "status": {
+      "active": "Connected",
+      "error": "Needs attention",
+      "disconnected": "Disconnected",
+      "paused": "Paused"
+    },
+    "teamFilter": "Meetings",
+    "allTeams": "All meetings",
+    "onlyTeam": "only {team}",
+    "actsAs": "acts as {name}",
+    "lastSync": "Last synced {when}",
+    "neverSynced": "Not synced yet",
+    "linked": "{count, plural, =0 {no meetings linked} one {# meeting linked} other {# meetings linked}}",
+    "pending": "{count} waiting",
+    "lastError": "Last problem {when}:",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "disconnectTitle": "Disconnect this integration?",
+    "disconnectBody": "Syncing stops and its secrets are deleted. Events and pages already created elsewhere are left as they are.",
+    "disconnected": "Disconnected.",
+    "syncNow": "Sync now",
+    "syncQueued": "Sync started.",
+    "pause": "Pause",
+    "resume": "Resume",
+    "retry": "Try again",
+    "saved": "Saved.",
+    "activity": "Activity",
+    "logEmpty": "Nothing yet.",
+    "technical": "Technical details",
+    "name": "Name",
+    "endpoint": "Send requests to",
+    "secretTitle": "Copy this now",
+    "secretOnce": "It won't be shown again. If you lose it, create a new one.",
+    "google": {
+      "notConfigured": "Google Calendar isn't set up on this server yet (it needs a Google OAuth app — see the deployment notes).",
+      "calendar": "Calendar",
+      "primary": "My main calendar",
+      "dedicated": "A dedicated calendar",
+      "calendarId": "Calendar ID",
+      "primaryHint": "Only meetings from the platform are synced; your other events stay private and are never imported.",
+      "dedicatedHint": "Events you create in this calendar become meetings too (in the team you choose).",
+      "connect": "Connect Google Calendar",
+      "connected": "Google Calendar connected. Your meetings will appear shortly.",
+      "denied": "Google Calendar wasn't connected: access was not granted."
+    },
+    "notion": {
+      "add": "Connect Notion",
+      "connectTitle": "Connect a Notion database",
+      "connectLead": "Create an internal integration at notion.so/my-integrations, share the database with it, then paste its secret and the database link here.",
+      "token": "Integration secret",
+      "tokenHint": "Stored encrypted; never shown again.",
+      "database": "Database link or ID",
+      "databaseHint": "Missing properties (When, Status, Purpose, Notes…) are added for you.",
+      "timeZone": "Default time zone",
+      "timeZoneHint": "Used for dates entered in Notion without a time zone.",
+      "connected": "Notion connected.",
+      "webhookUrl": "Webhook URL (paste it into the integration's Webhooks tab in Notion)",
+      "verificationToken": "Verification token (paste it into Notion to finish)",
+      "waiting": "Waiting for Notion's verification request. Until then, changes in Notion are picked up every few minutes.",
+      "resetVerification": "Start verification again"
+    },
+    "obsidian": {
+      "explain": "Create a vault-sync token, then run the companion script on the computer with your vault. It writes your meetings as notes in a Meetings folder and, in two-way mode, sends back what you edit.",
+      "create": "Create vault-sync token",
+      "token": "Vault-sync token",
+      "newToken": "New token",
+      "howTo": "On the computer with your vault, download scripts/obsidian-vault-sync.mjs from the platform repository and run:",
+      "command": "Command",
+      "howToHint": "It needs Node.js 18 or newer. Edit the title property and the Purpose and Notes sections; if an edit can't be applied, your version is kept next to the note as a conflict copy."
+    },
+    "webhooks": {
+      "addOutgoing": "Add outgoing webhook",
+      "addIncoming": "Add incoming webhook",
+      "url": "Endpoint URL",
+      "urlHint": "Must be https and reachable on the public internet.",
+      "events": "Send these events",
+      "actions": "Accept these requests",
+      "secret": "Signing secret",
+      "newSecret": "New secret",
+      "signingHint": "Requests are signed with Standard Webhooks headers (webhook-id, webhook-timestamp, webhook-signature). Unsigned, stale or replayed requests are refused.",
+      "sends": "Sends: {events}",
+      "accepts": "Accepts: {actions}",
+      "incomingActsAs": "Requests act with your permissions. If you lose them, the webhook stops working."
+    },
+    "webhookEvents": {
+      "meeting": {
+        "created": "Meeting created",
+        "updated": "Meeting changed",
+        "cancelled": "Meeting cancelled",
+        "response": "Invitation answered"
+      }
+    },
+    "actions": {
+      "meeting": {
+        "create": "Create meetings",
+        "update": "Change meetings",
+        "cancel": "Cancel meetings"
+      }
+    },
+    "eventCodes": {
+      "connected": "Connected",
+      "settings_changed": "Settings changed",
+      "disconnected": "Disconnected",
+      "synced": "Changes received",
+      "pushed": "Sent a meeting",
+      "pulled": "Applied a change",
+      "imported": "Imported a new meeting",
+      "conflict_resolved": "Conflict: the platform's version kept",
+      "remote_change_rejected": "A change there was not applied",
+      "remote_change_ignored": "A change there was ignored",
+      "import_skipped": "Not imported",
+      "unsupported_recurrence": "A repeat rule the platform can't use",
+      "full_resync": "Full re-sync",
+      "rate_limited": "Waiting (rate limit)",
+      "retry_scheduled": "Will retry",
+      "failed": "Failed",
+      "auth_failed": "Access was refused",
+      "channel_renewed": "Notifications renewed",
+      "verification_received": "Verification token received",
+      "signature_rejected": "Refused an unsigned request",
+      "delivered": "Delivered",
+      "delivery_failed": "Delivery failed",
+      "endpoint_disabled": "Endpoint disabled",
+      "webhook_received": "Request received",
+      "webhook_rejected": "Request refused"
+    },
+    "fieldNames": {
+      "title": "title",
+      "description": "purpose",
+      "notes": "notes",
+      "startLocal": "start",
+      "endLocal": "end",
+      "timeZone": "time zone",
+      "recurrence": "repeat",
+      "status": "status"
     }
   }
 }

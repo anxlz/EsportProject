@@ -34,12 +34,16 @@ why, and whether it is easy to reverse.
 
 ## Decisions taken with the user (Phase 4, 17 Oct 2026)
 
-| Topic                   | Decision                                                                                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Anthropic API key       | Not available yet. The **live API test is deferred**; the clause assistant's fake-provider tests stand as sufficient for now, and the missing key blocks nothing going forward.       |
-| Clause wording          | Proceed with the current placeholder text: **legal review happens outside this build** (confirmed by the user).                                                                       |
-| Federation confirmation | Still unresolved. Phase 4 is built as specified (spec §7.8), with **no compliance claims** in product copy and a quiet note recommending confirmation with the Federation or counsel. |
-| Production credentials  | Still outstanding: SMTP, Supabase, Redis URL, `SESSION_SECRET`, hosting, Discord OAuth, product name, and now the Anthropic API key. Phase 4 is built against local stand-ins.        |
+| Topic                                           | Decision                                                                                                                                                                              |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anthropic API key                               | To use any AI feature                                                                                                                                                                 | Not a blocker. Set `ANTHROPIC_API_KEY` on the API (optional `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`). It powers the clause assistant and the five assistants unless they are routed to Qwen3. **The live API has never been called from here**; please run one live conversation per assistant first (spec §8.3). Web search is **off by default** since Phase 6 (`ASSISTANT_WEB_SEARCH=on` turns it on; it costs extra per search). |
+| Qwen3 key (DeepInfra)                           | Only if you route anything to Qwen3                                                                                                                                                   | Not a blocker. `QWEN_API_KEY`, then `AI_PROVIDER_DEFAULT=qwen` or e.g. `AI_PROVIDER_OVERRIDES=player_analyst=qwen`. **Never called live from here** (tested against a stand-in). DeepInfra is US-hosted, as is Anthropic: check cross-border transfer rules for personal data (Saudi PDPL) before routing player data to either.                                                                                                            |
+| Google OAuth app                                | To offer Google Calendar                                                                                                                                                              | Create an OAuth client, enable the Calendar API, set `GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI`. The `calendar.events` scope is sensitive: Google's app verification is needed before more than 100 users can connect. Until set, the Google card says it isn't set up. **Never called live** (tested against a stand-in).                                                                                                                      |
+| Notion                                          | When an organization wants it                                                                                                                                                         | Nothing to set on the server; each organization pastes its own internal-integration secret. **Never called live** (tested against a stand-in).                                                                                                                                                                                                                                                                                              |
+| `PUBLIC_API_URL`, `INTEGRATIONS_ENCRYPTION_KEY` | Deployment                                                                                                                                                                            | Public https URL for Google push notifications and webhooks (defaults to the web app's `/api` proxy), and a dedicated 32+ character key for stored integration secrets (otherwise derived from `SESSION_SECRET`, so rotating that would break stored secrets).                                                                                                                                                                              |
+| Clause wording                                  | Proceed with the current placeholder text: **legal review happens outside this build** (confirmed by the user).                                                                       |
+| Federation confirmation                         | Still unresolved. Phase 4 is built as specified (spec §7.8), with **no compliance claims** in product copy and a quiet note recommending confirmation with the Federation or counsel. |
+| Production credentials                          | Still outstanding: SMTP, Supabase, Redis URL, `SESSION_SECRET`, hosting, Discord OAuth, product name, and now the Anthropic API key. Phase 4 is built against local stand-ins.        |
 
 ## Decisions taken with the user (Phase 5, 18 Oct 2026)
 
@@ -49,6 +53,16 @@ why, and whether it is easy to reverse.
 | Anthropic API key      | Still not available; it blocks nothing. Without it every assistant page says it isn't set up and nothing can be sent.                                                                                                                     |
 | Section 8 hard rules   | Carried forward as stated: proposal-only, the invoking user's own permissions, citations + confidence labels + anti-fabrication on tool use, a tool-call log, Arabic/English per conversation.                                            |
 | Production credentials | Still outstanding: SMTP, Supabase, Redis URL, `SESSION_SECRET`, hosting, Discord OAuth, product name, Anthropic API key. Legal review and Federation confirmation stay outside this build.                                                |
+
+## Decisions taken with the user (Phase 6, 20 Oct 2026)
+
+| Topic                  | Decision                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Meetings               | Managers create meetings directly (no approval); invitees confirm or decline; the Owner calls organization-wide administrative meetings. Recurring meetings are required (frequency + end condition). Reminders reuse the notification service.                                                                               |
+| Integrations           | Google Calendar, Notion, Obsidian and generic webhooks (incoming and outgoing). Two-way sync by default with a push-only switch per integration; real conflict resolution, duplicate prevention and retries. Every incoming webhook must be authenticated. Obsidian's real integration method had to be checked, not assumed. |
+| Second AI provider     | Qwen3 (Apache 2.0) through hosted inference, the host chosen on actual pricing and availability. The deployer picks the provider per assistant or globally. **Anthropic stays the default**; Qwen3 is an alternative, not a replacement. Same guardrails for both.                                                            |
+| Web search             | `ASSISTANT_WEB_SEARCH=off` by default (carried forward).                                                                                                                                                                                                                                                                      |
+| Production credentials | Still outstanding: SMTP, Supabase, Redis URL, `SESSION_SECRET`, hosting (Railway vs Fly.io), Discord OAuth (optional), product name, Anthropic API key, and now a Qwen3 hosted-inference key. Built against local stand-ins. Legal review and Federation confirmation stay outside this build.                                |
 
 ## Still open — needs your input
 
@@ -638,7 +652,7 @@ budgets, and tax calculation (spec §6.7).
 **Configuration**
 
 - `ANTHROPIC_API_KEY` (and the existing `ANTHROPIC_MODEL`) as in Phase 3. `ASSISTANT_WEB_SEARCH`
-  (`on` by default) switches web search off for the whole deployment. If the API account has web
+  (`on` by default; `off` by default since Phase 6) switches web search off for the whole deployment. If the API account has web
   search disabled, the reply is retried without it and says so.
 
 **What is verified, and how**
@@ -651,3 +665,212 @@ budgets, and tax calculation (spec §6.7).
 - **Not verified:** a real call to the Anthropic API, real web search results, and the quality of
   real answers (whether the model follows the rules, cites well, writes good Arabic). These need
   the API key; spec §8.3's early live test is still recommended.
+
+## Meetings (Phase 6)
+
+**Model**
+
+- A meeting is a **series**: one occurrence, or a recurrence rule with a required end condition
+  (spec §14: "frequency + end condition"). Daily, weekly (chosen weekdays) or monthly (same day of
+  the month), every 1–30 periods, ending after up to 365 occurrences or on a date at most 3 years
+  after the first. An end is required so a series can always be expanded, synced and reminded
+  about without an open-ended loop.
+- Times are stored as **wall-clock start + IANA time zone + duration**, and occurrences are
+  expanded in that zone (`packages/shared/src/meetings/recurrence.ts`, no date library). A weekly
+  18:00 meeting in Riyadh stays at 18:00 local time. On a DST gap the occurrence moves to the
+  offset before the gap; in an overlap the first instance is used (both are RFC 5545's rules).
+- Single occurrences can be **cancelled or moved** without changing the series (stored as
+  overrides; synced as EXDATE / moved instances).
+- Fields: title, purpose, notes (optional), start/end, time zone, team **or** department **or**
+  whole organization, participants (up to 200), reminders (up to 3 of 5 min … 2 days), status
+  (scheduled / cancelled). Cancelling is final; a cancelled meeting can't be reopened.
+- **RSVP is per series**: an invitee confirms or declines the meeting, not each occurrence. Simpler
+  to answer and to sync; easy to extend later with per-occurrence answers.
+
+**Who may do what**
+
+- `meetings.view`, `meetings.create`, `meetings.manage` are scopable by the meeting's team or
+  department, with the same coverage rule as finance records; an organization-wide meeting needs
+  an organization-wide grant. **No approval step**: whoever may create a meeting creates it.
+- Organizers change their own meetings while they may still create meetings there;
+  `meetings.manage` changes any meeting in scope.
+- **Administrative meetings** (whole organization) need `meetings.administrative`, which is
+  Owner-only (spec §14: the Owner calls them).
+- **Everyone invited sees the meeting and can answer it**, whatever their scopes, so an invitation
+  never leaks into a 404. Out-of-scope meetings someone wasn't invited to are 404, as elsewhere.
+- Default roles: Owner all; Head of Esports and Esports Manager view/create/manage; Esports
+  Operations view. Migration 0011 adds them to existing roles from those templates.
+
+**Shared services**
+
+- Every change is audited in the same transaction (`meeting.created`, `updated`, `cancelled`,
+  `occurrence_cancelled`, `occurrence_moved`, `responded`; integration changes record which
+  connection made them). Invitations, changes, cancellations and answers notify through the
+  existing NotificationService; editing uses an `expectedVersion` (optimistic locking →
+  `version_conflict`).
+- **Reminders** run on the scheduler (every `SCHEDULER_INTERVAL_SECONDS`, default 30): each
+  (occurrence, offset) is claimed in `meeting_reminder_deliveries` before sending, so several API
+  instances never send one twice. Everyone not declined is reminded; a reminder more than 15
+  minutes late (e.g. after downtime) is skipped rather than sent late.
+
+## Integrations (Phase 6)
+
+**What connects, and who owns it**
+
+- **Personal** (any member, no extra permission, only their own meetings): Google Calendar and
+  Obsidian. **Organization** (`integrations.manage`, org-level, Owner by default): Notion,
+  outgoing webhooks, incoming webhooks.
+- Every connection acts **as the person who set it up**, with their current permissions, through
+  the meetings service. Changes coming from a provider are audited and notified like any other.
+  If the owner loses the permission, changes from that connection are rejected and logged.
+- Secrets (OAuth tokens, Notion tokens, webhook secrets) are encrypted with AES-256-GCM; the key is
+  `INTEGRATIONS_ENCRYPTION_KEY` (or HKDF from `SESSION_SECRET`), with the organization and
+  connection as associated data so a ciphertext can't be moved to another row. Secrets are shown
+  once; Obsidian tokens are stored hashed.
+
+**Two-way sync and conflicts**
+
+- Two-way is the default; each two-way connection (Google, Notion, Obsidian) has a **push-only**
+  switch: push-only never reads the provider and overwrites it unconditionally. Switching back to
+  two-way clears the stored snapshots, so the first comparison treats differences as conflicts
+  (platform wins) instead of guessing.
+- Each link (meeting ↔ remote record) keeps a **snapshot** of the synced fields as both sides last
+  agreed. On a change, base, platform and provider are merged **field by field** (three-way
+  merge, `sync-engine.ts`): changed on one side → that side wins; changed on both to the same
+  value → nothing; changed on both differently → **conflict: the platform's value wins**, is
+  written back, the conflict is logged with both values, and the connection's owner is notified.
+  The platform wins because its changes are permission-checked and audited; a calendar or
+  database edit may come from anyone with access to it. Start, end and time zone merge as one
+  field, so a merge can't combine one side's start with the other side's end. With no snapshot,
+  any difference is a conflict.
+- **Echo suppression**: after a push, the provider's new version (etag / content hash) is stored,
+  so the change notification for our own write is recognized and ignored.
+- **Duplicate prevention**: a unique link per (connection, meeting) and per (connection, remote
+  id); Google event ids are derived from (connection, meeting) so a repeated create returns 409
+  and the existing event is reused; Notion pages are looked up by "Platform ID" before creating;
+  an imported meeting carries the remote record's id (unique per connection), so an import
+  interrupted before its link was saved is linked on the next pass instead of imported twice.
+  Webhook deliveries carry a stable
+  `webhook-id`; incoming webhook message ids are stored to refuse replays.
+- **Retries**: a durable job queue in Postgres (`integration_jobs`, FOR UPDATE SKIP LOCKED, safe
+  across instances, coalescing quick successive edits). Sync jobs back off 30 s, 2 min, 10 min,
+  30 min, 2 h, 6 h (7 attempts); webhook deliveries follow the Standard Webhooks schedule (5 s …
+  24 h, 10 attempts). Errors are classed retryable / rate-limited / auth / permanent;
+  `Retry-After` is honoured and a rate-limit wait doesn't use up an attempt. An auth failure or
+  exhausted retries set the connection to "needs attention", log it, and **notify the owner once
+  per failure streak**.
+- **Rate limits** are kept under the providers' own: Google 300 requests/minute per connection
+  (Google allows 600 per user), Notion 150/minute (Notion allows an average of 3/second).
+
+**Google Calendar**
+
+- OAuth (web flow, offline access, `calendar.events` scope, state in Redis plus a nonce cookie).
+  Meetings are written to the member's calendar **without guests**, so Google never sends its own
+  invitations or creates copies; the member's response shows as tentative or confirmed, and
+  declined meetings are removed from their calendar.
+- Two-way: title, time, recurrence (RRULE + EXDATE), cancelled and moved single occurrences.
+  Deleting the event in Google = declining (or cancelling, for an organizer who may). The
+  description is written by the platform and not read back: free text can't be split back into
+  purpose, notes and participants reliably.
+- Changes arrive by push notification (watch channels with a hashed per-channel token, renewed a
+  day before expiry) and incremental sync tokens; a 410 triggers a full re-sync. Writes use
+  `If-Match` etags in two-way mode; a 412 re-reads, merges and retries once.
+- New events created in Google become meetings only on a **dedicated** calendar (in a chosen
+  team), never from "primary": a personal calendar is full of events that aren't team meetings.
+  Recurrence rules the platform can't represent are skipped and logged, not approximated.
+
+**Notion (API version 2026-03-11)**
+
+- Internal-integration token pasted by the organization; pages are created in the database's data
+  source. Properties are added if missing: When, Status, Purpose, Notes (two-way) and Platform ID,
+  Team, Repeats, Participants (written by the platform only; Notion can't express recurrence, so
+  edits to "Repeats" are ignored).
+- Notion's `last_edited_time` is rounded to the minute, so versions are a hash of the synced
+  properties; changes come from signed webhooks (HMAC-SHA256 with the verification token Notion
+  sends once, shown to the admin to paste back) and from polling pages edited since the last
+  position with a 2-minute overlap. Trashed pages count as cancelling.
+
+**Obsidian — checked, not assumed**
+
+- Obsidian has **no cloud API**: a vault is a folder of Markdown files on someone's computer, and
+  Obsidian Sync has no published API (Obsidian staff have said they deliberately don't publish one;
+  a headless Sync client was announced in beta in March 2026 and wasn't used). The community
+  "Local REST API" plugin only listens on `127.0.0.1`, so a server can't reach it either.
+- So the integration is **file-based**: a small companion script (`scripts/obsidian-vault-sync.mjs`,
+  Node 18+ or Bun, no dependencies) runs on the member's computer with a personal vault-sync token,
+  pulls their meetings as notes (YAML properties + Purpose / Notes sections) into `Meetings/`, and
+  in two-way mode pushes back edits to the title, purpose and notes. It never writes outside
+  `Meetings/`, moves notes for meetings you've left to `Meetings/_removed/`, and keeps your version
+  as a conflict copy next to the note whenever an edit can't be applied. A single note can also be
+  downloaded from the meeting page.
+
+**Webhooks**
+
+- Signed per **Standard Webhooks** (`webhook-id`, `webhook-timestamp`, `webhook-signature`;
+  `whsec_` secrets). Outgoing: meeting created/updated/cancelled/answered, no notes and no email
+  addresses in the payload; https only and **SSRF-checked** (resolved addresses must be public:
+  private, loopback, link-local, CGNAT, multicast and IPv6 equivalents including IPv4-mapped,
+  NAT64 and 6to4 are refused) when created and before every delivery; redirects aren't followed;
+  410 disables the endpoint.
+- **Incoming: every request must be authenticated.** Google pushes carry the channel token,
+  Notion events the HMAC signature, generic webhooks a Standard Webhooks signature within 5
+  minutes and a message id not seen before. Anything else gets the same 401, whether the endpoint
+  is unknown, the header missing or the signature wrong. Accepted requests act as the endpoint's
+  owner (create / update / cancel meetings, as allowed when it was set up).
+
+**What is verified, and how**
+
+- Exercised for real in the tests: the meetings rules and permissions against Postgres, recurrence
+  and time zones, reminders, the merge rules, the job queue and retries, conflict handling and
+  notifications, webhook signing and verification (including rejection of unsigned, stale and
+  replayed requests), SSRF checks, encryption, and the Obsidian companion script against the real
+  API and a temporary vault.
+- **Google Calendar and Notion are tested against local stand-in servers** written from their
+  documentation (`test/fake-google.ts`, `test/fake-notion.ts`). No call to the real Google or
+  Notion API has been made: OAuth consent, real push notifications and real API quirks are
+  unverified until an OAuth app and a Notion integration exist.
+
+## Qwen3 provider (Phase 6)
+
+**Host and model**
+
+- **DeepInfra**, model `Qwen/Qwen3-235B-A22B-Instruct-2507` (Apache 2.0 on Hugging Face;
+  non-thinking, so no `<think>` blocks). Checked 20 Oct 2026: DeepInfra lists it at
+  **$0.09 / $0.55 per million input / output tokens**, 262K context, function calling and JSON
+  output, and "zero retention". For the same model, a price comparison page (updated 15 Oct 2026)
+  lists Novita $0.09 / $0.58, Together AI $0.20 / $0.60, Alibaba Cloud $0.23 / $0.92 and Replicate
+  $0.264 / $1.06. DeepInfra was the cheapest with documented tool calling and structured output.
+- Any OpenAI-compatible host serving Qwen3 works by changing `QWEN_API_URL` and `QWEN_MODEL`; easy
+  to reverse.
+- DeepInfra is hosted in the US, as is Anthropic. Before routing personal data (player profiles)
+  to either, check cross-border transfer rules (Saudi PDPL) — not settled in this build.
+
+**Routing**
+
+- `AI_PROVIDER_DEFAULT` (`anthropic` unless set) and `AI_PROVIDER_OVERRIDES` per feature
+  (`clause_assistant`, `general`, `formal_message`, `email`, `offer_optimizer`,
+  `player_analyst`). Invalid values stop the API at startup.
+- **No automatic fallback** between providers: a feature routed to a provider without a key says
+  it isn't set up, so data never goes to a provider the deployer didn't choose. Each assistant page
+  shows which provider answers it.
+
+**Same guardrails**
+
+- Both providers sit behind the same `AiProvider` interface, and every guardrail is enforced by the
+  engine, not the provider: proposal-only (no write tools), the user's own permissions, citations
+  and anti-fabrication, confidence labels, the tool-call log, reply language checks.
+- Differences handled in the adapter, per DeepInfra's docs: tool `arguments` arrive as a JSON
+  string (unparseable arguments are refused, never run as an empty lookup); `tool_choice` only
+  `auto`/`none`; with tools, the system text goes at the top of the first user turn (DeepInfra
+  advises avoiding system messages with tool calling); structured output via `json_schema` with
+  `strict`, and the result is validated anyway; output capped at 16,384 tokens.
+- **No web search on Qwen3**: DeepInfra has no server-side search tool, so assistants routed to
+  Qwen3 answer without it and the reply is flagged "web search unavailable" rather than
+  pretending.
+
+**What is verified, and how**
+
+- Both adapters are tested against a stand-in OpenAI-/Anthropic-shaped server (request building,
+  tool-call round trips, JSON parsing, errors, timeouts), and the full assistant suite runs with
+  either provider. **Never called live**: real Qwen3 tool-calling quality, Arabic quality and
+  latency are unverified until a key is set.
