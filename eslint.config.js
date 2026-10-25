@@ -7,6 +7,7 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/.next/**',
+      '**/.vercel/**',
       '**/dist/**',
       'apps/api/drizzle/**',
       '**/next-env.d.ts',

@@ -126,6 +126,11 @@ const envSchema = z
     /** How often reminders and integration jobs are processed. 0 turns the scheduler off. */
     SCHEDULER_INTERVAL_SECONDS: z.coerce.number().int().min(0).max(3600).default(30),
     /**
+     * The standalone worker (src/worker.ts; a Vercel Daemon on the Hobby plan, where cron jobs
+     * may run only once a day) ticks the scheduler this often.
+     */
+    WORKER_INTERVAL_SECONDS: z.coerce.number().int().min(10).max(3600).default(60),
+    /**
      * Public URL at which outside services reach this API (webhooks, Google push
      * notifications). Defaults to WEB_APP_URL + "/api" (the Next.js proxy).
      */
@@ -157,9 +162,9 @@ const envSchema = z
     DOCUMENT_ENCRYPTION_KEY: z.string().min(32).optional(),
 
     /**
-     * Vercel deployment: Vercel Cron Jobs call GET /internal/scheduler/tick (public path
-     * /api/internal/scheduler/tick) with "Authorization: Bearer <CRON_SECRET>". Unset: the tick
-     * endpoint is closed (404).
+     * Vercel deployment: a Vercel Cron Job calls GET /internal/scheduler/tick (public path
+     * /api/internal/scheduler/tick) with "Authorization: Bearer <CRON_SECRET>" — once a day on
+     * the Hobby plan, as a backstop to the worker. Unset: the tick endpoint is closed (404).
      */
     CRON_SECRET: z.string().min(16).optional(),
   })
@@ -246,8 +251,9 @@ export type Env = z.infer<typeof envSchema> & {
  * - WEB_APP_URL defaults to this deployment's own URL (production URL in production, the branch
  *   or deployment URL in previews), so links and Origin checks match the domain being used;
  * - Vercel's edge overwrites X-Forwarded-For with the client's IP: trust one proxy hop;
- * - functions don't run between requests, so the in-process timer is off and Vercel Cron Jobs
- *   drive the scheduler instead (see SchedulerController).
+ * - functions don't run between requests, so the in-process timer is off; the worker
+ *   (src/worker.ts, a Vercel Daemon) drives the scheduler instead, with a daily cron tick as a
+ *   backstop (see SchedulerController).
  * Anything set explicitly wins.
  */
 function vercelDefaults(src: Record<string, string>): Record<string, string> {

@@ -1,0 +1,32 @@
+# Scheduler worker image (apps/api/src/worker.ts): meeting reminders and integration sync jobs.
+# Runs as a Vercel Daemon (see vercel.json); any container host works the same way.
+#
+# It lives at the repository root because the folder holding a Dockerfile is its build
+# context, and the worker needs the whole workspace (lockfile, packages/shared).
+#   docker build -f Dockerfile.worker -t esports-worker .
+#   docker run --env-file apps/api/.env esports-worker
+#
+# No Chromium: the worker never renders PDFs.
+
+FROM oven/bun:1.4-slim
+WORKDIR /app
+ENV NODE_ENV=production
+
+# 1. Dependencies (cached layer): manifests only.
+COPY package.json bun.lock bunfig.toml tsconfig.base.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN bun install --frozen-lockfile --production --filter '@esports/api'
+
+# 2. Source (node_modules are excluded by .dockerignore).
+COPY packages/shared ./packages/shared
+COPY apps/api/tsconfig.json ./apps/api/tsconfig.json
+COPY apps/api/src ./apps/api/src
+COPY apps/api/assets ./apps/api/assets
+
+# Bun reads tsconfig.json from the working directory; it enables the decorator metadata NestJS
+# needs, so the process MUST start from apps/api.
+WORKDIR /app/apps/api
+USER bun
+CMD ["bun", "src/worker.ts"]

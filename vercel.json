@@ -46,7 +46,21 @@
   "crons": [
     {
       "path": "/api/internal/scheduler/tick",
-      "schedule": "* * * * *"
+      "schedule": "0 3 * * *"
     }
-  ]
+  ],
+  "daemons": {
+    "scheduler": {
+      "root": ".",
+      "entrypoint": "Dockerfile.worker",
+      "instances": {
+        "iad1": 1
+      },
+      "resources": {
+        "requests": {
+          "memory": "1Gi"
+        }
+      }
+    }
+  }
 }

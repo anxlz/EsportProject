@@ -119,8 +119,13 @@ Vercel [Services](https://vercel.com/docs/services) deploy `apps/web` (Next.js) 
   paths as everywhere else); every other path goes to `web`. The browser keeps calling `/api/*`
   on its own origin, so the session cookie stays first-party. No service calls another
   server-side, so there are no service bindings.
-- A Vercel Cron Job calls `/api/internal/scheduler/tick` every minute (needs the Pro plan and
-  `CRON_SECRET`); functions don't run between requests, so this replaces the in-process timer.
+- Background work on the Hobby plan (cron jobs at most once a day): a **Vercel Daemon**
+  (`scheduler`, built from `Dockerfile.worker`, 1 GiB) runs `apps/api/src/worker.ts`, which
+  ticks the scheduler every `WORKER_INTERVAL_SECONDS` (60 s): meeting reminders and integration
+  sync. A daily cron call to `/api/internal/scheduler/tick` (needs `CRON_SECRET`) is a backstop.
+  Daemons are in beta, run in production only (previews have no reminders or sync), and on
+  Hobby count against 5 Active CPU-hours a month per team — about 0.5 h measured for this
+  worker; if the quota runs out Vercel stops it until the next month.
 - Assistant replies keep running after the 202 response through `waitUntil`.
 - `bunfig.toml` uses Bun's hoisted linker: Vercel's file tracing drops some per-workspace
   symlinks of the isolated layout.

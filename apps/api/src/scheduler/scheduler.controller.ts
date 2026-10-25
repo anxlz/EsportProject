@@ -1,8 +1,11 @@
 /**
- * Scheduler tick for deployments where the API runs as a function (Vercel): nothing runs between
- * requests there, so Vercel Cron Jobs call this route every minute instead of the in-process
- * timer. Vercel sends "Authorization: Bearer <CRON_SECRET>"; anything else gets 401, and without
- * a configured secret the route doesn't exist (404). The work is the same as a timer tick and is
+ * Scheduler tick over HTTP, for deployments where the API runs as functions (Vercel). On the
+ * Hobby plan Vercel Cron Jobs may run only once a day, so this is a daily backstop; the
+ * scheduler worker (src/worker.ts, a Vercel Daemon) does the minute-by-minute work. On Pro, a
+ * cron calling this route every minute could replace the worker.
+ *
+ * Vercel sends "Authorization: Bearer <CRON_SECRET>"; anything else gets 401, and without a
+ * configured secret the route doesn't exist (404). The work is the same as a timer tick and is
  * safe to run concurrently (reminders are claimed by a unique row, jobs with SKIP LOCKED).
  */
 import { Controller, Get, Headers, HttpCode, Inject } from '@nestjs/common';
