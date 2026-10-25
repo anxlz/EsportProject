@@ -1,0 +1,52 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "bunVersion": "1.4.x",
+  "services": {
+    "api": {
+      "root": "apps/api",
+      "framework": "nestjs",
+      "devCommand": "bun --watch src/main.ts",
+      "functions": {
+        "src/main.ts": {
+          "includeFiles": "{node_modules/@fontsource/*/{LICENSE,files/*-normal.woff2},node_modules/tslib/modules/*}"
+        }
+      },
+      "routes": [
+        {
+          "src": "/api/(.*)",
+          "transforms": [
+            {
+              "type": "request.path",
+              "op": "set",
+              "args": "/$1"
+            }
+          ]
+        }
+      ]
+    },
+    "web": {
+      "root": "apps/web",
+      "framework": "nextjs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/internal/scheduler/tick",
+      "schedule": "* * * * *"
+    }
+  ]
+}

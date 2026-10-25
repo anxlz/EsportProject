@@ -155,6 +155,13 @@ const envSchema = z
      * documents; store it like a database backup key.
      */
     DOCUMENT_ENCRYPTION_KEY: z.string().min(32).optional(),
+
+    /**
+     * Vercel deployment: Vercel Cron Jobs call GET /internal/scheduler/tick (public path
+     * /api/internal/scheduler/tick) with "Authorization: Bearer <CRON_SECRET>". Unset: the tick
+     * endpoint is closed (404).
+     */
+    CRON_SECRET: z.string().min(16).optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && !env.DOCUMENT_ENCRYPTION_KEY) {
@@ -228,12 +235,49 @@ export type Env = z.infer<typeof envSchema> & {
   allowedOrigins: string[];
   /** Where outside services call this API (no trailing slash). */
   publicApiUrl: string;
+  /** Running as a Vercel Function (VERCEL=1). */
+  onVercel: boolean;
 };
+
+/**
+ * Defaults when the API runs on Vercel (system variables VERCEL, VERCEL_ENV, VERCEL_URL,
+ * VERCEL_BRANCH_URL, VERCEL_PROJECT_PRODUCTION_URL; hostnames without a scheme). The web app and
+ * the API share one domain there, so:
+ * - WEB_APP_URL defaults to this deployment's own URL (production URL in production, the branch
+ *   or deployment URL in previews), so links and Origin checks match the domain being used;
+ * - Vercel's edge overwrites X-Forwarded-For with the client's IP: trust one proxy hop;
+ * - functions don't run between requests, so the in-process timer is off and Vercel Cron Jobs
+ *   drive the scheduler instead (see SchedulerController).
+ * Anything set explicitly wins.
+ */
+function vercelDefaults(src: Record<string, string>): Record<string, string> {
+  if (src.VERCEL !== '1') return src;
+  const host =
+    src.VERCEL_ENV === 'production'
+      ? (src.VERCEL_PROJECT_PRODUCTION_URL ?? src.VERCEL_URL)
+      : (src.VERCEL_BRANCH_URL ?? src.VERCEL_URL);
+  return {
+    ...(host ? { WEB_APP_URL: `https://${host}` } : {}),
+    TRUST_PROXY_HOPS: '1',
+    SCHEDULER_INTERVAL_SECONDS: '0',
+    ...src,
+  };
+}
+
+/** This deployment's own hostnames on Vercel (all are the same site as the web app). */
+function vercelOrigins(src: Record<string, string>): string[] {
+  if (src.VERCEL !== '1') return [];
+  return [src.VERCEL_URL, src.VERCEL_BRANCH_URL, src.VERCEL_PROJECT_PRODUCTION_URL]
+    .filter((h): h is string => !!h)
+    .map((h) => `https://${h}`);
+}
 
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
   // `KEY=` in a .env file means "not set" (so optional values fall back to their defaults).
-  const cleaned = Object.fromEntries(
-    Object.entries(source).filter(([, v]) => v !== undefined && v.trim() !== ''),
+  const cleaned = vercelDefaults(
+    Object.fromEntries(
+      Object.entries(source).filter(([, v]) => v !== undefined && v.trim() !== ''),
+    ) as Record<string, string>,
   );
   const parsed = envSchema.safeParse(cleaned);
   if (!parsed.success) {
@@ -265,11 +309,12 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
       env.DISCORD_REDIRECT_URI
     ),
     googleEnabled: !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REDIRECT_URI),
-    allowedOrigins: [...new Set([webOrigin, ...extra])],
+    allowedOrigins: [...new Set([webOrigin, ...extra, ...vercelOrigins(cleaned)])],
     publicApiUrl: (env.PUBLIC_API_URL ?? `${env.WEB_APP_URL.replace(/\/$/, '')}/api`).replace(
       /\/$/,
       '',
     ),
+    onVercel: cleaned.VERCEL === '1',
   };
 }
 

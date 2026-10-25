@@ -27,6 +27,7 @@
     "@nestjs/platform-express": "^12",
     "@nestjs/swagger": "^12",
     "@sparticuz/chromium": "^153.0.0",
+    "@vercel/functions": "^3.10.3",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.4",
     "exceljs": "^4.4.0",

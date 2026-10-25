@@ -15,6 +15,7 @@
  * model output is ever used to call one.
  */
 import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
+import { waitUntil } from '@vercel/functions';
 import {
   type AnalystContext,
   type AnswerLanguage,
@@ -122,6 +123,9 @@ export class AssistantEngine implements OnModuleDestroy {
       this.inflight.delete(p),
     );
     this.inflight.add(p);
+    // On Vercel the function may be frozen once the 202 is sent: keep it alive until the turn
+    // ends (bounded by the function's max duration). A no-op anywhere else.
+    waitUntil(p);
   }
 
   /** Lets running turns finish on shutdown (bounded). */

@@ -12,3 +12,6 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# Local Redis snapshots
+dump.rdb

@@ -110,6 +110,29 @@ real data. CI (`.github/workflows/ci.yml`) runs all of the above plus the web bu
 
 ## Deployment
 
+### Option A — Vercel, one project with two services (proposed; `vercel.json`)
+
+Vercel [Services](https://vercel.com/docs/services) deploy `apps/web` (Next.js) and `apps/api`
+(NestJS on the Bun runtime) from this repository as one project on one domain:
+
+- `/api/*` goes to the `api` service (the `/api` prefix is stripped, so the API sees the same
+  paths as everywhere else); every other path goes to `web`. The browser keeps calling `/api/*`
+  on its own origin, so the session cookie stays first-party. No service calls another
+  server-side, so there are no service bindings.
+- A Vercel Cron Job calls `/api/internal/scheduler/tick` every minute (needs the Pro plan and
+  `CRON_SECRET`); functions don't run between requests, so this replaces the in-process timer.
+- Assistant replies keep running after the 202 response through `waitUntil`.
+- `bunfig.toml` uses Bun's hoisted linker: Vercel's file tracing drops some per-workspace
+  symlinks of the isolated layout.
+- Local check of the whole setup: `vercel dev` (runs both services; the API through
+  `bun --watch src/main.ts`). Run migrations separately (see below).
+
+Limits that matter here: request bodies are capped at **4.5 MB** per function call on Vercel
+(identity documents allow 8 MB, contract backgrounds 5 MB), functions stop after 300 s by
+default, and Postgres/Redis must be hosted elsewhere (Supabase, Upstash).
+
+### Option B — web on Vercel, API as a container (Railway or Fly.io)
+
 | Piece    | Where                    | Notes                                                                                                                     |
 | -------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | Web      | Vercel                   | Root directory `apps/web`. Set `API_URL` to the API's public URL.                                                         |

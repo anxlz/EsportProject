@@ -236,4 +236,61 @@ describe('environment validation', () => {
   test('short session secrets are rejected', () => {
     expect(() => loadEnv({ ...base, SESSION_SECRET: 'short' })).toThrow(/SESSION_SECRET/);
   });
+
+  test('on Vercel: the deployment’s own URL, one proxy hop, and no in-process timer by default', () => {
+    const { WEB_APP_URL: _unset, ...noWeb } = base;
+    const vercel = {
+      ...noWeb,
+      VERCEL: '1',
+      VERCEL_URL: 'esports-abc123.vercel.app',
+      VERCEL_BRANCH_URL: 'esports-git-feature.vercel.app',
+      VERCEL_PROJECT_PRODUCTION_URL: 'club.example.com',
+    };
+    const preview = loadEnv({ ...vercel, VERCEL_ENV: 'preview' });
+    expect(preview.WEB_APP_URL).toBe('https://esports-git-feature.vercel.app');
+    expect(preview.publicApiUrl).toBe('https://esports-git-feature.vercel.app/api');
+    expect(preview.allowedOrigins.sort()).toEqual(
+      [
+        'https://esports-abc123.vercel.app',
+        'https://esports-git-feature.vercel.app',
+        'https://club.example.com',
+      ].sort(),
+    );
+    expect([
+      preview.TRUST_PROXY_HOPS,
+      preview.SCHEDULER_INTERVAL_SECONDS,
+      preview.onVercel,
+    ]).toEqual([1, 0, true]);
+    const prod = loadEnv({
+      ...vercel,
+      VERCEL_ENV: 'production',
+      NODE_ENV: 'production',
+      MAIL_TRANSPORT: 'smtp',
+      SMTP_HOST: 'smtp.example.com',
+      MAIL_FROM: 'a@example.com',
+      DOCUMENT_ENCRYPTION_KEY: 'k'.repeat(40),
+    });
+    expect(prod.WEB_APP_URL).toBe('https://club.example.com');
+    // Anything set explicitly wins.
+    const explicit = loadEnv({
+      ...vercel,
+      WEB_APP_URL: 'https://app.example.org',
+      TRUST_PROXY_HOPS: '2',
+      SCHEDULER_INTERVAL_SECONDS: '60',
+    });
+    expect([
+      explicit.WEB_APP_URL,
+      explicit.TRUST_PROXY_HOPS,
+      explicit.SCHEDULER_INTERVAL_SECONDS,
+    ]).toEqual(['https://app.example.org', 2, 60]);
+    expect(explicit.allowedOrigins).toContain('https://app.example.org');
+    // Not on Vercel: nothing changes.
+    const plain = loadEnv(base);
+    expect([plain.TRUST_PROXY_HOPS, plain.SCHEDULER_INTERVAL_SECONDS, plain.onVercel]).toEqual([
+      0,
+      30,
+      false,
+    ]);
+    expect(plain.allowedOrigins).toEqual(['https://app.example.com']);
+  });
 });

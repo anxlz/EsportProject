@@ -31,6 +31,7 @@ import { PdfService } from './pdf/pdf.service';
 import { VersioningService } from './versioning/versioning.service';
 import { MeetingsModule } from './meetings/meetings.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { SchedulerController } from './scheduler/scheduler.controller';
 import { SchedulerService } from './scheduler/scheduler.service';
 import { NOW, systemNow } from './common/now';
 import { NotificationsController } from './notifications/notifications.controller';
@@ -95,7 +96,7 @@ export class AccessManagementModule {}
 export class OrganizationStructureModule {}
 
 @Module({
-  controllers: [AuditController, NotificationsController, HealthController],
+  controllers: [AuditController, NotificationsController, HealthController, SchedulerController],
 })
 export class ActivityModule {}
 

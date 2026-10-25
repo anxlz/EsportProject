@@ -1,0 +1,5 @@
+# Hoisted (npm-style) node_modules: packages are real directories in the root node_modules
+# instead of per-workspace symlinks. Vercel's function file tracing drops some of those
+# symlinks (e.g. ioredis, @fontsource/*), which would leave the deployed API unable to start.
+[install]
+linker = "hoisted"

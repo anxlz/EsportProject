@@ -1,4 +1,7 @@
 import 'reflect-metadata';
+// Nest loads its HTTP adapter with a dynamic require; importing it here lets bundlers and file
+// tracers (Vercel's build) see it and ship it with the function.
+import '@nestjs/platform-express';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
