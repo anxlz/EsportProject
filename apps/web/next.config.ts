@@ -7,19 +7,24 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
  * The browser only ever talks to this app's own origin, at `/api/*`, which keeps the session
  * cookie first-party (HttpOnly, SameSite=Lax, __Host- prefixed in production).
  *
- * - On Vercel (one project, `web` and `api` services; see vercel.json) the platform routes
- *   `/api/*` to the API service before requests reach Next.js, so no rewrite is needed here.
+ * - On Vercel, requests are routed to the web service; this rewrite forwards `/api/*` to the
+ *   API_URL configured for that deployment.
  * - Everywhere else (local `bun run dev:web`, the API on Railway/Fly.io/Docker) Next.js proxies
  *   `/api/*` to API_URL, stripping the `/api` prefix — the same path the API sees on Vercel.
  */
 const onVercel = process.env.VERCEL === '1';
-const apiUrl = process.env.API_URL ?? 'http://localhost:4000';
+const apiUrl =
+  process.env.API_URL?.replace(/\/+$/, '') ?? (onVercel ? undefined : 'http://localhost:4000');
+
+if (onVercel && !apiUrl) {
+  throw new Error('API_URL must be set in Vercel to the public base URL of the API.');
+}
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@esports/shared'],
   poweredByHeader: false,
   async rewrites() {
-    return onVercel ? [] : [{ source: '/api/:path*', destination: `${apiUrl}/:path*` }];
+    return apiUrl ? [{ source: '/api/:path*', destination: `${apiUrl}/:path*` }] : [];
   },
   async headers() {
     return [

@@ -110,31 +110,25 @@ real data. CI (`.github/workflows/ci.yml`) runs all of the above plus the web bu
 
 ## Deployment
 
-### Option A — Vercel, one project with two services (proposed; `vercel.json`)
+### Option A — Web on Vercel, local API through Cloudflare Tunnel (development/test)
 
-Vercel [Services](https://vercel.com/docs/services) deploy `apps/web` (Next.js) and `apps/api`
-(NestJS on the Bun runtime) from this repository as one project on one domain:
+The browser calls `/api/*` on the Vercel web origin. Next.js strips the `/api` prefix and
+forwards those requests to `API_URL`, preserving first-party session cookies. To connect a local
+API:
 
-- `/api/*` goes to the `api` service (the `/api` prefix is stripped, so the API sees the same
-  paths as everywhere else); every other path goes to `web`. The browser keeps calling `/api/*`
-  on its own origin, so the session cookie stays first-party. No service calls another
-  server-side, so there are no service bindings.
-- Background work on the Hobby plan (cron jobs at most once a day): a **Vercel Daemon**
-  (`scheduler`, built from `Dockerfile.worker`, 1 GiB) runs `apps/api/src/worker.ts`, which
-  ticks the scheduler every `WORKER_INTERVAL_SECONDS` (60 s): meeting reminders and integration
-  sync. A daily cron call to `/api/internal/scheduler/tick` (needs `CRON_SECRET`) is a backstop.
-  Daemons are in beta, run in production only (previews have no reminders or sync), and on
-  Hobby count against 5 Active CPU-hours a month per team — about 0.5 h measured for this
-  worker; if the quota runs out Vercel stops it until the next month.
-- Assistant replies keep running after the 202 response through `waitUntil`.
-- `bunfig.toml` uses Bun's hoisted linker: Vercel's file tracing drops some per-workspace
-  symlinks of the isolated layout.
-- Local check of the whole setup: `vercel dev` (runs both services; the API through
-  `bun --watch src/main.ts`). Run migrations separately (see below).
+1. Start the API locally on port 4000, then run `cloudflared tunnel --url http://localhost:4000`.
+2. In Vercel project settings, set `API_URL` to the HTTPS URL printed by `cloudflared`, for
+   example `https://<tunnel-name>.trycloudflare.com`. Set it for each Vercel environment you use,
+   then redeploy.
+3. Configure the API's `WEB_APP_URL` as `https://anxil-esportproject.vercel.app` and set
+   `COOKIE_SECURE=true` (the local API otherwise defaults to insecure cookies). Keep
+   `PUBLIC_API_URL` pointed at the web origin's `/api` path so external integrations can reach
+   API callbacks.
 
-Limits that matter here: request bodies are capped at **4.5 MB** per function call on Vercel
-(identity documents allow 8 MB, contract backgrounds 5 MB), functions stop after 300 s by
-default, and Postgres/Redis must be hosted elsewhere (Supabase, Upstash).
+The API and tunnel must remain running. A Quick Tunnel URL can change when restarted; update
+`API_URL` and redeploy when it does. Quick Tunnels are publicly reachable: use test data and do
+not expose an API connected to sensitive local or production data. For a permanent deployment,
+use a stable, access-controlled tunnel or the hosted API setup in Option B.
 
 ### Option B — web on Vercel, API as a container (Railway or Fly.io)
 
