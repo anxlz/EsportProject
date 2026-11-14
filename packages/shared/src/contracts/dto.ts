@@ -17,8 +17,8 @@ import type {
   TerminationReasonCode,
   TerminationStatus,
   VerificationMethod,
-} from './catalog';
-import type { ContractDetailsInput } from './schemas';
+} from './catalog.js';
+import type { ContractDetailsInput } from './schemas.js';
 
 export interface ContractClause {
   id: string;

@@ -3,8 +3,8 @@
  * the dashboard (which explains). The answer comes from the approved version's details, so the
  * signers are exactly the people named in the document that was approved.
  */
-import { ADULT_AGE, type SignerRole } from './catalog';
-import type { ContractSnapshot } from './dto';
+import { ADULT_AGE, type SignerRole } from './catalog.js';
+import type { ContractSnapshot } from './dto.js';
 
 /** Age in whole years on a date (both YYYY-MM-DD). */
 export function ageOn(dateOfBirth: string, on: string): number {

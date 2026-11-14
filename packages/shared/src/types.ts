@@ -1,6 +1,6 @@
 /** Response shapes returned by the API. The web app imports these for type safety. */
-import type { PermissionKey, ScopeType } from './permissions';
-import type { Locale } from './schemas';
+import type { PermissionKey, ScopeType } from './permissions.js';
+import type { Locale } from './schemas.js';
 
 /** Stable machine-readable error codes. The web app translates these; never show raw messages. */
 export const ERROR_CODES = [

@@ -11,13 +11,13 @@ import type { PermissionKey, TeamCreateInput, TeamDto } from '@esports/shared';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import type { teamUpdateSchema } from '@esports/shared';
-import { AccessService } from '../authz/access.service';
-import type { TenantContext } from '../authz/context';
-import { scopeCondition } from '../authz/scope-filter';
-import { AuditService } from '../audit/audit.service';
-import { Errors } from '../common/errors';
-import { DB, type Database } from '../db/client';
-import { departments, games, teams } from '../db/schema';
+import { AccessService } from '../authz/access.service.js';
+import type { TenantContext } from '../authz/context.js';
+import { scopeCondition } from '../authz/scope-filter.js';
+import { AuditService } from '../audit/audit.service.js';
+import { Errors } from '../common/errors.js';
+import { DB, type Database } from '../db/client.js';
+import { departments, games, teams } from '../db/schema.js';
 
 type TeamUpdateInput = z.infer<typeof teamUpdateSchema>;
 

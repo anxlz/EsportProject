@@ -17,13 +17,13 @@ import {
   saveScenariosSchema,
 } from '@esports/shared';
 import { z } from 'zod';
-import { AuditService } from '../audit/audit.service';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { AppError } from '../common/errors';
-import { ZodBody, ZodQuery } from '../common/zod';
-import { renderReport } from './exports';
-import { PdfRenderer } from './exports/render-pdf';
-import { ReportsService } from './reports.service';
+import { AuditService } from '../audit/audit.service.js';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { AppError } from '../common/errors.js';
+import { ZodBody, ZodQuery } from '../common/zod.js';
+import { renderReport } from './exports/index.js';
+import { PdfRenderer } from './exports/render-pdf.js';
+import { ReportsService } from './reports.service.js';
 
 const scopeRefSchema = z
   .object({

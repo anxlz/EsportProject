@@ -17,11 +17,11 @@ import {
   type TemplateClausesInput,
 } from '@esports/shared';
 import { and, asc, count, eq, sql } from 'drizzle-orm';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { contracts, contractTypes, templateClauses } from '../db/schema-contracts';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { contracts, contractTypes, templateClauses } from '../db/schema-contracts.js';
 
 /** Seeds the system contract types with their default templates (idempotent). */
 export async function seedContractTypes(tx: DbOrTx, organizationId: string, userId: string | null) {

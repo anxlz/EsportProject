@@ -4,21 +4,21 @@
  * re-implements them.
  */
 import { Module } from '@nestjs/common';
-import { type Env, ENV } from '../config/env';
-import { RostersController } from '../rosters/rosters.controller';
-import { RostersService } from '../rosters/rosters.service';
-import { TournamentsController } from '../tournaments/tournaments.controller';
-import { BudgetsController } from './budgets.controller';
-import { BudgetsService } from './budgets.service';
-import { CLOCK, systemClock } from './clock';
-import { PdfRenderer } from './exports/render-pdf';
-import { FX_PROVIDER, FrankfurterProvider, NoFxProvider } from './fx.provider';
-import { FxService } from './fx.service';
-import { LedgerController } from './ledger.controller';
-import { LedgerService } from './ledger.service';
-import { ReportsController } from './reports.controller';
-import { ReportsService } from './reports.service';
-import { FinanceSettingsController } from './settings.controller';
+import { type Env, ENV } from '../config/env.js';
+import { RostersController } from '../rosters/rosters.controller.js';
+import { RostersService } from '../rosters/rosters.service.js';
+import { TournamentsController } from '../tournaments/tournaments.controller.js';
+import { BudgetsController } from './budgets.controller.js';
+import { BudgetsService } from './budgets.service.js';
+import { CLOCK, systemClock } from './clock.js';
+import { PdfRenderer } from './exports/render-pdf.js';
+import { FX_PROVIDER, FrankfurterProvider, NoFxProvider } from './fx.provider.js';
+import { FxService } from './fx.service.js';
+import { LedgerController } from './ledger.controller.js';
+import { LedgerService } from './ledger.service.js';
+import { ReportsController } from './reports.controller.js';
+import { ReportsService } from './reports.service.js';
+import { FinanceSettingsController } from './settings.controller.js';
 
 @Module({
   controllers: [

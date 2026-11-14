@@ -7,8 +7,8 @@
  *   bun run platform-admin list
  */
 import { eq, sql } from 'drizzle-orm';
-import { createDb } from '../db/client';
-import { auditLogs, platformAdmins, users } from '../db/schema';
+import { createDb } from '../db/client.js';
+import { auditLogs, platformAdmins, users } from '../db/schema.js';
 
 const [command, email] = process.argv.slice(2);
 const url = process.env.DATABASE_URL;

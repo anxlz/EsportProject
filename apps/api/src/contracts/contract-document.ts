@@ -25,7 +25,7 @@ import {
   type MergeContext,
   mergeValues,
 } from '@esports/shared';
-import { contractTextFontCss, escapeHtml as esc, pdfFonts } from '../pdf/pdf.service';
+import { contractTextFontCss, escapeHtml as esc, pdfFonts } from '../pdf/pdf.service.js';
 
 export interface DocumentAssets {
   logo: { data: Buffer; contentType: string } | null;

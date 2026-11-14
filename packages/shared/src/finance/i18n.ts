@@ -5,7 +5,7 @@
  * exports (PDF, CSV, XLSX, TXT) must use exactly the same words and footnotes as the dashboard.
  * Footnotes state what every number includes and excludes (brief §6.6).
  */
-import type { FootnoteKey, ScenarioName, ScenarioOutcome, ScopeKind } from './report';
+import type { FootnoteKey, ScenarioName, ScenarioOutcome, ScopeKind } from './report.js';
 
 export type FinanceLocale = 'ar' | 'en';
 

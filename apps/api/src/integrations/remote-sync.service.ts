@@ -28,19 +28,19 @@ import {
   type RsvpResponse,
 } from '@esports/shared';
 import { and, eq, gt, ne } from 'drizzle-orm';
-import type { TenantContext } from '../authz/context';
-import { AppError } from '../common/errors';
-import { NOW, type Now } from '../common/now';
-import { DB, type Database } from '../db/client';
-import { integrationLinks, meetings } from '../db/schema-meetings';
-import { endLocalOf, type LoadedMeeting, MeetingsService } from '../meetings/meetings.service';
-import { type ConnectionRow, ConnectionsService } from './connections.service';
-import { IntegrationError } from './errors';
-import { JobsService } from './jobs.service';
-import { GoogleCalendarProvider } from './providers/google-calendar';
-import { NotionProvider } from './providers/notion';
-import type { LinkRow, MeetingView, RemoteProvider, RemoteRecord } from './providers/types';
-import { ALL_KEYS, parseSnapshot, same, type Snapshot, threeWayMerge } from './sync-engine';
+import type { TenantContext } from '../authz/context.js';
+import { AppError } from '../common/errors.js';
+import { NOW, type Now } from '../common/now.js';
+import { DB, type Database } from '../db/client.js';
+import { integrationLinks, meetings } from '../db/schema-meetings.js';
+import { endLocalOf, type LoadedMeeting, MeetingsService } from '../meetings/meetings.service.js';
+import { type ConnectionRow, ConnectionsService } from './connections.service.js';
+import { IntegrationError } from './errors.js';
+import { JobsService } from './jobs.service.js';
+import { GoogleCalendarProvider } from './providers/google-calendar.js';
+import { NotionProvider } from './providers/notion.js';
+import type { LinkRow, MeetingView, RemoteProvider, RemoteRecord } from './providers/types.js';
+import { ALL_KEYS, parseSnapshot, same, type Snapshot, threeWayMerge } from './sync-engine.js';
 
 const short = (v: unknown) => {
   const s = typeof v === 'string' ? v : JSON.stringify(v);

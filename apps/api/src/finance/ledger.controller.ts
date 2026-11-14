@@ -7,9 +7,9 @@ import {
   type RevenueInput,
   revenueInputSchema,
 } from '@esports/shared';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
-import { type LedgerQuery, LedgerService } from './ledger.service';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { UuidPipe, ZodBody, ZodQuery } from '../common/zod.js';
+import { type LedgerQuery, LedgerService } from './ledger.service.js';
 
 /**
  * Costs and revenue. The decorators require the permission at some scope; the service then

@@ -3,11 +3,11 @@ import { ApiTags } from '@nestjs/swagger';
 import { FILE_KINDS, type FileKind, type PermissionKey } from '@esports/shared';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { RequireOrg, type TenantContext, TenantCtx } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { Errors } from '../common/errors';
-import { UuidPipe, ZodQuery } from '../common/zod';
-import { FilesService } from './files.service';
+import { RequireOrg, type TenantContext, TenantCtx } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { Errors } from '../common/errors.js';
+import { UuidPipe, ZodQuery } from '../common/zod.js';
+import { FilesService } from './files.service.js';
 
 /** Who may upload each kind: layout assets with template rights, the stamp with sensitive settings. */
 const UPLOAD_PERMISSION: Record<FileKind, PermissionKey> = {

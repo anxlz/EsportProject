@@ -16,13 +16,13 @@ import type {
   RosterMemberUpdateInput,
 } from '@esports/shared';
 import { and, asc, eq } from 'drizzle-orm';
-import type { Access, TeamRef } from '../authz/access';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { rosterCompensation, rosterMembers } from '../db/schema-finance';
-import { loadTeamRef } from '../finance/scope';
+import type { Access, TeamRef } from '../authz/access.js';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { rosterCompensation, rosterMembers } from '../db/schema-finance.js';
+import { loadTeamRef } from '../finance/scope.js';
 
 type MemberRow = typeof rosterMembers.$inferSelect;
 type CompRow = typeof rosterCompensation.$inferSelect;

@@ -1,10 +1,10 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as coreSchema from './schema';
-import * as assistantsSchema from './schema-assistants';
-import * as contractsSchema from './schema-contracts';
-import * as financeSchema from './schema-finance';
-import * as meetingsSchema from './schema-meetings';
+import * as coreSchema from './schema.js';
+import * as assistantsSchema from './schema-assistants.js';
+import * as contractsSchema from './schema-contracts.js';
+import * as financeSchema from './schema-finance.js';
+import * as meetingsSchema from './schema-meetings.js';
 
 const schema = {
   ...coreSchema,

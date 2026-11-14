@@ -21,8 +21,8 @@
  * Providers only produce text. Nothing they return is saved anywhere until a user accepts it.
  */
 import { Logger } from '@nestjs/common';
-import { AppError } from '../common/errors';
-import type { Env } from '../config/env';
+import { AppError } from '../common/errors.js';
+import type { Env } from '../config/env.js';
 
 export interface AiJsonRequest {
   system: string;

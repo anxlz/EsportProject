@@ -38,15 +38,15 @@ import {
   type AuthContext,
   type TenantContext,
   TenantCtx,
-} from '../authz/context';
-import { Errors } from '../common/errors';
-import { RateLimit } from '../common/rate-limit';
-import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
-import { type Env, ENV } from '../config/env';
-import { ConnectionsService } from './connections.service';
-import { IntegrationsService } from './integrations.service';
-import { ObsidianService } from './obsidian.service';
-import { WebhooksService } from './webhooks.service';
+} from '../authz/context.js';
+import { Errors } from '../common/errors.js';
+import { RateLimit } from '../common/rate-limit.js';
+import { UuidPipe, ZodBody, ZodQuery } from '../common/zod.js';
+import { type Env, ENV } from '../config/env.js';
+import { ConnectionsService } from './connections.service.js';
+import { IntegrationsService } from './integrations.service.js';
+import { ObsidianService } from './obsidian.service.js';
+import { WebhooksService } from './webhooks.service.js';
 
 const GOOGLE_NONCE_COOKIE = 'esp_gcal_nonce';
 

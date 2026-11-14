@@ -7,10 +7,10 @@ import {
   type ContractTerminationRequestInput,
 } from '@esports/shared';
 import { z } from 'zod';
-import { RequireOrg, TenantCtx, type TenantContext } from '../authz/context';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { asciiFilename } from './http';
-import { ContractTerminationsService } from './contract-terminations.service';
+import { RequireOrg, TenantCtx, type TenantContext } from '../authz/context.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { asciiFilename } from './http.js';
+import { ContractTerminationsService } from './contract-terminations.service.js';
 
 @ApiTags('contract-terminations')
 @Controller('contracts/:id/termination')

@@ -15,10 +15,10 @@ import {
   type Env,
   ENV,
   parseProviderOverrides,
-} from '../config/env';
-import { aiProviderFromEnv, type AiProvider, UnconfiguredProvider } from './ai.provider';
-import { LocalLlmProvider } from './local-llm.provider';
-import { QwenProvider } from './qwen.provider';
+} from '../config/env.js';
+import { aiProviderFromEnv, type AiProvider, UnconfiguredProvider } from './ai.provider.js';
+import { LocalLlmProvider } from './local-llm.provider.js';
+import { QwenProvider } from './qwen.provider.js';
 
 export type AiProviders = Record<AiProviderName, AiProvider>;
 export const AI_PROVIDERS = Symbol('AI_PROVIDERS');

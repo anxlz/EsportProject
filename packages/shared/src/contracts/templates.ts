@@ -7,7 +7,7 @@
  * templates before use. Nothing here claims a clause is valid or enforceable (spec §7.4, §7.8).
  * The governing-law clause is deliberately left as a placeholder for counsel to complete.
  */
-import type { SystemContractType } from './catalog';
+import type { SystemContractType } from './catalog.js';
 
 export interface DefaultClause {
   key: string;

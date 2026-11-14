@@ -1,9 +1,9 @@
 import { Controller, Delete, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { type RoleInput, roleInputSchema } from '@esports/shared';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { RolesService } from './roles.service';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { RolesService } from './roles.service.js';
 
 @ApiTags('roles')
 @Controller('roles')

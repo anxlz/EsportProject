@@ -18,12 +18,12 @@ import {
   RequirePermission,
   type TenantContext,
   TenantCtx,
-} from '../authz/context';
-import { AuthService } from '../auth/auth.service';
-import { SessionService } from '../auth/session.service';
-import { RateLimit } from '../common/rate-limit';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { InvitationsService } from './invitations.service';
+} from '../authz/context.js';
+import { AuthService } from '../auth/auth.service.js';
+import { SessionService } from '../auth/session.service.js';
+import { RateLimit } from '../common/rate-limit.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { InvitationsService } from './invitations.service.js';
 
 @ApiTags('invitations')
 @Controller()

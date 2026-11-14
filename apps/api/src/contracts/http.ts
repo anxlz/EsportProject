@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { Response } from 'express';
-import { AppError } from '../common/errors';
+import { AppError } from '../common/errors.js';
 
 /**
  * Contract previews are self-contained HTML (inline styles, data: images and fonts). They are

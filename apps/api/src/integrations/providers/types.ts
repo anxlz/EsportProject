@@ -1,9 +1,9 @@
 /** What the generic sync engine needs from a provider whose records live behind an API. */
 import type { RsvpResponse } from '@esports/shared';
-import type { integrationLinks } from '../../db/schema-meetings';
-import type { LoadedMeeting } from '../../meetings/meetings.service';
-import type { ConnectionRow } from '../connections.service';
-import type { Snapshot, SnapshotKey } from '../sync-engine';
+import type { integrationLinks } from '../../db/schema-meetings.js';
+import type { LoadedMeeting } from '../../meetings/meetings.service.js';
+import type { ConnectionRow } from '../connections.service.js';
+import type { Snapshot, SnapshotKey } from '../sync-engine.js';
 
 export type LinkRow = typeof integrationLinks.$inferSelect;
 

@@ -2,8 +2,8 @@
  * Outbound HTTP for integrations: timeouts, our own per-connection rate limit (checked before a
  * request, in Redis so it holds across instances), and errors mapped to IntegrationError.
  */
-import type { RateLimitService } from '../../common/rate-limit';
-import { IntegrationError } from '../errors';
+import type { RateLimitService } from '../../common/rate-limit.js';
+import { IntegrationError } from '../errors.js';
 
 export interface HttpResult<T = unknown> {
   status: number;

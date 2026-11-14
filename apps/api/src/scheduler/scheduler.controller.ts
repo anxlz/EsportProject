@@ -10,11 +10,11 @@
  */
 import { Controller, Get, Headers, HttpCode, Inject } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
-import { Public } from '../authz/context';
-import { safeEqual } from '../common/crypto';
-import { AppError, Errors } from '../common/errors';
-import { type Env, ENV } from '../config/env';
-import { SchedulerService } from './scheduler.service';
+import { Public } from '../authz/context.js';
+import { safeEqual } from '../common/crypto.js';
+import { AppError, Errors } from '../common/errors.js';
+import { type Env, ENV } from '../config/env.js';
+import { SchedulerService } from './scheduler.service.js';
 
 @ApiExcludeController()
 @Controller('internal/scheduler')

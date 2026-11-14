@@ -33,12 +33,12 @@ import {
   Meta,
   OptionalCtx,
   Public,
-} from '../authz/context';
-import { RateLimit } from '../common/rate-limit';
-import { ZodBody } from '../common/zod';
-import { type Env, ENV } from '../config/env';
-import { AuthService } from './auth.service';
-import { SessionService } from './session.service';
+} from '../authz/context.js';
+import { RateLimit } from '../common/rate-limit.js';
+import { ZodBody } from '../common/zod.js';
+import { type Env, ENV } from '../config/env.js';
+import { AuthService } from './auth.service.js';
+import { SessionService } from './session.service.js';
 
 const OAUTH_NONCE_COOKIE = 'esp_oauth_nonce';
 

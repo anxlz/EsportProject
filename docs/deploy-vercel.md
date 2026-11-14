@@ -32,6 +32,18 @@ Vercel project/domain so browser requests and session cookies remain first-party
    A laptop's `localhost` is not reachable from Vercel. See [Local LLM deployment](./LOCAL-LLM.md)
    for a secured tunnel or private-host setup.
 
+## Separate web and API projects
+
+For two independent Vercel projects, set the web project's Root Directory to `apps/web` and its
+`API_URL` to the API project's HTTPS URL (without a trailing slash). Set the API project's Root
+Directory to `apps/api`, and configure its runtime variables there, including `WEB_APP_URL` set
+to the web project's production URL. The root multi-service configuration above does not apply
+to either subdirectory-rooted project; the web app's Next.js rewrite proxies `/api/*` to `API_URL`.
+
+The API is deployed as Node ESM. Keep `.js` extensions on relative imports in its TypeScript
+source (and the shared workspace): TypeScript and Bun resolve those specifiers to `.ts` source,
+while the deployed Node runtime needs the extension to resolve compiled JavaScript modules.
+
 ## Migrations
 
 Deployments do not run migrations at cold start. From a trusted machine or CI runner with network

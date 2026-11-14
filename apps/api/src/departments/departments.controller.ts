@@ -3,13 +3,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { type DepartmentDto, departmentInputSchema } from '@esports/shared';
 import { and, asc, count, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
-import { AuditService } from '../audit/audit.service';
-import { AccessService } from '../authz/access.service';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { Errors } from '../common/errors';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { DB, type Database } from '../db/client';
-import { departments, teams } from '../db/schema';
+import { AuditService } from '../audit/audit.service.js';
+import { AccessService } from '../authz/access.service.js';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { Errors } from '../common/errors.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { DB, type Database } from '../db/client.js';
+import { departments, teams } from '../db/schema.js';
 
 type DepartmentInput = z.infer<typeof departmentInputSchema>;
 

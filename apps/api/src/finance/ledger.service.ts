@@ -24,17 +24,17 @@ import {
 } from '@esports/shared';
 import { and, asc, desc, eq, gte, isNull, lte, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
-import type { TeamRef } from '../authz/access';
-import type { TenantContext } from '../authz/context';
-import { scopeCondition } from '../authz/scope-filter';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { organizations, teams, users } from '../db/schema';
-import { financeEntries, rosterMembers, seasons, tournaments } from '../db/schema-finance';
-import { BudgetsService } from './budgets.service';
-import { FxService } from './fx.service';
-import { coversRecord, loadTeamRef } from './scope';
+import type { TeamRef } from '../authz/access.js';
+import type { TenantContext } from '../authz/context.js';
+import { scopeCondition } from '../authz/scope-filter.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { organizations, teams, users } from '../db/schema.js';
+import { financeEntries, rosterMembers, seasons, tournaments } from '../db/schema-finance.js';
+import { BudgetsService } from './budgets.service.js';
+import { FxService } from './fx.service.js';
+import { coversRecord, loadTeamRef } from './scope.js';
 
 export type LedgerKind = 'expense' | 'revenue';
 export type LedgerInput =

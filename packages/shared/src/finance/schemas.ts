@@ -10,8 +10,8 @@ import {
   REVENUE_CATEGORIES,
   ROSTER_ROLES,
   TOURNAMENT_STATUSES,
-} from './catalog';
-import { SCENARIO_NAMES } from './report';
+} from './catalog.js';
+import { SCENARIO_NAMES } from './report.js';
 
 const text = (max: number) => z.string().trim().max(max);
 const optText = (max: number) => text(max).nullable().optional();

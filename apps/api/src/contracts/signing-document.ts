@@ -23,7 +23,7 @@ import {
   type SignerRole,
   type VerificationMethod,
 } from '@esports/shared';
-import { escapeHtml as esc, pdfFonts } from '../pdf/pdf.service';
+import { escapeHtml as esc, pdfFonts } from '../pdf/pdf.service.js';
 
 const require = createRequire(import.meta.url);
 

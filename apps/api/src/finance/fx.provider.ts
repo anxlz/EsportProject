@@ -10,7 +10,7 @@
  * production (the licence page could not be loaded from the build environment).
  */
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { type Env, ENV } from '../config/env';
+import { type Env, ENV } from '../config/env.js';
 
 export interface ProviderRate {
   /** 1 unit of `base` = `rate` units of `quote`, as a decimal string. */

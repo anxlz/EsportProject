@@ -1,6 +1,6 @@
 /** Request schemas for Phase 3 (contracts). Enforced by the API; reused by the dashboard. */
 import { z } from 'zod';
-import { CURRENCY_CODES, PAY_FREQUENCIES } from '../finance/catalog';
+import { CURRENCY_CODES, PAY_FREQUENCIES } from '../finance/catalog.js';
 import {
   BACKGROUND_KINDS,
   CLAUSE_SOURCES,
@@ -21,8 +21,8 @@ import {
   STAMP_POSITIONS,
   TERMINATION_REASON_CODES,
   VERIFICATION_METHODS,
-} from './catalog';
-import { CONSENT_VERSION } from './i18n';
+} from './catalog.js';
+import { CONSENT_VERSION } from './i18n.js';
 
 const text = (max: number) => z.string().trim().max(max);
 const optText = (max: number) => text(max).nullable().optional();

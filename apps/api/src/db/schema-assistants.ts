@@ -19,7 +19,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { appSchema, organizations, users } from './schema';
+import { appSchema, organizations, users } from './schema.js';
 
 const tstz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
 const createdAt = () => tstz('created_at').notNull().defaultNow();

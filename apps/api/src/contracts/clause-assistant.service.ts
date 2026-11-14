@@ -25,15 +25,15 @@ import {
 } from '@esports/shared';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { AiRouter } from '../ai/ai.router';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { RateLimitService } from '../common/rate-limit';
-import { DB, type Database } from '../db/client';
-import { clauseProposals } from '../db/schema-contracts';
-import { VersioningService } from '../versioning/versioning.service';
-import { CONTRACT_ENTITY, ContractsService } from './contracts.service';
+import { AiRouter } from '../ai/ai.router.js';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { RateLimitService } from '../common/rate-limit.js';
+import { DB, type Database } from '../db/client.js';
+import { clauseProposals } from '../db/schema-contracts.js';
+import { VersioningService } from '../versioning/versioning.service.js';
+import { CONTRACT_ENTITY, ContractsService } from './contracts.service.js';
 
 const PROPOSALS_PER_HOUR = 30;
 

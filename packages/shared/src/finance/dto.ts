@@ -6,8 +6,8 @@ import type {
   Recurrence,
   RosterRole,
   TournamentStatus,
-} from './catalog';
-import type { BudgetVarianceLine, ScopeKind } from './report';
+} from './catalog.js';
+import type { BudgetVarianceLine, ScopeKind } from './report.js';
 
 export interface FinanceSettingsDto {
   baseCurrency: string;

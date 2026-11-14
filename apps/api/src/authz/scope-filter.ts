@@ -8,7 +8,7 @@
  */
 import { inArray, or, type SQL, sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
-import type { Scope } from './access';
+import type { Scope } from './access.js';
 
 export function scopeCondition(
   scope: Scope | null,

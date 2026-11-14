@@ -4,19 +4,19 @@
  * control) and changes meetings only through MeetingsService, as the connection's owner.
  */
 import { Module } from '@nestjs/common';
-import { type Env, ENV } from '../config/env';
-import { MeetingsModule } from '../meetings/meetings.module';
-import { ConnectionsService } from './connections.service';
-import { IntegrationHooksController, IntegrationsController } from './integrations.controller';
-import { IntegrationsService } from './integrations.service';
-import { JobsService } from './jobs.service';
-import { ObsidianService } from './obsidian.service';
-import { GoogleCalendarProvider } from './providers/google-calendar';
-import { NotionProvider } from './providers/notion';
-import { RemoteSyncService } from './remote-sync.service';
-import { SECRET_BOX, SecretBox } from './secret-box';
-import { WebhooksService } from './webhooks.service';
-import { IntegrationsWorker } from './worker.service';
+import { type Env, ENV } from '../config/env.js';
+import { MeetingsModule } from '../meetings/meetings.module.js';
+import { ConnectionsService } from './connections.service.js';
+import { IntegrationHooksController, IntegrationsController } from './integrations.controller.js';
+import { IntegrationsService } from './integrations.service.js';
+import { JobsService } from './jobs.service.js';
+import { ObsidianService } from './obsidian.service.js';
+import { GoogleCalendarProvider } from './providers/google-calendar.js';
+import { NotionProvider } from './providers/notion.js';
+import { RemoteSyncService } from './remote-sync.service.js';
+import { SECRET_BOX, SecretBox } from './secret-box.js';
+import { WebhooksService } from './webhooks.service.js';
+import { IntegrationsWorker } from './worker.service.js';
 
 @Module({
   imports: [MeetingsModule],

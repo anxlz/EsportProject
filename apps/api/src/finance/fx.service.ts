@@ -11,10 +11,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { normalizeRate } from '@esports/shared';
 import { and, eq } from 'drizzle-orm';
-import { DB, type Database } from '../db/client';
-import { fxRates } from '../db/schema-finance';
-import { CLOCK, type Clock } from './clock';
-import { FX_PROVIDER, type FxRateProvider } from './fx.provider';
+import { DB, type Database } from '../db/client.js';
+import { fxRates } from '../db/schema-finance.js';
+import { CLOCK, type Clock } from './clock.js';
+import { FX_PROVIDER, type FxRateProvider } from './fx.provider.js';
 
 export interface RateQuote {
   /** Units of `base` per 1 unit of `currency`, 12 decimal places. */

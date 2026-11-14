@@ -12,10 +12,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { FILE_LIMITS, type FileKind, type StoredFileDto } from '@esports/shared';
 import { and, eq } from 'drizzle-orm';
-import { AppError, Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { storedFiles } from '../db/schema-contracts';
-import { sha256Hex } from '../versioning/versioning.service';
+import { AppError, Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { storedFiles } from '../db/schema-contracts.js';
+import { sha256Hex } from '../versioning/versioning.service.js';
 
 /** Detects the real type from the first bytes. */
 export function sniffContentType(data: Buffer): string | null {

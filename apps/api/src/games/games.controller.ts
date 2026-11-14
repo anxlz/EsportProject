@@ -3,12 +3,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { type GameDto, gameInputSchema, gameUpdateSchema } from '@esports/shared';
 import { and, asc, count, eq, max, sql } from 'drizzle-orm';
 import type { z } from 'zod';
-import { AuditService } from '../audit/audit.service';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { Errors } from '../common/errors';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { DB, type Database } from '../db/client';
-import { games, teams } from '../db/schema';
+import { AuditService } from '../audit/audit.service.js';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { Errors } from '../common/errors.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { DB, type Database } from '../db/client.js';
+import { games, teams } from '../db/schema.js';
 
 /** Games are a configurable per-organization entity (seeded with common titles). */
 @ApiTags('games')

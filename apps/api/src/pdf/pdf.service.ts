@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path';
 import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import type { ContractTextFontFamily, ContractTextStyle } from '@esports/shared';
 import type { Browser } from 'puppeteer-core';
-import { ENV, type Env } from '../config/env';
+import { ENV, type Env } from '../config/env.js';
 
 const require = createRequire(import.meta.url);
 

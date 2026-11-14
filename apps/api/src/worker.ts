@@ -14,9 +14,9 @@
 import 'reflect-metadata';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { loadEnv } from './config/env';
-import { SchedulerService } from './scheduler/scheduler.service';
+import { AppModule } from './app.module.js';
+import { loadEnv } from './config/env.js';
+import { SchedulerService } from './scheduler/scheduler.service.js';
 
 // The loop below drives the ticks, so the in-process timer stays off whatever the environment says.
 const env = loadEnv({ ...process.env, SCHEDULER_INTERVAL_SECONDS: '0' });

@@ -11,7 +11,7 @@
  *   `meetings.manage` changes any meeting in scope.
  */
 import type { PermissionKey } from '@esports/shared';
-import type { Access, TeamRef } from '../authz/access';
+import type { Access, TeamRef } from '../authz/access.js';
 
 export interface MeetingScope {
   kind: string;

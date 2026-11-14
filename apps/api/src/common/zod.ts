@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { ApiBody } from '@nestjs/swagger';
 import { z } from 'zod';
-import { Errors } from './errors';
+import { Errors } from './errors.js';
 
 @Injectable()
 export class ZodPipe<T extends z.ZodType> implements PipeTransform {

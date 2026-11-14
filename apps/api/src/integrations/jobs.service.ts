@@ -12,9 +12,9 @@
  */
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { NOW, type Now } from '../common/now';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { integrationJobs } from '../db/schema-meetings';
+import { NOW, type Now } from '../common/now.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { integrationJobs } from '../db/schema-meetings.js';
 
 export type JobKind = 'push_meeting' | 'pull' | 'full_sync' | 'deliver_webhook' | 'renew_channel';
 export type JobRow = typeof integrationJobs.$inferSelect;

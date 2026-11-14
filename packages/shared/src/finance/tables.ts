@@ -3,7 +3,7 @@
  * Cells keep their raw values and type; each renderer only decides presentation, so no format
  * can drift from another or from the on-screen report (which shows the same FinancialReport).
  */
-import { currencyInfo } from './catalog';
+import { currencyInfo } from './catalog.js';
 import {
   formatIsoDate,
   formatMoney,
@@ -11,9 +11,9 @@ import {
   formatNumber,
   formatPercent,
   type MoneyFormatOptions,
-} from './format';
-import { categoryLabel, type FinanceLocale, fl, footnoteText } from './i18n';
-import { SCENARIO_NAMES, type FinancialReport } from './report';
+} from './format.js';
+import { categoryLabel, type FinanceLocale, fl, footnoteText } from './i18n.js';
+import { SCENARIO_NAMES, type FinancialReport } from './report.js';
 
 export type ReportCell =
   | { t: 'text'; v: string }

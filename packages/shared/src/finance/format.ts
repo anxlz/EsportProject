@@ -8,9 +8,9 @@
  * a space, in Arabic and English alike (SAMA guidance). Western digits and the Gregorian
  * calendar in both languages (see DECISIONS.md).
  */
-import { currencyInfo } from './catalog';
-import type { FinanceLocale } from './i18n';
-import { money } from './money';
+import { currencyInfo } from './catalog.js';
+import type { FinanceLocale } from './i18n.js';
+import { money } from './money.js';
 
 const numberLocale = (l: FinanceLocale) => (l === 'ar' ? 'ar-u-nu-latn' : 'en-GB');
 

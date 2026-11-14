@@ -16,14 +16,14 @@ import {
   stampSettingsSchema,
 } from '@esports/shared';
 import { eq } from 'drizzle-orm';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { organizations } from '../db/schema';
-import { documentSettings } from '../db/schema-contracts';
-import { FilesService } from '../files/files.service';
-import type { DocumentAssets } from './contract-document';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { organizations } from '../db/schema.js';
+import { documentSettings } from '../db/schema-contracts.js';
+import { FilesService } from '../files/files.service.js';
+import type { DocumentAssets } from './contract-document.js';
 
 const LAYOUT_DEFAULTS = documentSettingsSchema.parse({});
 const STAMP_DEFAULTS = stampSettingsSchema.parse({});

@@ -34,18 +34,18 @@ import {
 } from '@esports/shared';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { PermissionKey } from '@esports/shared';
-import type { TeamRef } from '../authz/access';
-import type { TenantContext } from '../authz/context';
-import { scopeCondition } from '../authz/scope-filter';
-import { AuditService } from '../audit/audit.service';
-import { Errors } from '../common/errors';
-import { DB, type Database } from '../db/client';
-import { organizations, teams } from '../db/schema';
-import { financeScenarios, seasons, tournaments } from '../db/schema-finance';
-import { RostersService } from '../rosters/rosters.service';
-import { CLOCK, type Clock } from './clock';
-import { FxService } from './fx.service';
-import { LedgerService, type LedgerRow, stripZeros } from './ledger.service';
+import type { TeamRef } from '../authz/access.js';
+import type { TenantContext } from '../authz/context.js';
+import { scopeCondition } from '../authz/scope-filter.js';
+import { AuditService } from '../audit/audit.service.js';
+import { Errors } from '../common/errors.js';
+import { DB, type Database } from '../db/client.js';
+import { organizations, teams } from '../db/schema.js';
+import { financeScenarios, seasons, tournaments } from '../db/schema-finance.js';
+import { RostersService } from '../rosters/rosters.service.js';
+import { CLOCK, type Clock } from './clock.js';
+import { FxService } from './fx.service.js';
+import { LedgerService, type LedgerRow, stripZeros } from './ledger.service.js';
 
 export interface ResolvedScope {
   kind: ScopeKind;

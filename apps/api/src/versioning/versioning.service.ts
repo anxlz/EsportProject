@@ -11,9 +11,9 @@
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { users } from '../db/schema';
-import { entityVersions } from '../db/schema-contracts';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { users } from '../db/schema.js';
+import { entityVersions } from '../db/schema-contracts.js';
 
 /** JSON with object keys sorted recursively, so equal content always hashes equally. */
 export function canonicalJson(value: unknown): string {

@@ -2,7 +2,7 @@
  * The five AI assistants (spec §8.2) and the rules they share (spec §8.1). Keys are stored in
  * the database; labels live in the web app's message catalogs.
  */
-import type { PermissionKey } from '../permissions';
+import type { PermissionKey } from '../permissions.js';
 
 export const ASSISTANT_KEYS = [
   'general',

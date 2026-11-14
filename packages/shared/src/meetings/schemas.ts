@@ -9,7 +9,7 @@ import {
   SYNC_DIRECTIONS,
   WEBHOOK_EVENT_TYPES,
   WEEKDAYS,
-} from './catalog';
+} from './catalog.js';
 import {
   isValidTimeZone,
   localToUtc,
@@ -17,7 +17,7 @@ import {
   parseLocal,
   type RecurrenceRule,
   ruleProblem,
-} from './recurrence';
+} from './recurrence.js';
 
 const text = (max: number) => z.string().trim().max(max);
 const optText = (max: number) => text(max).nullable().optional();

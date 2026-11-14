@@ -15,12 +15,12 @@ import {
 } from '@esports/shared';
 import type { Response } from 'express';
 import { z } from 'zod';
-import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
-import { ClauseAssistantService } from './clause-assistant.service';
-import { READ_ANY, requireAny } from './contract-types.controller';
-import { ContractsService } from './contracts.service';
-import { asciiFilename, renderGuard, sendPreviewHtml } from './http';
+import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { UuidPipe, ZodBody, ZodQuery } from '../common/zod.js';
+import { ClauseAssistantService } from './clause-assistant.service.js';
+import { READ_ANY, requireAny } from './contract-types.controller.js';
+import { ContractsService } from './contracts.service.js';
+import { asciiFilename, renderGuard, sendPreviewHtml } from './http.js';
 
 const versionQuery = z.object({ version: z.coerce.number().int().min(1).optional() });
 const SEE: Parameters<typeof requireAny>[1] = ['contracts.view', 'contracts.approve'];

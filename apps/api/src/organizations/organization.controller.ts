@@ -3,12 +3,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { updateOrganizationSchema } from '@esports/shared';
 import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
-import { AuditService } from '../audit/audit.service';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { Errors } from '../common/errors';
-import { ZodBody } from '../common/zod';
-import { DB, type Database } from '../db/client';
-import { organizations } from '../db/schema';
+import { AuditService } from '../audit/audit.service.js';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { Errors } from '../common/errors.js';
+import { ZodBody } from '../common/zod.js';
+import { DB, type Database } from '../db/client.js';
+import { organizations } from '../db/schema.js';
 
 /** The active organization's general settings. Sensitive settings arrive in Phase 3. */
 @ApiTags('organization')

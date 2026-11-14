@@ -47,22 +47,22 @@ import {
 } from '@esports/shared';
 import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { AiRouter } from '../ai/ai.router';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { RateLimitService } from '../common/rate-limit';
-import { DB, type Database } from '../db/client';
-import { users } from '../db/schema';
+import { AiRouter } from '../ai/ai.router.js';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { RateLimitService } from '../common/rate-limit.js';
+import { DB, type Database } from '../db/client.js';
+import { users } from '../db/schema.js';
 import {
   aiConversations,
   aiMessages,
   aiProposalActions,
   aiToolCalls,
-} from '../db/schema-assistants';
-import { ContractsService } from '../contracts/contracts.service';
-import { MailService } from '../mail/mail.service';
-import { AssistantEngine, normalizeTerms } from './assistant-engine';
+} from '../db/schema-assistants.js';
+import { ContractsService } from '../contracts/contracts.service.js';
+import { MailService } from '../mail/mail.service.js';
+import { AssistantEngine, normalizeTerms } from './assistant-engine.js';
 
 type ConversationRow = typeof aiConversations.$inferSelect;
 type MessageRow = typeof aiMessages.$inferSelect;

@@ -10,8 +10,8 @@ import type {
   RsvpResponse,
   SyncDirection,
   WebhookEventType,
-} from './catalog';
-import type { RecurrenceRule } from './recurrence';
+} from './catalog.js';
+import type { RecurrenceRule } from './recurrence.js';
 
 export interface MeetingParticipantDto {
   userId: string;

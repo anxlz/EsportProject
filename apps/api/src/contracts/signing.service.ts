@@ -58,33 +58,33 @@ import {
 } from '@esports/shared';
 import { and, asc, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
-import type { ClientMeta, TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { hmacSha256, randomToken, safeEqual, sha256 } from '../common/crypto';
-import { AppError, Errors } from '../common/errors';
-import { type Env, ENV } from '../config/env';
-import { REDIS } from '../core/core.module';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { users } from '../db/schema';
+import type { ClientMeta, TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { hmacSha256, randomToken, safeEqual, sha256 } from '../common/crypto.js';
+import { AppError, Errors } from '../common/errors.js';
+import { type Env, ENV } from '../config/env.js';
+import { REDIS } from '../core/core.module.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { users } from '../db/schema.js';
 import {
   approvalRequests,
   contracts,
   contractSigners,
   signingLinks,
   signingRounds,
-} from '../db/schema-contracts';
-import { FilesService } from '../files/files.service';
-import { CLOCK, type Clock } from '../finance/clock';
-import { coversRecord } from '../finance/scope';
-import { MailService } from '../mail/mail.service';
-import { NotificationService } from '../notifications/notification.service';
-import { PdfService } from '../pdf/pdf.service';
-import { canonicalJson, sha256Hex, VersioningService } from '../versioning/versioning.service';
-import { CONTRACT_ENTITY, ContractsService, type LoadedContract } from './contracts.service';
-import { DocumentSettingsService } from './document-settings.service';
-import { renderGuard } from './http';
-import { idDocumentRequired, SignerIdService } from './signer-id.service';
-import { certificateFooter, certificateHtml, type CertificateSigner } from './signing-document';
+} from '../db/schema-contracts.js';
+import { FilesService } from '../files/files.service.js';
+import { CLOCK, type Clock } from '../finance/clock.js';
+import { coversRecord } from '../finance/scope.js';
+import { MailService } from '../mail/mail.service.js';
+import { NotificationService } from '../notifications/notification.service.js';
+import { PdfService } from '../pdf/pdf.service.js';
+import { canonicalJson, sha256Hex, VersioningService } from '../versioning/versioning.service.js';
+import { CONTRACT_ENTITY, ContractsService, type LoadedContract } from './contracts.service.js';
+import { DocumentSettingsService } from './document-settings.service.js';
+import { renderGuard } from './http.js';
+import { idDocumentRequired, SignerIdService } from './signer-id.service.js';
+import { certificateFooter, certificateHtml, type CertificateSigner } from './signing-document.js';
 
 const PERM = 'contracts.send_for_signature';
 const SIGNED_DOCUMENT_KIND = 'contract_signed';

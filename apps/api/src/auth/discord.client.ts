@@ -3,7 +3,7 @@
  * Behind an injection token so tests replace it with a fake — no test ever calls Discord.
  */
 import { Inject, Injectable } from '@nestjs/common';
-import { type Env, ENV } from '../config/env';
+import { type Env, ENV } from '../config/env.js';
 
 export interface DiscordProfile {
   id: string;

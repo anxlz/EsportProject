@@ -1,9 +1,9 @@
 import { Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { type BudgetInput, budgetInputSchema } from '@esports/shared';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { BudgetsService } from './budgets.service';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { BudgetsService } from './budgets.service.js';
 
 @ApiTags('finance')
 @Controller('finance/budgets')

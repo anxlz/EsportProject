@@ -17,11 +17,11 @@ import {
   rosterMemberUpdateSchema,
   type RosterMemberUpdateInput,
 } from '@esports/shared';
-import { AuditService } from '../audit/audit.service';
-import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { toCsv } from '../common/csv';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { RostersService } from './rosters.service';
+import { AuditService } from '../audit/audit.service.js';
+import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { toCsv } from '../common/csv.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { RostersService } from './rosters.service.js';
 
 @ApiTags('rosters')
 @Controller()

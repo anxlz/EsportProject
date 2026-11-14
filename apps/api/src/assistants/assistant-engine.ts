@@ -44,15 +44,15 @@ import {
   type AiProvider,
   type AiUsage,
   WebSearchUnavailableError,
-} from '../ai/ai.provider';
-import { AiRouter } from '../ai/ai.router';
-import { UNPARSEABLE_ARGUMENTS } from '../ai/qwen.provider';
-import type { TenantContext } from '../authz/context';
-import { AppError } from '../common/errors';
-import { type Env, ENV } from '../config/env';
-import { DB, type Database } from '../db/client';
-import { organizations } from '../db/schema';
-import { aiMessages, aiToolCalls } from '../db/schema-assistants';
+} from '../ai/ai.provider.js';
+import { AiRouter } from '../ai/ai.router.js';
+import { UNPARSEABLE_ARGUMENTS } from '../ai/qwen.provider.js';
+import type { TenantContext } from '../authz/context.js';
+import { AppError } from '../common/errors.js';
+import { type Env, ENV } from '../config/env.js';
+import { DB, type Database } from '../db/client.js';
+import { organizations } from '../db/schema.js';
+import { aiMessages, aiToolCalls } from '../db/schema-assistants.js';
 import {
   ANSWER_PARSERS,
   ANSWER_SCHEMAS,
@@ -60,8 +60,8 @@ import {
   composeSystem,
   mainText,
   researchSystem,
-} from './assistant-prompts';
-import { AssistantTools, type PlatformTool, ToolDenied } from './assistant-tools';
+} from './assistant-prompts.js';
+import { AssistantTools, type PlatformTool, ToolDenied } from './assistant-tools.js';
 import {
   checkClaims,
   checkGuarantees,
@@ -71,7 +71,7 @@ import {
   scrubLinks,
   SourceRegistry,
   urlsIn,
-} from './guardrails';
+} from './guardrails.js';
 
 const MAX_RESEARCH_CALLS = 6;
 const MAX_PLATFORM_TOOL_RUNS = 10;

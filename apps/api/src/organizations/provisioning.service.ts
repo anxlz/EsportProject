@@ -10,8 +10,8 @@ import {
   DEFAULT_ROLE_TEMPLATES,
   type Locale,
 } from '@esports/shared';
-import { seedContractTypes } from '../contracts/contract-types.service';
-import type { DbOrTx } from '../db/client';
+import { seedContractTypes } from '../contracts/contract-types.service.js';
+import type { DbOrTx } from '../db/client.js';
 import {
   games,
   organizationMembers,
@@ -19,7 +19,7 @@ import {
   rolePermissions,
   roles,
   userRoleAssignments,
-} from '../db/schema';
+} from '../db/schema.js';
 
 @Injectable()
 export class ProvisioningService {

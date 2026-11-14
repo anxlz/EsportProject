@@ -8,13 +8,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { auditLogQuerySchema, type PlatformOrganizationDto } from '@esports/shared';
 import { eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
-import { AuditService } from '../audit/audit.service';
-import { type AuthContext, Ctx, PlatformAdminOnly } from '../authz/context';
-import { Errors } from '../common/errors';
-import { UuidPipe, ZodQuery } from '../common/zod';
-import { DB, type Database } from '../db/client';
-import { organizations } from '../db/schema';
-import { MembersService } from '../members/members.service';
+import { AuditService } from '../audit/audit.service.js';
+import { type AuthContext, Ctx, PlatformAdminOnly } from '../authz/context.js';
+import { Errors } from '../common/errors.js';
+import { UuidPipe, ZodQuery } from '../common/zod.js';
+import { DB, type Database } from '../db/client.js';
+import { organizations } from '../db/schema.js';
+import { MembersService } from '../members/members.service.js';
 
 @ApiTags('platform')
 @Controller('platform')

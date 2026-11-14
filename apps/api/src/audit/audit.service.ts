@@ -9,9 +9,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { AuditLogDto } from '@esports/shared';
 import { and, desc, eq, lt, type SQL } from 'drizzle-orm';
-import type { AuthContext, ClientMeta } from '../authz/context';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { auditLogs, users } from '../db/schema';
+import type { AuthContext, ClientMeta } from '../authz/context.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { auditLogs, users } from '../db/schema.js';
 
 export interface AuditEntry {
   organizationId: string | null;

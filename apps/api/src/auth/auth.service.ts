@@ -2,15 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Locale, LoginInput, MeResponse, RegisterOrganizationInput } from '@esports/shared';
 import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
-import type { Access } from '../authz/access';
-import { AccessService } from '../authz/access.service';
-import type { AuthContext, ClientMeta } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { randomToken, safeEqual, sha256 } from '../common/crypto';
-import { type Env, ENV } from '../config/env';
-import { REDIS } from '../core/core.module';
-import { DB, type Database } from '../db/client';
+import type { Access } from '../authz/access.js';
+import { AccessService } from '../authz/access.service.js';
+import type { AuthContext, ClientMeta } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { randomToken, safeEqual, sha256 } from '../common/crypto.js';
+import { type Env, ENV } from '../config/env.js';
+import { REDIS } from '../core/core.module.js';
+import { DB, type Database } from '../db/client.js';
 import {
   organizationMembers,
   organizations,
@@ -18,12 +18,12 @@ import {
   platformAdmins,
   userIdentities,
   users,
-} from '../db/schema';
-import { MailService } from '../mail/mail.service';
-import { ProvisioningService } from '../organizations/provisioning.service';
-import { DISCORD_CLIENT, type DiscordOAuthClient } from './discord.client';
-import { PasswordService } from './password.service';
-import { type LoadedSession, SessionService } from './session.service';
+} from '../db/schema.js';
+import { MailService } from '../mail/mail.service.js';
+import { ProvisioningService } from '../organizations/provisioning.service.js';
+import { DISCORD_CLIENT, type DiscordOAuthClient } from './discord.client.js';
+import { PasswordService } from './password.service.js';
+import { type LoadedSession, SessionService } from './session.service.js';
 
 const RESET_TOKEN_MINUTES = 60;
 const OAUTH_STATE_TTL_SECONDS = 600;

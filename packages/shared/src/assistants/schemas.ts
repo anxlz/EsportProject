@@ -1,13 +1,13 @@
 /** Request schemas for the AI assistants (Phase 5). Enforced by the API; reused by the dashboard. */
 import { z } from 'zod';
-import { CURRENCY_CODES, PAY_FREQUENCIES } from '../finance/catalog';
+import { CURRENCY_CODES, PAY_FREQUENCIES } from '../finance/catalog.js';
 import {
   ASSISTANT_KEYS,
   ASSISTANT_LIMITS,
   type AssistantKey,
   EMAIL_TONES,
   REPLY_LANGUAGES,
-} from './catalog';
+} from './catalog.js';
 
 const text = (max: number) => z.string().trim().max(max);
 const optText = (max: number) => text(max).nullable().optional();

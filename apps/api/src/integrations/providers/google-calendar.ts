@@ -35,17 +35,17 @@ import {
 } from '@esports/shared';
 import { eq } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
-import { NOW, type Now } from '../../common/now';
-import { RateLimitService } from '../../common/rate-limit';
-import { sha256 } from '../../common/crypto';
-import { type Env, ENV } from '../../config/env';
-import { DB, type Database } from '../../db/client';
-import { integrationConnections } from '../../db/schema-meetings';
-import { type ConnectionRow, ConnectionsService } from '../connections.service';
-import { IntegrationError } from '../errors';
-import { httpJson, reserve } from './http';
-import type { SnapshotKey } from '../sync-engine';
-import type { LinkRow, MeetingView, RemoteChanges, RemoteProvider, RemoteRecord } from './types';
+import { NOW, type Now } from '../../common/now.js';
+import { RateLimitService } from '../../common/rate-limit.js';
+import { sha256 } from '../../common/crypto.js';
+import { type Env, ENV } from '../../config/env.js';
+import { DB, type Database } from '../../db/client.js';
+import { integrationConnections } from '../../db/schema-meetings.js';
+import { type ConnectionRow, ConnectionsService } from '../connections.service.js';
+import { IntegrationError } from '../errors.js';
+import { httpJson, reserve } from './http.js';
+import type { SnapshotKey } from '../sync-engine.js';
+import type { LinkRow, MeetingView, RemoteChanges, RemoteProvider, RemoteRecord } from './types.js';
 
 const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const PER_MINUTE = 300;

@@ -2,11 +2,11 @@ import { Controller, Delete, Get, Header, HttpCode, Param, Patch, Post } from '@
 import { ApiTags } from '@nestjs/swagger';
 import { type TeamCreateInput, teamCreateSchema, teamUpdateSchema } from '@esports/shared';
 import type { z } from 'zod';
-import { AuditService } from '../audit/audit.service';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { toCsv } from '../common/csv';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { TeamsService } from './teams.service';
+import { AuditService } from '../audit/audit.service.js';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { toCsv } from '../common/csv.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { TeamsService } from './teams.service.js';
 
 @ApiTags('teams')
 @Controller('teams')

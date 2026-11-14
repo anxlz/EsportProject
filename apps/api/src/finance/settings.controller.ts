@@ -10,15 +10,15 @@ import {
 } from '@esports/shared';
 import { and, asc, count, eq, gt, gte, isNull, lt, lte, ne, or } from 'drizzle-orm';
 import type { z } from 'zod';
-import { AuditService } from '../audit/audit.service';
-import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { AppError, Errors } from '../common/errors';
-import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { organizations } from '../db/schema';
-import { budgets, financeEntries, seasons } from '../db/schema-finance';
-import { BudgetsService } from './budgets.service';
-import { FxService } from './fx.service';
+import { AuditService } from '../audit/audit.service.js';
+import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { AppError, Errors } from '../common/errors.js';
+import { UuidPipe, ZodBody, ZodQuery } from '../common/zod.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { organizations } from '../db/schema.js';
+import { budgets, financeEntries, seasons } from '../db/schema-finance.js';
+import { BudgetsService } from './budgets.service.js';
+import { FxService } from './fx.service.js';
 
 type SeasonInput = z.infer<typeof seasonInputSchema>;
 

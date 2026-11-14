@@ -8,10 +8,10 @@
  */
 import type { PermissionKey } from '@esports/shared';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { Access, TeamRef } from '../authz/access';
-import { Errors } from '../common/errors';
-import type { DbOrTx } from '../db/client';
-import { teams } from '../db/schema';
+import type { Access, TeamRef } from '../authz/access.js';
+import { Errors } from '../common/errors.js';
+import type { DbOrTx } from '../db/client.js';
+import { teams } from '../db/schema.js';
 
 export function coversRecord(access: Access, perm: PermissionKey, team: TeamRef | null): boolean {
   return team ? access.coversTeam(perm, team) : access.hasAll(perm);

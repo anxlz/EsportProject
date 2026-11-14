@@ -11,9 +11,9 @@
  * semimonthly ×2, quarterly ÷3, annually ÷12). Per-event pay can't be projected, and a revenue
  * share can't be costed without a revenue figure; both are reported as notes, not guessed.
  */
-import { monthlyEquivalent } from '../finance/payroll';
-import type { PayFrequency } from '../finance/catalog';
-import { type Amount, d, money, sum, ZERO } from '../finance/money';
+import { monthlyEquivalent } from '../finance/payroll.js';
+import type { PayFrequency } from '../finance/catalog.js';
+import { type Amount, d, money, sum, ZERO } from '../finance/money.js';
 
 export interface OfferTerms {
   salaryAmount?: Amount | null;

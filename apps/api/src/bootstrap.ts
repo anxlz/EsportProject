@@ -3,7 +3,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import type { Express, NextFunction, Request, Response } from 'express';
-import type { Env } from './config/env';
+import type { Env } from './config/env.js';
 
 /** Applies HTTP-level configuration. Shared by main.ts and the test harness. */
 export function configureApp(app: INestApplication, env: Env): void {

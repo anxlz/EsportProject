@@ -7,10 +7,10 @@ import {
   type TemplateClausesInput,
   templateClausesSchema,
 } from '@esports/shared';
-import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { Errors } from '../common/errors';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { ContractTypesService } from './contract-types.service';
+import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { Errors } from '../common/errors.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { ContractTypesService } from './contract-types.service.js';
 
 /** Anyone working with contracts can read the types and templates they draft from. */
 const READ_ANY: PermissionKey[] = [

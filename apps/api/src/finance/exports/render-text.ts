@@ -7,7 +7,7 @@
  * TXT: the same sections with values formatted exactly as on screen, columns padded.
  */
 import { displayCell, type FinanceLocale, rawCell, type ReportDocument } from '@esports/shared';
-import { csvLines } from '../../common/csv';
+import { csvLines } from '../../common/csv.js';
 
 const ISOLATES = /[⁦-⁩]/g;
 

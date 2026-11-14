@@ -42,13 +42,13 @@ import {
 } from '@esports/shared';
 import { and, asc, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import type { Access, TeamRef } from '../authz/access';
-import type { TenantContext } from '../authz/context';
-import { scopeCondition } from '../authz/scope-filter';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { games, organizations, teams, users } from '../db/schema';
+import type { Access, TeamRef } from '../authz/access.js';
+import type { TenantContext } from '../authz/context.js';
+import { scopeCondition } from '../authz/scope-filter.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { games, organizations, teams, users } from '../db/schema.js';
 import {
   approvalRequests,
   contracts,
@@ -56,28 +56,28 @@ import {
   contractTypes,
   signingRounds,
   storedFiles,
-} from '../db/schema-contracts';
-import { rosterMembers } from '../db/schema-finance';
-import { FilesService } from '../files/files.service';
-import { coversRecord, loadTeamRef } from '../finance/scope';
-import { NotificationService } from '../notifications/notification.service';
-import { PdfService } from '../pdf/pdf.service';
+} from '../db/schema-contracts.js';
+import { rosterMembers } from '../db/schema-finance.js';
+import { FilesService } from '../files/files.service.js';
+import { coversRecord, loadTeamRef } from '../finance/scope.js';
+import { NotificationService } from '../notifications/notification.service.js';
+import { PdfService } from '../pdf/pdf.service.js';
 import {
   canonicalJson,
   sha256Hex,
   VersioningService,
   type VersionRecord,
-} from '../versioning/versioning.service';
+} from '../versioning/versioning.service.js';
 import {
   type ApprovalInfo,
   contractHtml,
   contractMargins,
   PAGE_NUMBER_FOOTER,
   type RenderInput,
-} from './contract-document';
-import { ContractTypesService } from './contract-types.service';
-import { DocumentSettingsService } from './document-settings.service';
-import { renderGuard } from './http';
+} from './contract-document.js';
+import { ContractTypesService } from './contract-types.service.js';
+import { DocumentSettingsService } from './document-settings.service.js';
+import { renderGuard } from './http.js';
 
 export const CONTRACT_ENTITY = 'contract';
 const APPROVED_DOCUMENT_KIND = 'contract_approved';

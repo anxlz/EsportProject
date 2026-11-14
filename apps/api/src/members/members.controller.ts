@@ -2,9 +2,9 @@ import { Controller, Delete, Get, HttpCode, Param, Post, Put } from '@nestjs/com
 import { ApiTags } from '@nestjs/swagger';
 import { setAssignmentsSchema, suspendMemberSchema } from '@esports/shared';
 import type { z } from 'zod';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { MembersService } from './members.service';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { MembersService } from './members.service.js';
 
 @ApiTags('members')
 @Controller('members')

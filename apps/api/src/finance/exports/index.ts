@@ -4,9 +4,9 @@ import {
   type FinancialReport,
   reportDocument,
 } from '@esports/shared';
-import type { PdfRenderer } from './render-pdf';
-import { renderCsv, renderTxt } from './render-text';
-import { renderXlsx } from './render-xlsx';
+import type { PdfRenderer } from './render-pdf.js';
+import { renderCsv, renderTxt } from './render-text.js';
+import { renderXlsx } from './render-xlsx.js';
 
 export interface RenderedExport {
   body: Buffer;

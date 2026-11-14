@@ -16,9 +16,9 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { Request, Response } from 'express';
 import type { Redis } from 'ioredis';
-import { REDIS } from '../core/core.module';
-import { AppError } from './errors';
-import { sha256 } from './crypto';
+import { REDIS } from '../core/core.module.js';
+import { AppError } from './errors.js';
+import { sha256 } from './crypto.js';
 
 interface Rule {
   by: 'ip' | 'email';

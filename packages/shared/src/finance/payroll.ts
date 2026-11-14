@@ -11,8 +11,8 @@
  * - Projections convert at the CURRENT exchange rate (they're forward-looking; there is no
  *   transaction to snapshot yet).
  */
-import type { PayFrequency } from './catalog';
-import { type Amount, d, Dec, money } from './money';
+import type { PayFrequency } from './catalog.js';
+import { type Amount, d, Dec, money } from './money.js';
 
 export interface CompensationTerms {
   rosterMemberId: string;

@@ -2,9 +2,9 @@ import { Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { notificationsQuerySchema } from '@esports/shared';
 import type { z } from 'zod';
-import { RequireOrg, type TenantContext, TenantCtx } from '../authz/context';
-import { UuidPipe, ZodQuery } from '../common/zod';
-import { NotificationService } from './notification.service';
+import { RequireOrg, type TenantContext, TenantCtx } from '../authz/context.js';
+import { UuidPipe, ZodQuery } from '../common/zod.js';
+import { NotificationService } from './notification.service.js';
 
 /** A user's own notifications in their active organization. No permission beyond membership. */
 @ApiTags('notifications')

@@ -3,12 +3,12 @@ import { Reflector } from '@nestjs/core';
 import type { PermissionKey } from '@esports/shared';
 import { eq } from 'drizzle-orm';
 import type { Request } from 'express';
-import { SessionService } from '../auth/session.service';
-import { type Env, ENV } from '../config/env';
-import { AppError, Errors } from '../common/errors';
-import { DB, type Database } from '../db/client';
-import { platformAdmins, users } from '../db/schema';
-import { AccessService } from './access.service';
+import { SessionService } from '../auth/session.service.js';
+import { type Env, ENV } from '../config/env.js';
+import { AppError, Errors } from '../common/errors.js';
+import { DB, type Database } from '../db/client.js';
+import { platformAdmins, users } from '../db/schema.js';
+import { AccessService } from './access.service.js';
 import {
   clientMeta,
   IS_PUBLIC,
@@ -16,7 +16,7 @@ import {
   REQUIRE_ORG,
   REQUIRED_PERMISSIONS,
   type RequestWithContext,
-} from './context';
+} from './context.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 

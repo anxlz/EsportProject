@@ -1,5 +1,5 @@
 /** Response types for the AI assistants (Phase 5). */
-import type { Amount } from '../finance/money';
+import type { Amount } from '../finance/money.js';
 import type {
   AnswerLanguage,
   AssistantKey,
@@ -15,8 +15,8 @@ import type {
   SourceKind,
   ToolCallKind,
   ToolCallOutcome,
-} from './catalog';
-import type { OfferCost, OfferTerms } from './offer';
+} from './catalog.js';
+import type { OfferCost, OfferTerms } from './offer.js';
 
 /** A statement with its confidence and the sources it rests on (spec §8.1 guardrails 1–2). */
 export interface ClaimDto {

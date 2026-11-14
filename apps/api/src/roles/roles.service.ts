@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type PermissionKey, PERMISSIONS, type RoleDto, type RoleInput } from '@esports/shared';
 import { and, asc, count, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { AccessService } from '../authz/access.service';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { DB, type Database } from '../db/client';
-import { invitations, rolePermissions, roles, userRoleAssignments } from '../db/schema';
+import { AccessService } from '../authz/access.service.js';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { DB, type Database } from '../db/client.js';
+import { invitations, rolePermissions, roles, userRoleAssignments } from '../db/schema.js';
 
 @Injectable()
 export class RolesService {

@@ -1,8 +1,8 @@
 import { Module, type OnModuleInit } from '@nestjs/common';
-import { SchedulerService } from '../scheduler/scheduler.service';
-import { ContractsModule } from './contracts.module';
-import { ContractTerminationsController } from './contract-terminations.controller';
-import { ContractTerminationsService } from './contract-terminations.service';
+import { SchedulerService } from '../scheduler/scheduler.service.js';
+import { ContractsModule } from './contracts.module.js';
+import { ContractTerminationsController } from './contract-terminations.controller.js';
+import { ContractTerminationsService } from './contract-terminations.service.js';
 
 @Module({
   imports: [ContractsModule],

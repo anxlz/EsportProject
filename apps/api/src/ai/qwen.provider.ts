@@ -32,8 +32,8 @@
  * anti-fabrication, tool-call log) are enforced by the engine, the same for every provider.
  */
 import { Logger } from '@nestjs/common';
-import { AppError } from '../common/errors';
-import type { Env } from '../config/env';
+import { AppError } from '../common/errors.js';
+import type { Env } from '../config/env.js';
 import type {
   AiConverseRequest,
   AiConverseResult,
@@ -43,7 +43,7 @@ import type {
   AiProvider,
   AiStopReason,
   AiUsage,
-} from './ai.provider';
+} from './ai.provider.js';
 
 /** Marker key on a tool call whose arguments couldn't be read (the engine won't run it). */
 export const UNPARSEABLE_ARGUMENTS = '__unparseable_arguments';

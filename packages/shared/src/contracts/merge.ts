@@ -4,11 +4,11 @@
  * contract can't be submitted with gaps. Pure functions: the same input renders the same text in
  * the preview, the approval document and the dashboard.
  */
-import { formatIsoDate, formatMoney, type MoneyFormatOptions } from '../finance/format';
-import { MERGE_FIELDS, type MergeField } from './catalog';
-import { cl, type ContractLocale, formatDuration } from './i18n';
-import type { ContractSnapshot } from './dto';
-import { isMinorOn } from './signing';
+import { formatIsoDate, formatMoney, type MoneyFormatOptions } from '../finance/format.js';
+import { MERGE_FIELDS, type MergeField } from './catalog.js';
+import { cl, type ContractLocale, formatDuration } from './i18n.js';
+import type { ContractSnapshot } from './dto.js';
+import { isMinorOn } from './signing.js';
 
 export interface MergeContext {
   organizationName: string;

@@ -10,10 +10,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { PermissionKey, ScopeGrant } from '@esports/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
-import { REDIS } from '../core/core.module';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { organizationMembers } from '../db/schema';
-import { Access, type AssignmentRow, buildGrants, type TeamRef } from './access';
+import { REDIS } from '../core/core.module.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { organizationMembers } from '../db/schema.js';
+import { Access, type AssignmentRow, buildGrants, type TeamRef } from './access.js';
 
 export type MembershipStatus = 'active' | 'suspended' | 'none';
 

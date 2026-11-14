@@ -2,7 +2,7 @@
  * Contract wording shared by the dashboard and the generated documents (one source, so the
  * preview, the approved PDF and the screen use the same terms).
  */
-import type { PayFrequency } from '../finance/catalog';
+import type { PayFrequency } from '../finance/catalog.js';
 import type {
   ApprovalRequestStatus,
   ContractStatus,
@@ -14,7 +14,7 @@ import type {
   TerminationReasonCode,
   TerminationStatus,
   VerificationMethod,
-} from './catalog';
+} from './catalog.js';
 
 export type ContractLocale = 'ar' | 'en';
 

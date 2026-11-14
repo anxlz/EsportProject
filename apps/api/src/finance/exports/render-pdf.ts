@@ -4,7 +4,7 @@
  */
 import { Injectable } from '@nestjs/common';
 import { displayCell, type FinanceLocale, type ReportDocument } from '@esports/shared';
-import { escapeHtml as esc, PdfService, pdfFonts as fonts } from '../../pdf/pdf.service';
+import { escapeHtml as esc, PdfService, pdfFonts as fonts } from '../../pdf/pdf.service.js';
 
 export function reportHtml(doc: ReportDocument, locale: FinanceLocale): string {
   const dir = locale === 'ar' ? 'rtl' : 'ltr';

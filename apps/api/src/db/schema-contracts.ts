@@ -27,8 +27,8 @@ import {
   type TerminationReasonCode,
   type TerminationStatus,
 } from '@esports/shared';
-import { appSchema, games, organizations, teams, users } from './schema';
-import { rosterMembers } from './schema-finance';
+import { appSchema, games, organizations, teams, users } from './schema.js';
+import { rosterMembers } from './schema-finance.js';
 
 const tstz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
 const createdAt = () => tstz('created_at').notNull().defaultNow();

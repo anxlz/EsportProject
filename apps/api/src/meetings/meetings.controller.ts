@@ -18,12 +18,12 @@ import {
 } from '@esports/shared';
 import { and, asc, eq } from 'drizzle-orm';
 import { Inject } from '@nestjs/common';
-import { RequireOrg, type TenantContext, TenantCtx } from '../authz/context';
-import { Errors } from '../common/errors';
-import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
-import { DB, type Database } from '../db/client';
-import { organizationMembers, users } from '../db/schema';
-import { MeetingsService } from './meetings.service';
+import { RequireOrg, type TenantContext, TenantCtx } from '../authz/context.js';
+import { Errors } from '../common/errors.js';
+import { UuidPipe, ZodBody, ZodQuery } from '../common/zod.js';
+import { DB, type Database } from '../db/client.js';
+import { organizationMembers, users } from '../db/schema.js';
+import { MeetingsService } from './meetings.service.js';
 
 /**
  * Every member reaches these routes (anyone can be invited); what each person may see, create,

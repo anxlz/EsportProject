@@ -13,7 +13,7 @@
  * - a wall-clock time that doesn't exist (skipped by a DST change) uses the offset before the
  *   change; an ambiguous one (repeated hour) uses its first occurrence.
  */
-import { MEETING_LIMITS, type RecurrenceFrequency, type Weekday, WEEKDAYS } from './catalog';
+import { MEETING_LIMITS, type RecurrenceFrequency, type Weekday, WEEKDAYS } from './catalog.js';
 
 export interface RecurrenceRule {
   freq: RecurrenceFrequency;

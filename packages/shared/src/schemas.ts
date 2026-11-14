@@ -3,7 +3,7 @@
  * The API is the authority: the web app uses these only to give earlier feedback.
  */
 import { z } from 'zod';
-import { GRANTABLE_PERMISSION_KEYS, type PermissionKey } from './permissions';
+import { GRANTABLE_PERMISSION_KEYS, type PermissionKey } from './permissions.js';
 
 export const LOCALES = ['ar', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];

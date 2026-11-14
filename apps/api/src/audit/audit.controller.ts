@@ -2,9 +2,9 @@ import { Controller, Get } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { auditLogQuerySchema } from '@esports/shared';
 import type { z } from 'zod';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { ZodQuery } from '../common/zod';
-import { AuditService } from './audit.service';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { ZodQuery } from '../common/zod.js';
+import { AuditService } from './audit.service.js';
 
 @ApiTags('audit')
 @Controller('audit-logs')

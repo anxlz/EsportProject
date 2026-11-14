@@ -3,11 +3,11 @@
  * scheduler). Integrations subscribe to MeetingEvents; this module doesn't know about them.
  */
 import { Module, type OnModuleInit } from '@nestjs/common';
-import { SchedulerService } from '../scheduler/scheduler.service';
-import { MeetingEvents } from './meeting-events';
-import { MeetingsController } from './meetings.controller';
-import { MeetingsService } from './meetings.service';
-import { RemindersService } from './reminders.service';
+import { SchedulerService } from '../scheduler/scheduler.service.js';
+import { MeetingEvents } from './meeting-events.js';
+import { MeetingsController } from './meetings.controller.js';
+import { MeetingsService } from './meetings.service.js';
+import { RemindersService } from './reminders.service.js';
 
 @Module({
   controllers: [MeetingsController],

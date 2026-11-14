@@ -9,12 +9,12 @@ import {
 } from '@esports/shared';
 import type { Response } from 'express';
 import { z } from 'zod';
-import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { ZodBody, ZodQuery } from '../common/zod';
-import { requireAny } from './contract-types.controller';
-import { ContractsService } from './contracts.service';
-import { DocumentSettingsService } from './document-settings.service';
-import { renderGuard, sendPreviewHtml } from './http';
+import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { ZodBody, ZodQuery } from '../common/zod.js';
+import { requireAny } from './contract-types.controller.js';
+import { ContractsService } from './contracts.service.js';
+import { DocumentSettingsService } from './document-settings.service.js';
+import { renderGuard, sendPreviewHtml } from './http.js';
 
 const sampleQuery = z.object({
   language: z.enum(DOCUMENT_LANGUAGES).default('bilingual'),

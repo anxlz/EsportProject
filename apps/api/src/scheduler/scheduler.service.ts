@@ -11,7 +11,7 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { type Env, ENV } from '../config/env';
+import { type Env, ENV } from '../config/env.js';
 
 type Task = { name: string; run: () => Promise<unknown> };
 

@@ -22,23 +22,23 @@ import type {
 } from '@esports/shared';
 import { occurrencesBetween } from '@esports/shared';
 import { and, eq, gt, inArray } from 'drizzle-orm';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { randomToken, sha256 } from '../common/crypto';
-import { AppError } from '../common/errors';
-import { NOW, type Now } from '../common/now';
-import { DB, type Database } from '../db/client';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { randomToken, sha256 } from '../common/crypto.js';
+import { AppError } from '../common/errors.js';
+import { NOW, type Now } from '../common/now.js';
+import { DB, type Database } from '../db/client.js';
 import {
   integrationConnections,
   integrationLinks,
   meetingParticipants,
   meetings,
-} from '../db/schema-meetings';
-import { type LoadedMeeting, MeetingsService } from '../meetings/meetings.service';
-import { type ConnectionRow, ConnectionsService } from './connections.service';
-import { notePath, parseNote, renderNote } from './obsidian-note';
-import { RemoteSyncService } from './remote-sync.service';
-import { parseSnapshot, type Snapshot, threeWayMerge } from './sync-engine';
+} from '../db/schema-meetings.js';
+import { type LoadedMeeting, MeetingsService } from '../meetings/meetings.service.js';
+import { type ConnectionRow, ConnectionsService } from './connections.service.js';
+import { notePath, parseNote, renderNote } from './obsidian-note.js';
+import { RemoteSyncService } from './remote-sync.service.js';
+import { parseSnapshot, type Snapshot, threeWayMerge } from './sync-engine.js';
 
 const TOKEN_PREFIX = 'obs_';
 const HORIZON_MS = 90 * 86_400_000;

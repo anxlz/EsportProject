@@ -8,7 +8,7 @@
  * amounts are exact; nothing is re-rounded afterwards.
  */
 import { Decimal } from 'decimal.js';
-import { currencyInfo } from './catalog';
+import { currencyInfo } from './catalog.js';
 
 type DecimalValue = Decimal.Value;
 

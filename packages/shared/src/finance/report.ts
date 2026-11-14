@@ -11,9 +11,9 @@
  * uncertain income) in a separate, labelled section. Formulas and their limits are documented here
  * and surfaced to users as footnotes (see ./i18n.ts).
  */
-import type { Certainty, Recurrence } from './catalog';
-import { currencyInfo, SALARY_CATEGORIES } from './catalog';
-import { addMonths, type Amount, d, Dec, money, monthDiff, monthOf, monthRange } from './money';
+import type { Certainty, Recurrence } from './catalog.js';
+import { currencyInfo, SALARY_CATEGORIES } from './catalog.js';
+import { addMonths, type Amount, d, Dec, money, monthDiff, monthOf, monthRange } from './money.js';
 
 export type ScopeKind = 'organization' | 'team' | 'tournament' | 'season';
 export type RateMode = 'snapshot' | 'current';

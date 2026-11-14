@@ -9,9 +9,9 @@
  */
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import nodemailer, { type Transporter } from 'nodemailer';
-import { type Env, ENV } from '../config/env';
-import { DB, type Database } from '../db/client';
-import { devOutbox } from '../db/schema';
+import { type Env, ENV } from '../config/env.js';
+import { DB, type Database } from '../db/client.js';
+import { devOutbox } from '../db/schema.js';
 
 export type MailTemplate =
   'invitation' | 'password_reset' | 'signing_code' | 'assistant_email' | 'contract_termination';

@@ -3,8 +3,8 @@
  * five assistants. Phase 6 adds Qwen3 next to Anthropic; AiRouter picks one per feature.
  */
 import { Global, Module } from '@nestjs/common';
-import { type Env, ENV } from '../config/env';
-import { AI_PROVIDERS, aiProvidersFromEnv, AiRouter } from './ai.router';
+import { type Env, ENV } from '../config/env.js';
+import { AI_PROVIDERS, aiProvidersFromEnv, AiRouter } from './ai.router.js';
 
 @Global()
 @Module({

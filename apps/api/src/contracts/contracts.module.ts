@@ -3,18 +3,18 @@
  * notifications, version history, file store, PDF engine) from SharedServicesModule.
  */
 import { Module } from '@nestjs/common';
-import { FilesController } from '../files/files.controller';
-import { ClauseAssistantService } from './clause-assistant.service';
-import { ContractSettingsController } from './contract-settings.controller';
-import { ContractTypesController } from './contract-types.controller';
-import { ContractTypesService } from './contract-types.service';
-import { ContractsController } from './contracts.controller';
-import { ContractsService } from './contracts.service';
-import { DocumentSettingsService } from './document-settings.service';
-import { CLOCK, systemClock } from '../finance/clock';
-import { PublicSigningController, SigningController } from './signing.controller';
-import { SignerIdService } from './signer-id.service';
-import { SigningService } from './signing.service';
+import { FilesController } from '../files/files.controller.js';
+import { ClauseAssistantService } from './clause-assistant.service.js';
+import { ContractSettingsController } from './contract-settings.controller.js';
+import { ContractTypesController } from './contract-types.controller.js';
+import { ContractTypesService } from './contract-types.service.js';
+import { ContractsController } from './contracts.controller.js';
+import { ContractsService } from './contracts.service.js';
+import { DocumentSettingsService } from './document-settings.service.js';
+import { CLOCK, systemClock } from '../finance/clock.js';
+import { PublicSigningController, SigningController } from './signing.controller.js';
+import { SignerIdService } from './signer-id.service.js';
+import { SigningService } from './signing.service.js';
 
 @Module({
   controllers: [

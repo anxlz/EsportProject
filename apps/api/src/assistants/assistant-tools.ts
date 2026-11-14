@@ -20,17 +20,17 @@ import {
   type RosterMemberDto,
 } from '@esports/shared';
 import { z } from 'zod';
-import type { TenantContext } from '../authz/context';
-import { AppError } from '../common/errors';
-import { DB, type Database } from '../db/client';
-import { ContractsService } from '../contracts/contracts.service';
-import { BudgetsService } from '../finance/budgets.service';
-import { CLOCK, type Clock } from '../finance/clock';
-import { ReportsService } from '../finance/reports.service';
-import { RostersService } from '../rosters/rosters.service';
-import { TeamsService } from '../teams/teams.service';
-import { listTournaments } from '../tournaments/tournaments.controller';
-import type { SourceRegistry } from './guardrails';
+import type { TenantContext } from '../authz/context.js';
+import { AppError } from '../common/errors.js';
+import { DB, type Database } from '../db/client.js';
+import { ContractsService } from '../contracts/contracts.service.js';
+import { BudgetsService } from '../finance/budgets.service.js';
+import { CLOCK, type Clock } from '../finance/clock.js';
+import { ReportsService } from '../finance/reports.service.js';
+import { RostersService } from '../rosters/rosters.service.js';
+import { TeamsService } from '../teams/teams.service.js';
+import { listTournaments } from '../tournaments/tournaments.controller.js';
+import type { SourceRegistry } from './guardrails.js';
 
 export interface ToolRun {
   ctx: TenantContext;

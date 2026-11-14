@@ -13,10 +13,10 @@ import {
   updateConversationSchema,
 } from '@esports/shared';
 import type { z } from 'zod';
-import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { AiRouter } from '../ai/ai.router';
-import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
-import { AssistantsService, listQuerySchema } from './assistants.service';
+import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { AiRouter } from '../ai/ai.router.js';
+import { UuidPipe, ZodBody, ZodQuery } from '../common/zod.js';
+import { AssistantsService, listQuerySchema } from './assistants.service.js';
 
 @ApiTags('assistants')
 @Controller('assistants')

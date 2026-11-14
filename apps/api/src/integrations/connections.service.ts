@@ -16,18 +16,18 @@ import type {
   SyncDirection,
 } from '@esports/shared';
 import { and, count, eq, sql } from 'drizzle-orm';
-import { AccessService } from '../authz/access.service';
-import type { TenantContext } from '../authz/context';
-import { NOW, type Now } from '../common/now';
-import { type Env, ENV } from '../config/env';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { teams, users } from '../db/schema';
-import { integrationConnections, integrationEvents, integrationLinks } from '../db/schema-meetings';
-import { canView } from '../meetings/meeting-access';
-import type { LoadedMeeting, MeetingsService } from '../meetings/meetings.service';
-import { NotificationService } from '../notifications/notification.service';
-import { JobsService } from './jobs.service';
-import { SECRET_BOX, type SecretBox } from './secret-box';
+import { AccessService } from '../authz/access.service.js';
+import type { TenantContext } from '../authz/context.js';
+import { NOW, type Now } from '../common/now.js';
+import { type Env, ENV } from '../config/env.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { teams, users } from '../db/schema.js';
+import { integrationConnections, integrationEvents, integrationLinks } from '../db/schema-meetings.js';
+import { canView } from '../meetings/meeting-access.js';
+import type { LoadedMeeting, MeetingsService } from '../meetings/meetings.service.js';
+import { NotificationService } from '../notifications/notification.service.js';
+import { JobsService } from './jobs.service.js';
+import { SECRET_BOX, type SecretBox } from './secret-box.js';
 
 export type ConnectionRow = typeof integrationConnections.$inferSelect;
 

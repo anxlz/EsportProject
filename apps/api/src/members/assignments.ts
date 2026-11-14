@@ -3,9 +3,9 @@
  */
 import type { RoleAssignmentInput } from '@esports/shared';
 import { and, eq, inArray } from 'drizzle-orm';
-import { Errors } from '../common/errors';
-import type { DbOrTx } from '../db/client';
-import { departments, roles, teams } from '../db/schema';
+import { Errors } from '../common/errors.js';
+import type { DbOrTx } from '../db/client.js';
+import { departments, roles, teams } from '../db/schema.js';
 
 export interface NormalizedAssignment {
   roleId: string;

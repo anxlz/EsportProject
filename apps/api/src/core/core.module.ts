@@ -7,8 +7,8 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import { type Env, ENV } from '../config/env';
-import { createDb, DB, DB_HANDLE, type DbHandle } from '../db/client';
+import { type Env, ENV } from '../config/env.js';
+import { createDb, DB, DB_HANDLE, type DbHandle } from '../db/client.js';
 
 export const REDIS = Symbol('REDIS');
 

@@ -10,12 +10,12 @@ import {
 } from '@esports/shared';
 import { and, desc, eq, inArray, lte, lt, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import type { TenantContext } from '../authz/context';
-import { AccessService } from '../authz/access.service';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { organizations, users } from '../db/schema';
+import type { TenantContext } from '../authz/context.js';
+import { AccessService } from '../authz/access.service.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { organizations, users } from '../db/schema.js';
 import {
   contractTerminationEvents,
   contractTerminations,
@@ -24,13 +24,13 @@ import {
   entityVersions,
   signingLinks,
   signingRounds,
-} from '../db/schema-contracts';
-import { coversRecord } from '../finance/scope';
-import { CLOCK, type Clock } from '../finance/clock';
-import { MailService } from '../mail/mail.service';
-import { NotificationService } from '../notifications/notification.service';
-import { PdfService, escapeHtml, pdfFonts } from '../pdf/pdf.service';
-import { ContractsService, CONTRACT_ENTITY } from './contracts.service';
+} from '../db/schema-contracts.js';
+import { coversRecord } from '../finance/scope.js';
+import { CLOCK, type Clock } from '../finance/clock.js';
+import { MailService } from '../mail/mail.service.js';
+import { NotificationService } from '../notifications/notification.service.js';
+import { PdfService, escapeHtml, pdfFonts } from '../pdf/pdf.service.js';
+import { ContractsService, CONTRACT_ENTITY } from './contracts.service.js';
 
 const ACTIVE_TERMINATIONS: TerminationStatus[] = ['requested', 'pending_counterparty', 'accepted'];
 const TERMINABLE_CONTRACT_STATUSES = ['approved', 'awaiting_signatures', 'signed'] as const;

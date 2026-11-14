@@ -11,15 +11,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { occurrencesBetween, REMINDER_OPTIONS } from '@esports/shared';
 import { and, eq, gt, lt } from 'drizzle-orm';
-import { NOW, type Now } from '../common/now';
-import { DB, type Database } from '../db/client';
+import { NOW, type Now } from '../common/now.js';
+import { DB, type Database } from '../db/client.js';
 import {
   meetingOverrides,
   meetingParticipants,
   meetingReminderDeliveries,
   meetings,
-} from '../db/schema-meetings';
-import { NotificationService } from '../notifications/notification.service';
+} from '../db/schema-meetings.js';
+import { NotificationService } from '../notifications/notification.service.js';
 
 export const REMINDER_LATENESS_MS = 15 * 60_000;
 const MAX_OFFSET_MS = Math.max(...REMINDER_OPTIONS) * 60_000;

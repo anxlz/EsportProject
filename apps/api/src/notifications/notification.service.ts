@@ -11,11 +11,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { NotificationDto, NotificationType, PermissionKey } from '@esports/shared';
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
-import { AccessService } from '../authz/access.service';
-import type { TeamRef } from '../authz/access';
-import { Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { notifications } from '../db/schema';
+import { AccessService } from '../authz/access.service.js';
+import type { TeamRef } from '../authz/access.js';
+import { Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { notifications } from '../db/schema.js';
 
 export interface NotifyInput {
   organizationId: string;

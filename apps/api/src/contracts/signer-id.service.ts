@@ -33,16 +33,16 @@ import {
   type SignerRole,
 } from '@esports/shared';
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
-import type { ClientMeta, TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { type Env, ENV } from '../config/env';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { contractSigners, signerIdDocuments, signingRounds } from '../db/schema-contracts';
-import { FilesService, sniffContentType } from '../files/files.service';
-import { coversRecord } from '../finance/scope';
-import { sha256Hex } from '../versioning/versioning.service';
-import type { LoadedContract } from './contracts.service';
+import type { ClientMeta, TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { type Env, ENV } from '../config/env.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { contractSigners, signerIdDocuments, signingRounds } from '../db/schema-contracts.js';
+import { FilesService, sniffContentType } from '../files/files.service.js';
+import { coversRecord } from '../finance/scope.js';
+import { sha256Hex } from '../versioning/versioning.service.js';
+import type { LoadedContract } from './contracts.service.js';
 
 export const ID_DOCUMENT_FILE_KIND = 'signer_id_document';
 const VIEW_PERMISSION = 'contracts.view_signer_id';

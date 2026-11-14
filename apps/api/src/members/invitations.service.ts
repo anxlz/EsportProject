@@ -11,16 +11,16 @@ import type {
   RoleAssignmentInput,
 } from '@esports/shared';
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm';
-import { AccessService } from '../authz/access.service';
-import type { AuthContext, ClientMeta, TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { AuthService } from '../auth/auth.service';
-import { PasswordService } from '../auth/password.service';
-import { type LoadedSession, SessionService } from '../auth/session.service';
-import { AppError, Errors } from '../common/errors';
-import { randomToken, sha256 } from '../common/crypto';
-import { type Env, ENV } from '../config/env';
-import { DB, type Database, type DbOrTx } from '../db/client';
+import { AccessService } from '../authz/access.service.js';
+import type { AuthContext, ClientMeta, TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AuthService } from '../auth/auth.service.js';
+import { PasswordService } from '../auth/password.service.js';
+import { type LoadedSession, SessionService } from '../auth/session.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { randomToken, sha256 } from '../common/crypto.js';
+import { type Env, ENV } from '../config/env.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
 import {
   invitations,
   organizationMembers,
@@ -28,10 +28,10 @@ import {
   roles,
   userRoleAssignments,
   users,
-} from '../db/schema';
-import { MailService } from '../mail/mail.service';
-import { NotificationService } from '../notifications/notification.service';
-import { normalizeAssignments } from './assignments';
+} from '../db/schema.js';
+import { MailService } from '../mail/mail.service.js';
+import { NotificationService } from '../notifications/notification.service.js';
+import { normalizeAssignments } from './assignments.js';
 
 const INVITATION_TTL_DAYS = 7;
 

@@ -4,14 +4,14 @@
  * services, with the invoking user's own permissions.
  */
 import { Module } from '@nestjs/common';
-import { ContractsModule } from '../contracts/contracts.module';
-import { CLOCK, systemClock } from '../finance/clock';
-import { FinanceModule } from '../finance/finance.module';
-import { TeamsService } from '../teams/teams.service';
-import { AssistantEngine } from './assistant-engine';
-import { AssistantTools } from './assistant-tools';
-import { AssistantsController } from './assistants.controller';
-import { AssistantsService } from './assistants.service';
+import { ContractsModule } from '../contracts/contracts.module.js';
+import { CLOCK, systemClock } from '../finance/clock.js';
+import { FinanceModule } from '../finance/finance.module.js';
+import { TeamsService } from '../teams/teams.service.js';
+import { AssistantEngine } from './assistant-engine.js';
+import { AssistantTools } from './assistant-tools.js';
+import { AssistantsController } from './assistants.controller.js';
+import { AssistantsService } from './assistants.service.js';
 
 @Module({
   imports: [ContractsModule, FinanceModule],

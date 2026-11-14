@@ -9,7 +9,7 @@
  * comments, which Obsidian hides in reading view). Everything else is written by the platform.
  */
 import { isoWithOffset, toRRule } from '@esports/shared';
-import type { LoadedMeeting } from '../meetings/meetings.service';
+import type { LoadedMeeting } from '../meetings/meetings.service.js';
 
 const MARK = (name: string, edge: 'start' | 'end') => `<!-- platform:${name}:${edge} -->`;
 

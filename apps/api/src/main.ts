@@ -6,9 +6,9 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { Request, Response } from 'express';
 import type { INestApplication } from '@nestjs/common';
-import { AppModule } from './app.module';
-import { configureApp } from './bootstrap';
-import { loadEnv } from './config/env';
+import { AppModule } from './app.module.js';
+import { configureApp } from './bootstrap.js';
+import { loadEnv } from './config/env.js';
 
 const env = loadEnv();
 

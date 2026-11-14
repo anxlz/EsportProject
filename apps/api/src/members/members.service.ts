@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { AssignmentDto, MemberDto, RoleAssignmentInput } from '@esports/shared';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import { AccessService } from '../authz/access.service';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { SessionService } from '../auth/session.service';
-import { Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
+import { AccessService } from '../authz/access.service.js';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { SessionService } from '../auth/session.service.js';
+import { Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
 import {
   departments,
   organizationMembers,
@@ -14,9 +14,9 @@ import {
   teams,
   userRoleAssignments,
   users,
-} from '../db/schema';
-import { NotificationService } from '../notifications/notification.service';
-import { normalizeAssignments } from './assignments';
+} from '../db/schema.js';
+import { NotificationService } from '../notifications/notification.service.js';
+import { normalizeAssignments } from './assignments.js';
 
 @Injectable()
 export class MembersService {

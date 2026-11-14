@@ -18,16 +18,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type BudgetDto, type BudgetInput, computeBudgetVariance, d, money } from '@esports/shared';
 import { and, asc, eq, gte, inArray, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
-import type { TeamRef } from '../authz/access';
-import type { TenantContext } from '../authz/context';
-import { scopeCondition } from '../authz/scope-filter';
-import { AuditService } from '../audit/audit.service';
-import { Errors } from '../common/errors';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { organizations, teams } from '../db/schema';
-import { budgetLines, budgets, financeEntries, seasons, tournaments } from '../db/schema-finance';
-import { NotificationService } from '../notifications/notification.service';
-import { coversRecord, loadTeamRef } from './scope';
+import type { TeamRef } from '../authz/access.js';
+import type { TenantContext } from '../authz/context.js';
+import { scopeCondition } from '../authz/scope-filter.js';
+import { AuditService } from '../audit/audit.service.js';
+import { Errors } from '../common/errors.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { organizations, teams } from '../db/schema.js';
+import { budgetLines, budgets, financeEntries, seasons, tournaments } from '../db/schema-finance.js';
+import { NotificationService } from '../notifications/notification.service.js';
+import { coversRecord, loadTeamRef } from './scope.js';
 
 type BudgetRow = typeof budgets.$inferSelect;
 type LineRow = typeof budgetLines.$inferSelect;

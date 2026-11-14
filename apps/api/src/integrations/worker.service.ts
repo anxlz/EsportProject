@@ -10,22 +10,22 @@
  */
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { NOW, type Now } from '../common/now';
-import { DB, type Database } from '../db/client';
+import { NOW, type Now } from '../common/now.js';
+import { DB, type Database } from '../db/client.js';
 import {
   integrationConnections,
   integrationLinks,
   meetingParticipants,
-} from '../db/schema-meetings';
-import { type MeetingEvent, MeetingEvents } from '../meetings/meeting-events';
-import { MeetingsService } from '../meetings/meetings.service';
-import { SchedulerService } from '../scheduler/scheduler.service';
-import { type ConnectionRow, ConnectionsService } from './connections.service';
-import { IntegrationError } from './errors';
-import { type JobRow, JobsService } from './jobs.service';
-import { CHANNEL_RENEW_BEFORE_MS, GoogleCalendarProvider } from './providers/google-calendar';
-import { RemoteSyncService } from './remote-sync.service';
-import { eventTypeFor, WebhooksService } from './webhooks.service';
+} from '../db/schema-meetings.js';
+import { type MeetingEvent, MeetingEvents } from '../meetings/meeting-events.js';
+import { MeetingsService } from '../meetings/meetings.service.js';
+import { SchedulerService } from '../scheduler/scheduler.service.js';
+import { type ConnectionRow, ConnectionsService } from './connections.service.js';
+import { IntegrationError } from './errors.js';
+import { type JobRow, JobsService } from './jobs.service.js';
+import { CHANNEL_RENEW_BEFORE_MS, GoogleCalendarProvider } from './providers/google-calendar.js';
+import { RemoteSyncService } from './remote-sync.service.js';
+import { eventTypeFor, WebhooksService } from './webhooks.service.js';
 
 /** How often two-way connections are pulled even without a push notification. */
 export const POLL_INTERVAL_MS = {

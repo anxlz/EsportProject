@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
-import { AppError } from '../common/errors';
-import type { Env } from '../config/env';
+import { AppError } from '../common/errors.js';
+import type { Env } from '../config/env.js';
 import type {
   AiConverseRequest,
   AiConverseResult,
@@ -10,8 +10,8 @@ import type {
   AiProvider,
   AiStopReason,
   AiUsage,
-} from './ai.provider';
-import { cleanModelText, UNPARSEABLE_ARGUMENTS } from './qwen.provider';
+} from './ai.provider.js';
+import { cleanModelText, UNPARSEABLE_ARGUMENTS } from './qwen.provider.js';
 
 export interface LlmMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';

@@ -34,24 +34,24 @@ import {
   formatLocal,
 } from '@esports/shared';
 import { and, eq, gt, inArray, lt, notInArray, sql } from 'drizzle-orm';
-import type { TeamRef } from '../authz/access';
-import type { TenantContext } from '../authz/context';
-import { AuditService } from '../audit/audit.service';
-import { AppError, Errors } from '../common/errors';
-import { NOW, type Now } from '../common/now';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { departments, organizationMembers, teams, users } from '../db/schema';
+import type { TeamRef } from '../authz/access.js';
+import type { TenantContext } from '../authz/context.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import { NOW, type Now } from '../common/now.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { departments, organizationMembers, teams, users } from '../db/schema.js';
 import {
   integrationConnections,
   integrationLinks,
   meetingOverrides,
   meetingParticipants,
   meetings,
-} from '../db/schema-meetings';
-import { loadTeamRef } from '../finance/scope';
-import { NotificationService } from '../notifications/notification.service';
-import { canCreateIn, canEdit, canView, type MeetingScope } from './meeting-access';
-import { MeetingEvents } from './meeting-events';
+} from '../db/schema-meetings.js';
+import { loadTeamRef } from '../finance/scope.js';
+import { NotificationService } from '../notifications/notification.service.js';
+import { canCreateIn, canEdit, canView, type MeetingScope } from './meeting-access.js';
+import { MeetingEvents } from './meeting-events.js';
 
 export type MeetingRow = typeof meetings.$inferSelect;
 type OverrideRow = typeof meetingOverrides.$inferSelect;

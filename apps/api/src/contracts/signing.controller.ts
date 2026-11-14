@@ -41,14 +41,14 @@ import {
   RequirePermission,
   type TenantContext,
   TenantCtx,
-} from '../authz/context';
-import { RateLimit } from '../common/rate-limit';
-import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
-import { requireAny } from './contract-types.controller';
-import { ContractsService } from './contracts.service';
-import { asciiFilename, sendPreviewHtml } from './http';
-import { SignerIdService } from './signer-id.service';
-import { SigningService } from './signing.service';
+} from '../authz/context.js';
+import { RateLimit } from '../common/rate-limit.js';
+import { UuidPipe, ZodBody, ZodQuery } from '../common/zod.js';
+import { requireAny } from './contract-types.controller.js';
+import { ContractsService } from './contracts.service.js';
+import { asciiFilename, sendPreviewHtml } from './http.js';
+import { SignerIdService } from './signer-id.service.js';
+import { SigningService } from './signing.service.js';
 
 const SEE: Parameters<typeof requireAny>[1] = ['contracts.view', 'contracts.approve'];
 

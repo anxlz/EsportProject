@@ -6,13 +6,13 @@ import { Controller, Delete, Get, HttpCode, Inject, Param, Patch, Post } from '@
 import { ApiTags } from '@nestjs/swagger';
 import { type TournamentDto, type TournamentInput, tournamentInputSchema } from '@esports/shared';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import { AuditService } from '../audit/audit.service';
-import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
-import { Errors } from '../common/errors';
-import { UuidPipe, ZodBody } from '../common/zod';
-import { DB, type Database, type DbOrTx } from '../db/client';
-import { games, teams } from '../db/schema';
-import { tournaments, tournamentTeams } from '../db/schema-finance';
+import { AuditService } from '../audit/audit.service.js';
+import { RequirePermission, type TenantContext, TenantCtx } from '../authz/context.js';
+import { Errors } from '../common/errors.js';
+import { UuidPipe, ZodBody } from '../common/zod.js';
+import { DB, type Database, type DbOrTx } from '../db/client.js';
+import { games, teams } from '../db/schema.js';
+import { tournaments, tournamentTeams } from '../db/schema-finance.js';
 
 const strip = (v: string | null) =>
   v === null ? null : v.includes('.') ? v.replace(/\.?0+$/, '') : v;

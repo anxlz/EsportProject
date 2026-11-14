@@ -2,9 +2,9 @@ import { createParamDecorator, type ExecutionContext, SetMetadata } from '@nestj
 import { ApiCookieAuth } from '@nestjs/swagger';
 import type { Locale, PermissionKey } from '@esports/shared';
 import type { Request } from 'express';
-import type { LoadedSession } from '../auth/session.service';
-import { AppError, Errors } from '../common/errors';
-import type { Access } from './access';
+import type { LoadedSession } from '../auth/session.service.js';
+import { AppError, Errors } from '../common/errors.js';
+import type { Access } from './access.js';
 
 export interface ClientMeta {
   ip: string | null;
