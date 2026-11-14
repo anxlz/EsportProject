@@ -7,30 +7,31 @@
  * minor units, applied once when an amount is converted into the base currency. Sums of rounded
  * amounts are exact; nothing is re-rounded afterwards.
  */
-import Decimal from 'decimal.js';
+import { default as Decimal } from 'decimal.js';
+import type { Decimal as DecimalTypes } from 'decimal.js';
 import { currencyInfo } from './catalog';
 
 export const Dec = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
-export type Dec = Decimal;
+export type Dec = InstanceType<typeof Dec>;
 
 export type Amount = string;
 
 export const ZERO = new Dec(0);
 
-export function d(value: Decimal.Value): Decimal {
+export function d(value: DecimalTypes.Value): Dec {
   return new Dec(value);
 }
 
-export function sum(values: Decimal.Value[]): Decimal {
-  return values.reduce<Decimal>((acc, v) => acc.plus(v), new Dec(0));
+export function sum(values: DecimalTypes.Value[]): Dec {
+  return values.reduce<Dec>((acc, v) => acc.plus(v), new Dec(0));
 }
 
-export function roundTo(value: Decimal.Value, currency: string): Decimal {
+export function roundTo(value: DecimalTypes.Value, currency: string): Dec {
   return new Dec(value).toDecimalPlaces(currencyInfo(currency).minorUnits, Dec.ROUND_HALF_UP);
 }
 
 /** Canonical string for an amount in a currency: fixed minor units, no exponent. */
-export function money(value: Decimal.Value, currency: string): Amount {
+export function money(value: DecimalTypes.Value, currency: string): Amount {
   return roundTo(value, currency).toFixed(currencyInfo(currency).minorUnits);
 }
 
@@ -39,20 +40,20 @@ export function money(value: Decimal.Value, currency: string): Amount {
  * (`rate` = units of base currency per 1 unit of the original currency).
  */
 export function convertToBase(
-  amount: Decimal.Value,
-  rate: Decimal.Value,
+  amount: DecimalTypes.Value,
+  rate: DecimalTypes.Value,
   baseCurrency: string,
 ): Amount {
   return money(new Dec(amount).times(rate), baseCurrency);
 }
 
 /** Exchange rates are stored with 12 decimal places. */
-export function normalizeRate(rate: Decimal.Value): string {
+export function normalizeRate(rate: DecimalTypes.Value): string {
   return new Dec(rate).toDecimalPlaces(12, Dec.ROUND_HALF_UP).toFixed(12);
 }
 
 /** Inverse of a rate (e.g. provider gives SAR→USD, we need USD→SAR). */
-export function invertRate(rate: Decimal.Value): string {
+export function invertRate(rate: DecimalTypes.Value): string {
   return normalizeRate(new Dec(1).div(rate));
 }
 

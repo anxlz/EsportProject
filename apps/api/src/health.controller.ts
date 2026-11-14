@@ -1,7 +1,7 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { sql } from 'drizzle-orm';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import { Public } from './authz/context';
 import { REDIS } from './core/core.module';
 import { DB, type Database } from './db/client';

@@ -10,14 +10,7 @@ import {
   WEBHOOK_EVENT_TYPES,
   WEEKDAYS,
 } from './catalog';
-import {
-  isValidTimeZone,
-  localToUtc,
-  parseDate,
-  parseLocal,
-  type RecurrenceRule,
-  ruleProblem,
-} from './recurrence';
+import { isValidTimeZone, localToUtc, parseDate, parseLocal, ruleProblem } from './recurrence';
 
 const text = (max: number) => z.string().trim().max(max);
 const optText = (max: number) => text(max).nullable().optional();
@@ -61,7 +54,12 @@ const timing = {
 
 /** Shared checks: the end follows the start within a day, the rule fits the start. */
 function checkTiming(
-  v: { start?: string; end?: string; timeZone?: string; recurrence?: RecurrenceRule | null },
+  v: {
+    start?: string;
+    end?: string;
+    timeZone?: string;
+    recurrence?: z.output<typeof recurrenceRuleSchema> | null;
+  },
   ctx: z.core.$RefinementCtx,
 ) {
   if (!v.start || !v.end || !v.timeZone) return;
@@ -71,8 +69,8 @@ function checkTiming(
   const minutes = (localToUtc(e, v.timeZone) - localToUtc(s, v.timeZone)) / 60000;
   if (minutes < MEETING_LIMITS.durationMinMinutes || minutes > MEETING_LIMITS.durationMaxMinutes)
     ctx.addIssue({ code: 'custom', path: ['end'], message: 'duration_range' });
-  if (v.recurrence) {
-    const problem = ruleProblem(v.recurrence as RecurrenceRule, v.start);
+  if (v.recurrence?.end) {
+    const problem = ruleProblem({ ...v.recurrence, end: v.recurrence.end! }, v.start);
     if (problem) ctx.addIssue({ code: 'custom', path: ['recurrence'], message: problem });
   }
 }

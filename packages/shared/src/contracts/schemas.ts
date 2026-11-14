@@ -308,10 +308,9 @@ export const verifySigningCodeSchema = z.object({
     .regex(/^\d{6}$/, 'code_format'),
 });
 
-const point = z.tuple([
-  z.number().min(0).max(DRAW_CANVAS.width),
-  z.number().min(0).max(DRAW_CANVAS.height),
-]);
+const point = z
+  .tuple([z.number().min(0).max(DRAW_CANVAS.width), z.number().min(0).max(DRAW_CANVAS.height)])
+  .transform((coordinates): [number, number] => [coordinates[0]!, coordinates[1]!]);
 const strokesSchema = z
   .array(z.array(point).min(1).max(2000))
   .min(1)
