@@ -10,7 +10,14 @@ import {
   WEBHOOK_EVENT_TYPES,
   WEEKDAYS,
 } from './catalog';
-import { isValidTimeZone, localToUtc, parseDate, parseLocal, ruleProblem } from './recurrence';
+import {
+  isValidTimeZone,
+  localToUtc,
+  parseDate,
+  parseLocal,
+  type RecurrenceRule,
+  ruleProblem,
+} from './recurrence';
 
 const text = (max: number) => z.string().trim().max(max);
 const optText = (max: number) => text(max).nullable().optional();
@@ -23,18 +30,28 @@ export const localDateTimeSchema = z
 export const dateOnlySchema = z.string().refine((s) => parseDate(s) !== null, 'date_format');
 export const timeZoneSchema = z.string().refine(isValidTimeZone, 'time_zone_invalid');
 
-export const recurrenceRuleSchema = z.object({
-  freq: z.enum(RECURRENCE_FREQUENCIES),
-  interval: z.number().int().min(1).max(MEETING_LIMITS.intervalMax).default(1),
-  byWeekday: z.array(z.enum(WEEKDAYS)).max(7).optional(),
-  end: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('count'),
-      count: z.number().int().min(1).max(MEETING_LIMITS.countMax),
-    }),
-    z.object({ type: z.literal('until'), until: dateOnlySchema }),
-  ]),
-});
+export const recurrenceRuleSchema = z
+  .object({
+    freq: z.enum(RECURRENCE_FREQUENCIES),
+    interval: z.number().int().min(1).max(MEETING_LIMITS.intervalMax).default(1),
+    byWeekday: z.array(z.enum(WEEKDAYS)).max(7).optional(),
+    end: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('count'),
+        count: z.number().int().min(1).max(MEETING_LIMITS.countMax),
+      }),
+      z.object({ type: z.literal('until'), until: dateOnlySchema }),
+    ]),
+  })
+  .transform((rule): RecurrenceRule => {
+    if (!rule.end) throw new Error('Validated recurrence rule must include an end condition');
+    return {
+      freq: rule.freq,
+      interval: rule.interval,
+      byWeekday: rule.byWeekday,
+      end: rule.end,
+    };
+  });
 
 const reminders = z
   .array(
@@ -69,8 +86,8 @@ function checkTiming(
   const minutes = (localToUtc(e, v.timeZone) - localToUtc(s, v.timeZone)) / 60000;
   if (minutes < MEETING_LIMITS.durationMinMinutes || minutes > MEETING_LIMITS.durationMaxMinutes)
     ctx.addIssue({ code: 'custom', path: ['end'], message: 'duration_range' });
-  if (v.recurrence?.end) {
-    const problem = ruleProblem({ ...v.recurrence, end: v.recurrence.end! }, v.start);
+  if (v.recurrence) {
+    const problem = ruleProblem(v.recurrence, v.start);
     if (problem) ctx.addIssue({ code: 'custom', path: ['recurrence'], message: problem });
   }
 }
