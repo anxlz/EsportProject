@@ -1,11 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.4.x",
-  "installCommand": "bun install --frozen-lockfile && bun run --cwd packages/shared build",
   "services": {
     "api": {
       "root": "apps/api",
       "framework": "nestjs",
+      "installCommand": "bun install --frozen-lockfile && bun run --cwd packages/shared build",
       "devCommand": "bun --watch src/main.ts",
       "functions": {
         "src/main.ts": {
