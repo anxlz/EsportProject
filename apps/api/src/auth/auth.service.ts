@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Locale, LoginInput, MeResponse, RegisterOrganizationInput } from '@esports/shared';
 import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import type { Access } from '../authz/access';
 import { AccessService } from '../authz/access.service';
 import type { AuthContext, ClientMeta } from '../authz/context';

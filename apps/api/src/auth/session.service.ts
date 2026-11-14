@@ -9,7 +9,7 @@
  */
 import { Inject, Injectable } from '@nestjs/common';
 import type { Response } from 'express';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import { type Env, ENV } from '../config/env';
 import { hmacSha256, randomToken } from '../common/crypto';
 import { REDIS } from '../core/core.module';

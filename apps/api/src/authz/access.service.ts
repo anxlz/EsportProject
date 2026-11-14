@@ -9,7 +9,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { PermissionKey, ScopeGrant } from '@esports/shared';
 import { and, eq, sql } from 'drizzle-orm';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import { REDIS } from '../core/core.module';
 import { DB, type Database, type DbOrTx } from '../db/client';
 import { organizationMembers } from '../db/schema';

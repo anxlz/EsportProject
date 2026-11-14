@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request, Response } from 'express';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import { REDIS } from '../core/core.module';
 import { AppError } from './errors';
 import { sha256 } from './crypto';

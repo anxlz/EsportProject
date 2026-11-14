@@ -57,7 +57,7 @@ import {
   VERIFY_MAX_ATTEMPTS,
 } from '@esports/shared';
 import { and, asc, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import type { ClientMeta, TenantContext } from '../authz/context';
 import { AuditService } from '../audit/audit.service';
 import { hmacSha256, randomToken, safeEqual, sha256 } from '../common/crypto';

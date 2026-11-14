@@ -17,7 +17,7 @@ import type {
   NotionConnectInput,
 } from '@esports/shared';
 import { and, desc, eq, ne, or } from 'drizzle-orm';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { TenantContext } from '../authz/context';
 import { AuditService } from '../audit/audit.service';
