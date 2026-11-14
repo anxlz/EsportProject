@@ -40,9 +40,13 @@ Directory to `apps/api`, and configure its runtime variables there, including `W
 to the web project's production URL. The root multi-service configuration above does not apply
 to either subdirectory-rooted project; the web app's Next.js rewrite proxies `/api/*` to `API_URL`.
 
-The API is deployed as Node ESM. Keep `.js` extensions on relative imports in its TypeScript
-source (and the shared workspace): TypeScript and Bun resolve those specifiers to `.ts` source,
-while the deployed Node runtime needs the extension to resolve compiled JavaScript modules.
+Both projects use `@esports/shared`, which is outside either Root Directory. Enable **Include source
+files outside of the Root Directory in the Build Step** in each project's Root Directory settings.
+The project-local `vercel.json` files run the shared package build after installing the root Bun
+workspace, so Node/Vercel can load the package's generated ESM JavaScript. Keep the shared build
+step and outside-root option enabled. The API's relative imports (and the shared package's source
+imports) use `.js` specifiers so Node ESM can resolve them; Bun and TypeScript resolve those
+specifiers to their TypeScript source during development.
 
 ## Migrations
 
