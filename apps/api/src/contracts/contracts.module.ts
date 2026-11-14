@@ -35,6 +35,6 @@ import { SigningService } from './signing.service';
     SignerIdService,
     { provide: CLOCK, useValue: systemClock },
   ],
-  exports: [ContractsService],
+  exports: [ContractsService, CLOCK],
 })
 export class ContractsModule {}

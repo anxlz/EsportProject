@@ -193,7 +193,7 @@ export interface AssistantInfoDto {
   webSearchDefault: boolean;
   proposal: ProposalKind;
   /** Phase 6: which provider answers this assistant (chosen by the deployer). */
-  provider: 'anthropic' | 'qwen';
+  provider: 'anthropic' | 'qwen' | 'local';
   /** That provider has its API key. */
   configured: boolean;
   model: string | null;

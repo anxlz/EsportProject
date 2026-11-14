@@ -1,0 +1,1 @@
+ALTER TABLE "app"."contract_terminations" ADD CONSTRAINT "contract_terminations_effective_date" CHECK ("app"."contract_terminations"."effective_date" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$');

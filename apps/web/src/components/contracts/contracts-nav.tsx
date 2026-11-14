@@ -72,6 +72,7 @@ const STATUS_TONE: Record<ContractStatus, 'neutral' | 'turf' | 'amber' | 'brick'
   awaiting_signatures: 'amber',
   signed: 'turf',
   cancelled: 'neutral',
+  terminated: 'brick',
 };
 
 export function ContractStatusBadge({ status }: { status: ContractStatus }) {
@@ -86,7 +87,7 @@ export function DocumentFrame({ html, title }: { html: string | undefined; title
       title={title}
       sandbox=""
       srcDoc={html ?? ''}
-      className="h-[78dvh] min-h-[28rem] w-full rounded-md border border-line bg-[#e6e8eb]"
+      className="h-[78dvh] min-h-[28rem] w-full rounded-md border border-line bg-panel-2"
     />
   );
 }

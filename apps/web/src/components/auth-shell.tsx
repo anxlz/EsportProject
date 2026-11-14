@@ -56,12 +56,12 @@ export function AuthShell({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
-      <aside className="relative hidden overflow-hidden bg-[#0f5c4a] text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
+      <aside className="relative hidden overflow-hidden bg-turf text-turf-ink lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="relative z-10 max-w-sm">
           <p className="text-3xl leading-tight font-semibold">{t('name')}</p>
-          <p className="mt-3 text-white/75">{t('tagline')}</p>
+          <p className="mt-3 text-turf-ink/75">{t('tagline')}</p>
         </div>
-        <div className="absolute top-52 bottom-12 end-0 w-[66%] text-white/20">
+        <div className="absolute top-52 bottom-12 end-0 w-[66%] text-turf-ink/20">
           <Bracket />
         </div>
       </aside>

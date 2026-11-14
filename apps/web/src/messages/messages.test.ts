@@ -115,6 +115,12 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
     // ID-document patch
     'contract.signer_id_uploaded',
     'contract.signer_id_viewed',
+    'contract.termination_requested',
+    'contract.termination_accepted',
+    'contract.termination_rejected',
+    'contract.termination_withdrawn',
+    'contract.termination_expired',
+    'contract.terminated',
     // Phase 6
     'meeting.created',
     'meeting.updated',
@@ -148,6 +154,8 @@ describe('keys resolve through next-intl (dots in keys are nesting, not literal)
           actual: '1',
           planned: '2',
           number: 'CT-2026-0001',
+          contractNumber: 'CT-2026-0001',
+          status: 'accepted',
           requestedBy: 'R',
           approvedBy: 'A',
           rejectedBy: 'J',

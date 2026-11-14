@@ -28,7 +28,9 @@ import {
   type ContractSaveInput,
   type ContractSnapshot,
   type ContractStatus,
+  DEFAULT_CONTRACT_TEXT_STYLE,
   type ContractSummaryDto,
+  type ContractTextStyle,
   type ContractTypeDto,
   completenessIssues,
   contractDetailsSchema,
@@ -243,6 +245,7 @@ export class ContractsService {
     rosterMemberId: string | null,
     details: ContractDetailsInput,
     clauses: ContractClause[],
+    textStyle: ContractTextStyle = DEFAULT_CONTRACT_TEXT_STYLE,
   ): Promise<ContractSnapshot> {
     if (rosterMemberId) {
       if (!team) throw Errors.badRequest('validation_failed', 'A roster member needs a team');
@@ -278,6 +281,7 @@ export class ContractsService {
       rosterMemberId,
       details,
       clauses,
+      textStyle,
     };
   }
 
@@ -292,6 +296,7 @@ export class ContractsService {
       throw Errors.badRequest('validation_failed', 'A roster member needs a team');
 
     const settings = await this.settings.get(ctx.organizationId);
+    const textStyle = DEFAULT_CONTRACT_TEXT_STYLE;
     const [org] = await this.db
       .select({ base: organizations.baseCurrency })
       .from(organizations)
@@ -356,6 +361,7 @@ export class ContractsService {
         rm?.id ?? null,
         details,
         clauses,
+        textStyle,
       );
       const number = await this.nextNumber(tx, ctx.organizationId, new Date());
       const [row] = await tx
@@ -367,6 +373,7 @@ export class ContractsService {
           teamId: team?.id ?? null,
           rosterMemberId: rm?.id ?? null,
           gameId: details.gameId ?? null,
+          textStyle,
           status: 'draft',
           title: details.title ?? '',
           recipientName: recipientName(details),
@@ -427,6 +434,10 @@ export class ContractsService {
       // Moving a contract to another team (or to none) needs the same right there too.
       if (team?.id !== c.team?.id && !this.canEdit(ctx, { ...c, team })) throw Errors.forbidden();
       const prev = await this.latest(ctx.organizationId, id, tx);
+      const previousSnapshot = {
+        ...prev.snapshot,
+        textStyle: prev.snapshot.textStyle ?? c.row.textStyle ?? DEFAULT_CONTRACT_TEXT_STYLE,
+      };
       const clauses = mergeClauses(prev.snapshot.clauses, input.clauses);
       const type = await this.types.load(tx, ctx.organizationId, c.row.contractTypeId);
       const snapshot = await this.buildSnapshot(
@@ -437,8 +448,9 @@ export class ContractsService {
         input.rosterMemberId ?? null,
         input.details,
         clauses,
+        input.textStyle,
       );
-      if (canonicalJson(snapshot) === canonicalJson(prev.snapshot)) return { unchanged: true };
+      if (canonicalJson(snapshot) === canonicalJson(previousSnapshot)) return { unchanged: true };
 
       const v = await this.versions.record(tx, {
         organizationId: ctx.organizationId,
@@ -454,6 +466,7 @@ export class ContractsService {
           teamId: team?.id ?? null,
           rosterMemberId: input.rosterMemberId ?? null,
           gameId: input.details.gameId ?? null,
+          textStyle: input.textStyle,
           title: input.details.title ?? '',
           recipientName: recipientName(input.details),
           currentVersion: v.version,
@@ -469,7 +482,7 @@ export class ContractsService {
           number: c.row.number,
           version: v.version,
           versionSha256: v.sha256,
-          changed: changedParts(prev.snapshot, snapshot),
+          changed: changedParts(previousSnapshot, snapshot),
           note: input.note ?? null,
         },
         tx,
@@ -505,7 +518,11 @@ export class ContractsService {
     const at = beforeClauseId ? clauses.findIndex((x) => x.id === beforeClauseId) : -1;
     if (beforeClauseId && at < 0) throw Errors.badRequest('validation_failed', 'Unknown clause');
     clauses.splice(at < 0 ? clauses.length : at, 0, added);
-    const snapshot: ContractSnapshot = { ...prev.snapshot, clauses };
+    const snapshot: ContractSnapshot = {
+      ...prev.snapshot,
+      clauses,
+      textStyle: prev.snapshot.textStyle ?? c.row.textStyle ?? DEFAULT_CONTRACT_TEXT_STYLE,
+    };
     const v = await this.versions.record(tx, {
       organizationId: ctx.organizationId,
       entityType: CONTRACT_ENTITY,
@@ -842,8 +859,20 @@ export class ContractsService {
   ): Promise<{ input: RenderInput; underlay: { data: Buffer; contentType: string } | null }> {
     const s = await this.settings.get(organizationId);
     const { assets, background } = await this.settings.assets(organizationId, s);
+    const styledSnapshot = {
+      ...snapshot,
+      textStyle: snapshot.textStyle ?? DEFAULT_CONTRACT_TEXT_STYLE,
+    };
     return {
-      input: { snapshot, contractNumber: number, settings: s, assets, approval, mode, background },
+      input: {
+        snapshot: styledSnapshot,
+        contractNumber: number,
+        settings: s,
+        assets,
+        approval,
+        mode,
+        background,
+      },
       underlay: background,
     };
   }
@@ -1219,6 +1248,10 @@ export class ContractsService {
       id,
     );
     const current = history.at(-1)!;
+    const snapshot = {
+      ...current.snapshot,
+      textStyle: current.snapshot.textStyle ?? c.row.textStyle ?? DEFAULT_CONTRACT_TEXT_STYLE,
+    };
     const settings = await this.settings.get(ctx.organizationId);
     const requests = await this.requests(ctx.organizationId, id, c.row.number, c.row.title);
 
@@ -1261,8 +1294,8 @@ export class ContractsService {
     const pending = requests.find((r) => r.status === 'pending');
     return {
       ...summary,
-      snapshot: current.snapshot,
-      missing: completenessIssues(current.snapshot, this.mergeContext(settings, c.row.number)),
+      snapshot,
+      missing: completenessIssues(snapshot, this.mergeContext(settings, c.row.number)),
       versions: history.map((v) => ({
         version: v.version,
         sha256: v.sha256,
@@ -1405,6 +1438,11 @@ function changedParts(a: ContractSnapshot, b: ContractSnapshot): string[] {
   const parts: string[] = [];
   if (a.teamId !== b.teamId) parts.push('team');
   if (a.rosterMemberId !== b.rosterMemberId) parts.push('rosterMember');
+  if (
+    canonicalJson(a.textStyle ?? DEFAULT_CONTRACT_TEXT_STYLE) !==
+    canonicalJson(b.textStyle ?? DEFAULT_CONTRACT_TEXT_STYLE)
+  )
+    parts.push('textStyle');
   for (const k of Object.keys({ ...a.details, ...b.details }) as (keyof ContractDetailsInput)[]) {
     if (canonicalJson(a.details[k]) !== canonicalJson(b.details[k])) parts.push(`details.${k}`);
   }

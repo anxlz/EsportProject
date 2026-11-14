@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
+import type { ContractTextFontFamily, ContractTextStyle } from '@esports/shared';
 import type { Browser } from 'puppeteer-core';
 import { ENV, type Env } from '../config/env';
 
@@ -38,6 +39,8 @@ const ARABIC_RANGE =
   'U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC';
 const LATIN_EXT_RANGE =
   'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF';
+const LATIN_RANGE =
+  'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD';
 
 let fontCss: string | null = null;
 /** @font-face rules for family 'Plex' (Latin + Arabic + the riyal sign, 400 and 600), inlined. */
@@ -77,6 +80,77 @@ export function pdfFonts(): string {
     riyalFace(600),
   ].join('');
   return fontCss;
+}
+
+const CONTRACT_FONT_SOURCES: Record<
+  ContractTextFontFamily,
+  { packageName: string; slug: string; latinExt: boolean; arabic: boolean }
+> = {
+  Cairo: { packageName: '@fontsource/cairo', slug: 'cairo', latinExt: true, arabic: true },
+  Tajawal: { packageName: '@fontsource/tajawal', slug: 'tajawal', latinExt: false, arabic: true },
+  'IBM Plex Sans Arabic': {
+    packageName: '@fontsource/ibm-plex-sans-arabic',
+    slug: 'ibm-plex-sans-arabic',
+    latinExt: true,
+    arabic: true,
+  },
+  'Noto Kufi Arabic': {
+    packageName: '@fontsource/noto-kufi-arabic',
+    slug: 'noto-kufi-arabic',
+    latinExt: true,
+    arabic: true,
+  },
+  Almarai: {
+    packageName: '@fontsource/almarai',
+    slug: 'almarai',
+    latinExt: false,
+    arabic: true,
+  },
+  'IBM Plex Sans': {
+    packageName: '@fontsource/ibm-plex-sans',
+    slug: 'ibm-plex-sans',
+    latinExt: true,
+    arabic: false,
+  },
+};
+
+const contractFontCss = new Map<string, string>();
+
+/** Inlines the selected font's available script faces at its shipped weight. */
+export function contractTextFontCss(style: ContractTextStyle): string {
+  const key = `${style.fontFamily}:${style.fontWeight}`;
+  const cached = contractFontCss.get(key);
+  if (cached) return cached;
+
+  const source = CONTRACT_FONT_SOURCES[style.fontFamily];
+  const file = (subset: string) => `${source.slug}-${subset}-${style.fontWeight}-normal.woff2`;
+  const faces = [
+    fontFace(source.packageName, file('latin'), style.fontFamily, style.fontWeight, LATIN_RANGE),
+    ...(source.latinExt
+      ? [
+          fontFace(
+            source.packageName,
+            file('latin-ext'),
+            style.fontFamily,
+            style.fontWeight,
+            LATIN_EXT_RANGE,
+          ),
+        ]
+      : []),
+    ...(source.arabic
+      ? [
+          fontFace(
+            source.packageName,
+            file('arabic'),
+            style.fontFamily,
+            style.fontWeight,
+            ARABIC_RANGE,
+          ),
+        ]
+      : []),
+  ].join('');
+  contractFontCss.set(key, faces);
+  return faces;
 }
 
 export const escapeHtml = (s: string) =>

@@ -39,7 +39,13 @@ export class CoreModule {
         {
           provide: REDIS,
           useFactory: () =>
-            new Redis(env.REDIS_URL, { maxRetriesPerRequest: 3, lazyConnect: false }),
+            new Redis(env.REDIS_URL, {
+              lazyConnect: true,
+              maxRetriesPerRequest: 3,
+              connectTimeout: 5000,
+              commandTimeout: 5000,
+              retryStrategy: (attempt) => (attempt >= 3 ? null : Math.min(attempt * 200, 1000)),
+            }),
         },
         Shutdown,
       ],

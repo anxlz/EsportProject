@@ -11,7 +11,7 @@ import {
 } from '@esports/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
-import { api, ApiError } from './api';
+import { api, ApiError, withApiRequest } from './api';
 import { useCan } from './session';
 
 export function useContractLocale(): ContractLocale {
@@ -77,13 +77,15 @@ async function failure(res: Response): Promise<never> {
 
 /** Self-contained preview HTML (shown in a sandboxed iframe via srcdoc). */
 export async function fetchHtml(path: string, headers?: Record<string, string>): Promise<string> {
-  const res = await fetch(`/api${path}`, {
-    credentials: 'same-origin',
-    cache: 'no-store',
-    headers,
+  return withApiRequest(async () => {
+    const res = await fetch(`/api${path}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers,
+    });
+    if (!res.ok) await failure(res);
+    return res.text();
   });
-  if (!res.ok) await failure(res);
-  return res.text();
 }
 
 /** Downloads a GET response as a file, named by the server's Content-Disposition. */
@@ -92,23 +94,25 @@ export async function downloadGet(
   fallbackName = 'document.pdf',
   headers?: Record<string, string>,
 ): Promise<void> {
-  const res = await fetch(`/api${path}`, {
-    credentials: 'same-origin',
-    cache: 'no-store',
-    headers,
+  return withApiRequest(async () => {
+    const res = await fetch(`/api${path}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers,
+    });
+    if (!res.ok) await failure(res);
+    const blob = await res.blob();
+    const name =
+      /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
   });
-  if (!res.ok) await failure(res);
-  const blob = await res.blob();
-  const name =
-    /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /** Uploads a file as the raw request body; the API checks its bytes, kind and size. */
@@ -116,14 +120,16 @@ export async function uploadFile(
   kind: 'logo' | 'background' | 'stamp',
   file: File,
 ): Promise<StoredFileDto> {
-  const res = await fetch(`/api/files?kind=${kind}`, {
-    method: 'POST',
-    headers: { 'content-type': file.type || 'application/octet-stream' },
-    body: file,
-    credentials: 'same-origin',
+  return withApiRequest(async () => {
+    const res = await fetch(`/api/files?kind=${kind}`, {
+      method: 'POST',
+      headers: { 'content-type': file.type || 'application/octet-stream' },
+      body: file,
+      credentials: 'same-origin',
+    });
+    if (!res.ok) await failure(res);
+    return (await res.json()) as StoredFileDto;
   });
-  if (!res.ok) await failure(res);
-  return (await res.json()) as StoredFileDto;
 }
 
 /** Name in the reader's language, falling back to the other. */

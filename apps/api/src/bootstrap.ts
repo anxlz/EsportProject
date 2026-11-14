@@ -16,14 +16,15 @@ export function configureApp(app: INestApplication, env: Env): void {
   // Provider callbacks and incoming webhooks are verified against the exact bytes received,
   // so their bodies are kept raw (registered first; the JSON parser then skips them).
   app.use('/integrations/hooks', rawBody(1024 * 1024));
-  // JSON bodies up to 1 MB (bilingual contracts with many clauses), and raw uploads of the file
-  // types the file store accepts (its service enforces per-kind limits and checks the bytes).
+  // Vercel caps function request bodies at 4.5 MB. Keep room for transport overhead there;
+  // local/container deployments retain the larger limits, while the file service enforces
+  // per-kind limits and validates uploaded bytes.
   const express = app as NestExpressApplication;
-  express.useBodyParser('json', { limit: '1mb' });
+  const requestLimit = env.onVercel ? '4mb' : '1mb';
+  express.useBodyParser('json', { limit: requestLimit });
   express.useBodyParser('raw', {
     type: ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'],
-    // 8 MB identity documents (ID-document patch) plus headroom; other kinds have lower limits.
-    limit: '9mb',
+    limit: env.onVercel ? '4mb' : '9mb',
   });
   app.enableShutdownHooks();
   // Browsers reach the API through the web app's own origin (Next.js rewrite), so CORS is only

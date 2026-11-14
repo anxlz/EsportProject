@@ -6,23 +6,30 @@
  * pending), brick for destructive actions. One family (IBM Plex) across Arabic and Latin.
  */
 :root {
-  --bg: #eef1ef;
-  --panel: #ffffff;
-  --panel-2: #f6f8f7;
-  --line: #d5ddd9;
-  --line-strong: #b9c5c0;
-  --ink: #1c2321;
+  --background: #eef1ef;
+  --foreground: #1c2321;
+  --card: #ffffff;
+  --surface-muted: #f6f8f7;
+  --border: #d5ddd9;
+  --border-strong: #b9c5c0;
   --muted: #5b6662;
-  --turf: #0f5c4a;
-  --turf-hover: #0b4a3c;
-  --turf-ink: #ffffff;
-  --turf-soft: #dcebe5;
+  --primary: #0f5c4a;
+  --primary-hover: #0b4a3c;
+  --primary-foreground: #ffffff;
+  --primary-soft: #dcebe5;
   --amber: #e8a33d;
   --amber-ink: #3d2a08;
+  --amber-badge-ink: #3d2a08;
   --amber-soft: #fbebd0;
-  --brick: #b4362f;
-  --brick-soft: #f6dedc;
-  --focus: #1f7a63;
+  --danger: #b4362f;
+  --danger-ink: #ffffff;
+  --danger-soft: #f6dedc;
+  --ring: #1f7a63;
+  --focus: var(--ring);
+  --success: #176b4d;
+  --success-soft: #dcebe5;
+  --warning: #8b5a10;
+  --warning-soft: #fbebd0;
   /* Chart series (validated categorical slots 1–3, see DECISIONS.md) and chart chrome. */
   --series-1: #2a78d6;
   --series-2: #eb6834;
@@ -30,39 +37,104 @@
   --chart-grid: #e4e9e6;
   --chart-axis: #c3ccc8;
   --chart-wash: rgb(42 120 214 / 0.1);
+  --bg: var(--background);
+  --panel: var(--card);
+  --panel-2: var(--surface-muted);
+  --line: var(--border);
+  --line-strong: var(--border-strong);
+  --ink: var(--foreground);
+  --turf: var(--primary);
+  --turf-hover: var(--primary-hover);
+  --turf-ink: var(--primary-foreground);
+  --turf-soft: var(--primary-soft);
+  --brick: var(--danger);
+  --brick-ink: var(--danger-ink);
+  --brick-soft: var(--danger-soft);
   color-scheme: light;
 }
 
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #141a18;
+  --foreground: #e6ece9;
+  --card: #1b2321;
+  --surface-muted: #212a27;
+  --border: #2f3b37;
+  --border-strong: #43524d;
+  --muted: #9aa7a2;
+  --primary: #6cc9ae;
+  --primary-hover: #7bd7bf;
+  --primary-foreground: #08130f;
+  --primary-soft: #1e3a32;
+  --amber: #f0b75c;
+  --amber-ink: #ffcf70;
+  --amber-badge-ink: #2b1d05;
+  --amber-soft: #3a2c14;
+  --danger: #ff8179;
+  --danger-ink: #1b0908;
+  --danger-soft: #3b1f1d;
+  --ring: #6cc9ae;
+  --focus: var(--ring);
+  --success: #63c49a;
+  --success-soft: #1e3a32;
+  --warning: #f0b75c;
+  --warning-soft: #3a2c14;
+  --series-1: #6aa9ff;
+  --series-2: #ff986f;
+  --series-3: #63d3a8;
+  --chart-grid: #29342f;
+  --chart-axis: #3a4843;
+  --chart-wash: rgb(106 169 255 / 0.12);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141a18;
-    --panel: #1b2321;
-    --panel-2: #212a27;
-    --line: #2f3b37;
-    --line-strong: #43524d;
-    --ink: #e6ece9;
+  :root:not([data-theme='light']):not([data-theme='dark']) {
+    color-scheme: dark;
+    --background: #141a18;
+    --foreground: #e6ece9;
+    --card: #1b2321;
+    --surface-muted: #212a27;
+    --border: #2f3b37;
+    --border-strong: #43524d;
     --muted: #9aa7a2;
-    --turf: #3fa287;
-    --turf-hover: #4fb699;
-    --turf-ink: #08130f;
-    --turf-soft: #1e3a32;
+    --primary: #6cc9ae;
+    --primary-hover: #7bd7bf;
+    --primary-foreground: #08130f;
+    --primary-soft: #1e3a32;
     --amber: #f0b75c;
-    --amber-ink: #2b1d05;
+    --amber-ink: #ffcf70;
+    --amber-badge-ink: #2b1d05;
     --amber-soft: #3a2c14;
-    --brick: #e0675f;
-    --brick-soft: #3b1f1d;
-    --focus: #6cc9ae;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
+    --danger: #ff8179;
+    --danger-ink: #1b0908;
+    --danger-soft: #3b1f1d;
+    --ring: #6cc9ae;
+    --focus: var(--ring);
+    --success: #63c49a;
+    --success-soft: #1e3a32;
+    --warning: #f0b75c;
+    --warning-soft: #3a2c14;
+    --series-1: #6aa9ff;
+    --series-2: #ff986f;
+    --series-3: #63d3a8;
     --chart-grid: #29342f;
     --chart-axis: #3a4843;
-    --chart-wash: rgb(57 135 229 / 0.12);
-    color-scheme: dark;
+    --chart-wash: rgb(106 169 255 / 0.12);
   }
 }
 
 @theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --color-bg: var(--bg);
   --color-panel: var(--panel);
   --color-panel-2: var(--panel-2);
@@ -76,8 +148,10 @@
   --color-turf-soft: var(--turf-soft);
   --color-amber: var(--amber);
   --color-amber-ink: var(--amber-ink);
+  --color-amber-badge-ink: var(--amber-badge-ink);
   --color-amber-soft: var(--amber-soft);
   --color-brick: var(--brick);
+  --color-brick-ink: var(--brick-ink);
   --color-brick-soft: var(--brick-soft);
   --font-sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
 }
@@ -152,6 +226,80 @@ body {
   line-height: 1.55;
 }
 
+.contract-text-style-preview {
+  font-family: var(--contract-font-family), sans-serif;
+  font-weight: var(--contract-font-weight);
+  color: var(--contract-text-color);
+}
+
+.rb-dot-grid {
+  background-image: radial-gradient(var(--line-strong) 0.75px, transparent 0.75px);
+  background-position: center top;
+  background-size: 18px 18px;
+  mask-image: linear-gradient(to bottom, black, transparent 75%);
+  opacity: 0.24;
+}
+
+.rb-spotlight-card {
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease;
+}
+
+.rb-spotlight-card::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: radial-gradient(
+    180px circle at var(--pointer-x, 50%) var(--pointer-y, 0%),
+    color-mix(in srgb, var(--turf) 8%, transparent),
+    transparent 75%
+  );
+  content: '';
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.rb-spotlight-card:hover {
+  transform: translateY(-2px);
+}
+
+.rb-spotlight-card:hover::before {
+  opacity: 1;
+}
+
+.global-loading-mark {
+  animation: loading-pulse 900ms ease-in-out infinite alternate;
+}
+
+.global-loading-overlay {
+  transition: opacity 180ms ease;
+}
+
+@keyframes loading-pulse {
+  to {
+    transform: scale(1.06);
+    opacity: 0.7;
+  }
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+html.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+html.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+html.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
 /* Arabic script needs more vertical room than Latin at the same size. */
 :lang(ar) body {
   font-family: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
@@ -159,7 +307,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -185,6 +333,53 @@ dialog[open] {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .rb-spotlight-card {
+    transition: none;
+  }
+
+  .rb-spotlight-card:hover {
+    transform: none;
+  }
+
+  .rb-spotlight-card::before {
+    transition: none;
+  }
+
+  .rb-spotlight-card:hover::before {
+    opacity: 0;
+  }
+
+  .global-loading-mark {
+    animation: none;
+  }
+
+  .global-loading-overlay {
+    transition-duration: 100ms;
+  }
+}
+
+@media print {
+  :root,
+  :root[data-theme='dark'] {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #1c2321;
+    --card: #ffffff;
+    --surface-muted: #f6f8f7;
+    --border: #d5ddd9;
+    --border-strong: #b9c5c0;
+    --muted: #5b6662;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #1c2321 !important;
+  }
+
+  .global-loading-overlay {
+    display: none !important;
   }
 }
 

@@ -30,12 +30,69 @@ import {
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ComponentType, type ReactNode, useEffect, useState } from 'react';
 import { api, ApiError, apiPost } from '@/lib/api';
 import { ASSISTANT_ICONS } from '@/lib/assistants';
 import { MeProvider, useMeQuery } from '@/lib/session';
 import { LanguageSwitcher } from './language-switcher';
+import { ThemeToggle } from './theme-toggle';
 import { cx, Spinner } from './ui';
+
+function LazyScrollReveal({ children }: { children: ReactNode }) {
+  const [Reveal, setReveal] = useState<ComponentType<{ children: ReactNode }> | null>(null);
+
+  useEffect(() => {
+    let disposed = false;
+    let idleCallbackId: number | undefined;
+    let fallbackTimer: number | undefined;
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const load = async () => {
+      if (motionPreference.matches) return;
+      const { ScrollReveal } = await import('./ui/react-bits/scroll-reveal');
+      if (!disposed && !motionPreference.matches) setReveal(() => ScrollReveal);
+    };
+    const schedule = () => {
+      if (motionPreference.matches) return;
+      const run = () =>
+        void load().catch((error: unknown) =>
+          console.error('Scroll animations could not be loaded', error),
+        );
+      if (window.requestIdleCallback) {
+        idleCallbackId = window.requestIdleCallback(
+          () => {
+            idleCallbackId = undefined;
+            run();
+          },
+          { timeout: 1600 },
+        );
+      } else {
+        fallbackTimer = window.setTimeout(() => {
+          fallbackTimer = undefined;
+          run();
+        }, 400);
+      }
+    };
+    const handleMotionPreference = () => {
+      if (motionPreference.matches) {
+        setReveal(null);
+      } else {
+        schedule();
+      }
+    };
+
+    motionPreference.addEventListener('change', handleMotionPreference);
+    schedule();
+    return () => {
+      disposed = true;
+      motionPreference.removeEventListener('change', handleMotionPreference);
+      if (idleCallbackId !== undefined) window.cancelIdleCallback(idleCallbackId);
+      if (fallbackTimer !== undefined) window.clearTimeout(fallbackTimer);
+    };
+  }, []);
+
+  return Reveal ? <Reveal>{children}</Reveal> : children;
+}
 
 interface NavItem {
   href: string;
@@ -152,6 +209,7 @@ function OrgSwitcher({ me }: { me: MeResponse }) {
     <label className="flex flex-col gap-1">
       <span className="sr-only">{t('switchOrganization')}</span>
       <select
+        data-loading
         className="h-9 w-full rounded-md border border-line-strong bg-panel px-2 text-sm font-medium"
         value={me.activeOrganization.id}
         onChange={async (e) => {
@@ -226,7 +284,11 @@ function Sidebar({ me, onNavigate }: { me: MeResponse; onNavigate?: () => void }
         <span className="text-[0.8125rem] font-medium text-muted">{tApp('name')}</span>
         <OrgSwitcher me={me} />
       </div>
-      <nav aria-label={t('mainNavigation')} className="flex-1 overflow-y-auto px-2 py-3">
+      <nav
+        data-lenis-prevent
+        aria-label={t('mainNavigation')}
+        className="flex-1 overflow-y-auto px-2 py-3"
+      >
         <NavList items={main} isActive={isActive} onNavigate={onNavigate} />
         {assistants.length > 0 && (
           <div className="mt-4 border-t border-line pt-3">
@@ -253,6 +315,7 @@ function Sidebar({ me, onNavigate }: { me: MeResponse; onNavigate?: () => void }
         <p className="ltr-text truncate text-[0.8125rem] text-muted">{me.user.email}</p>
         <button
           type="button"
+          data-loading
           className="mt-3 inline-flex items-center gap-2 text-sm text-muted hover:text-ink"
           onClick={async () => {
             await apiPost('/auth/logout').catch(() => undefined);
@@ -286,7 +349,7 @@ function NotificationBell({ me }: { me: MeResponse }) {
     >
       <Bell className="size-[1.125rem]" aria-hidden="true" />
       {count > 0 && (
-        <span className="absolute -top-0.5 -end-0.5 min-w-5 rounded-full bg-amber px-1 text-center text-xs leading-5 font-semibold text-amber-ink">
+        <span className="absolute -top-0.5 -end-0.5 min-w-5 rounded-full bg-amber px-1 text-center text-xs leading-5 font-semibold text-amber-badge-ink">
           {count > 99 ? '99+' : count}
         </span>
       )}
@@ -347,11 +410,12 @@ function ShellFrame({ me, children }: { me: MeResponse; children: ReactNode }) {
             <Menu className="size-5" aria-hidden="true" />
           </button>
           <div className="flex-1" />
+          <ThemeToggle />
           <LanguageSwitcher signedIn />
           <NotificationBell me={me} />
         </div>
         <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-8">
-          {children}
+          <LazyScrollReveal>{children}</LazyScrollReveal>
         </main>
       </div>
     </div>

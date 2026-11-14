@@ -4,6 +4,9 @@ import { CURRENCY_CODES, PAY_FREQUENCIES } from '../finance/catalog';
 import {
   BACKGROUND_KINDS,
   CLAUSE_SOURCES,
+  CONTRACT_TEXT_FONTS,
+  CONTRACT_TEXT_FONT_FAMILIES,
+  DEFAULT_CONTRACT_TEXT_STYLE,
   DOCUMENT_LANGUAGES,
   DRAW_CANVAS,
   ID_DOCUMENT_TYPES,
@@ -16,6 +19,7 @@ import {
   SIGNING_LINK_MAX_DAYS,
   signatureFontsFor,
   STAMP_POSITIONS,
+  TERMINATION_REASON_CODES,
   VERIFICATION_METHODS,
 } from './catalog';
 import { CONSENT_VERSION } from './i18n';
@@ -168,6 +172,49 @@ export const contractDetailsSchema = z.object({
 });
 export type ContractDetailsInput = z.infer<typeof contractDetailsSchema>;
 
+export const contractTextStyleSchema = z
+  .object({
+    fontFamily: z.enum(CONTRACT_TEXT_FONT_FAMILIES),
+    fontWeight: z.number().int().min(300).max(800),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'contract_text_color'),
+  })
+  .refine(
+    (style) => {
+      const font = CONTRACT_TEXT_FONTS.find((item) => item.family === style.fontFamily);
+      return !!font && (font.weights as readonly number[]).includes(style.fontWeight);
+    },
+    { path: ['fontWeight'], message: 'contract_text_weight' },
+  );
+export type ContractTextStyleInput = z.infer<typeof contractTextStyleSchema>;
+
+export function contractTextStyleCss(style: ContractTextStyleInput): string {
+  const parsed = contractTextStyleSchema.parse(style);
+  return `:root{--contract-font-family:'${parsed.fontFamily}';--contract-font-weight:${parsed.fontWeight};--contract-text-color:${parsed.color}}`;
+}
+
+export const contractTerminationRequestSchema = z
+  .object({
+    reasonCode: z.enum(TERMINATION_REASON_CODES),
+    reasonDetails: optText(4000),
+    effectiveDate: isoDate,
+    noticePeriodDays: z.number().int().min(0).max(3650).default(0),
+  })
+  .refine(
+    (input) =>
+      !['breach', 'non_performance'].includes(input.reasonCode) || !!input.reasonDetails?.trim(),
+    { path: ['reasonDetails'], message: 'termination_reason_details_required' },
+  );
+export type ContractTerminationRequestInput = z.infer<typeof contractTerminationRequestSchema>;
+
+export const contractTerminationResponseSchema = z.object({
+  decision: z.enum(['accepted', 'rejected']),
+  note: optText(2000),
+});
+
+export const contractTerminationExecuteSchema = z.object({
+  settlementNotes: optText(4000),
+});
+
 export const contractClauseSchema = z
   .object({
     /** Stable id of the clause within this contract (kept across versions). */
@@ -196,6 +243,7 @@ export const contractSaveSchema = z
     rosterMemberId: optUuid,
     details: contractDetailsSchema,
     clauses: z.array(contractClauseSchema).max(120),
+    textStyle: contractTextStyleSchema.default(DEFAULT_CONTRACT_TEXT_STYLE),
     note: optText(500),
   })
   .refine((v) => !v.rosterMemberId || !!v.teamId, 'roster_member_requires_team')

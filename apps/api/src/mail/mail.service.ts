@@ -13,7 +13,8 @@ import { type Env, ENV } from '../config/env';
 import { DB, type Database } from '../db/client';
 import { devOutbox } from '../db/schema';
 
-export type MailTemplate = 'invitation' | 'password_reset' | 'signing_code' | 'assistant_email';
+export type MailTemplate =
+  'invitation' | 'password_reset' | 'signing_code' | 'assistant_email' | 'contract_termination';
 
 interface Message {
   /** One address, or several separated by commas. */
@@ -145,6 +146,36 @@ export class MailService {
         `To reset your password, open this link within ${p.minutes} minutes:`,
         p.url,
         'If you did not request this, ignore this email; your password stays unchanged.',
+      ].join('\n'),
+    });
+  }
+
+  sendContractTermination(
+    to: string,
+    p: { contractNumber: string; status: string; note: string | null },
+  ) {
+    const status =
+      {
+        requested: 'قيد المراجعة | Under review',
+        accepted: 'مقبول | Accepted',
+        rejected: 'مرفوض | Rejected',
+        withdrawn: 'مسحوب | Withdrawn',
+        executed: 'تم التنفيذ | Executed',
+        expired: 'منتهي الصلاحية | Expired',
+      }[p.status] ?? p.status;
+    return this.send({
+      to,
+      template: 'contract_termination',
+      subject: `تحديث إنهاء العقد ${p.contractNumber} | Contract ${p.contractNumber} termination update`,
+      text: [
+        `تحديث بشأن إنهاء العقد ${p.contractNumber}: ${status}.`,
+        ...(p.note ? [p.note] : []),
+        '—',
+        '',
+        `An update about termination of contract ${p.contractNumber}: ${status}.`,
+        ...(p.note ? [p.note] : []),
+        '',
+        'This message is a status notification, not legal advice.',
       ].join('\n'),
     });
   }

@@ -10,17 +10,24 @@ import {
 } from '@esports/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { PageHeader } from '@/components/ui';
+import { DotGridBackground } from '@/components/ui/react-bits/dot-grid-background';
+import { SpotlightCard } from '@/components/ui/react-bits/spotlight-card';
 import { api } from '@/lib/api';
 import { useCan, useMe } from '@/lib/session';
 
 function Stat({ value, label, href }: { value: string; label: string; href: string }) {
   return (
-    <Link href={href} className="flex flex-col gap-0.5 px-5 py-4 hover:bg-panel-2">
-      <span className="text-2xl font-semibold text-ink">{value}</span>
+    <SpotlightCard href={href} data-motion-item="" className="text-start">
+      <span
+        data-motion-counter={value}
+        className="inline-block text-end text-2xl font-semibold text-ink tabular-nums"
+        style={{ minWidth: `${value.length}ch` }}
+      >
+        {value}
+      </span>
       <span className="text-sm text-muted">{label}</span>
-    </Link>
+    </SpotlightCard>
   );
 }
 
@@ -83,21 +90,25 @@ export default function OverviewPage() {
   ].filter(Boolean) as { value: string; label: string; href: string }[];
 
   return (
-    <>
+    <div className="relative isolate">
+      <DotGridBackground />
       <PageHeader
         title={t('greeting', { name: me.user.displayName })}
         lead={me.activeOrganization.name}
       />
 
       {stats.length > 0 && (
-        <div className="mb-8 grid divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <div
+          data-motion-stagger
+          className="mb-8 grid divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+        >
           {stats.map((s) => (
             <Stat key={s.label} {...s} />
           ))}
         </div>
       )}
 
-      <section aria-labelledby="access-heading" className="max-w-3xl">
+      <section data-motion-reveal aria-labelledby="access-heading" className="max-w-3xl">
         <h2 id="access-heading" className="mb-3 text-lg font-semibold">
           {t('yourAccess')}
         </h2>
@@ -137,6 +148,6 @@ export default function OverviewPage() {
           </dl>
         )}
       </section>
-    </>
+    </div>
   );
 }

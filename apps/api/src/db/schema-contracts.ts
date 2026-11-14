@@ -20,7 +20,13 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import type { ContractSnapshot } from '@esports/shared';
+import {
+  DEFAULT_CONTRACT_TEXT_STYLE,
+  type ContractSnapshot,
+  type ContractTextStyle,
+  type TerminationReasonCode,
+  type TerminationStatus,
+} from '@esports/shared';
 import { appSchema, games, organizations, teams, users } from './schema';
 import { rosterMembers } from './schema-finance';
 
@@ -218,6 +224,10 @@ export const contracts = appSchema.table(
     teamId: uuid('team_id'),
     rosterMemberId: uuid('roster_member_id'),
     gameId: uuid('game_id'),
+    textStyle: jsonb('text_style')
+      .$type<ContractTextStyle>()
+      .notNull()
+      .default(DEFAULT_CONTRACT_TEXT_STYLE),
     status: text('status').notNull().default('draft'),
     /** Denormalized from the latest version for lists and search. */
     title: text('title').notNull(),
@@ -258,6 +268,99 @@ export const contracts = appSchema.table(
       name: 'contracts_game_fk',
       columns: [t.organizationId, t.gameId],
       foreignColumns: [games.organizationId, games.id],
+    }).onDelete('restrict'),
+  ],
+);
+
+export const contractTerminations = appSchema.table(
+  'contract_terminations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id').notNull(),
+    contractId: uuid('contract_id').notNull(),
+    initiatedByUserId: uuid('initiated_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    initiatorRole: text('initiator_role').notNull(),
+    reasonCode: text('reason_code').$type<TerminationReasonCode>().notNull(),
+    reasonDetails: text('reason_details'),
+    effectiveDate: text('effective_date').notNull(),
+    noticePeriodDays: integer('notice_period_days').notNull().default(0),
+    status: text('status').$type<TerminationStatus>().notNull().default('requested'),
+    counterpartyResponseAt: tstz('counterparty_response_at'),
+    counterpartyNote: text('counterparty_note'),
+    settlementNotes: text('settlement_notes'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique('contract_terminations_org_id_unique').on(t.organizationId, t.id),
+    uniqueIndex('contract_terminations_one_active')
+      .on(t.organizationId, t.contractId)
+      .where(sql`${t.status} in ('requested', 'pending_counterparty', 'accepted')`),
+    index('contract_terminations_due_idx').on(t.status, t.effectiveDate),
+    foreignKey({
+      name: 'contract_terminations_contract_fk',
+      columns: [t.organizationId, t.contractId],
+      foreignColumns: [contracts.organizationId, contracts.id],
+    }).onDelete('restrict'),
+    check('contract_terminations_notice_days', sql`${t.noticePeriodDays} between 0 and 3650`),
+    check(
+      'contract_terminations_effective_date',
+      sql`${t.effectiveDate} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`,
+    ),
+    check(
+      'contract_terminations_reason_details',
+      sql`${t.reasonCode} not in ('breach', 'non_performance') or length(trim(coalesce(${t.reasonDetails}, ''))) > 0`,
+    ),
+    check(
+      'contract_terminations_status_check',
+      sql`${t.status} in ('requested', 'pending_counterparty', 'accepted', 'rejected', 'withdrawn', 'executed', 'expired')`,
+    ),
+    check(
+      'contract_terminations_reason_code_check',
+      sql`${t.reasonCode} in ('breach', 'mutual_agreement', 'non_performance', 'force_majeure', 'convenience', 'other')`,
+    ),
+  ],
+);
+
+export const contractTerminationEvents = appSchema.table(
+  'contract_termination_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id').notNull(),
+    terminationId: uuid('termination_id').notNull(),
+    actorUserId: uuid('actor_user_id').references(() => users.id),
+    actorRole: text('actor_role').notNull(),
+    action: text('action').notNull(),
+    fromStatus: text('from_status').$type<TerminationStatus>(),
+    toStatus: text('to_status').$type<TerminationStatus>().notNull(),
+    note: text('note'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('contract_termination_events_org_id_unique').on(t.organizationId, t.id),
+    index('contract_termination_events_history_idx').on(
+      t.organizationId,
+      t.terminationId,
+      t.createdAt,
+    ),
+    check(
+      'contract_termination_events_action_check',
+      sql`${t.action} in ('requested', 'accepted', 'rejected', 'withdrawn', 'executed', 'expired')`,
+    ),
+    check(
+      'contract_termination_events_to_status_check',
+      sql`${t.toStatus} in ('requested', 'pending_counterparty', 'accepted', 'rejected', 'withdrawn', 'executed', 'expired')`,
+    ),
+    check(
+      'contract_termination_events_from_status_check',
+      sql`${t.fromStatus} is null or ${t.fromStatus} in ('requested', 'pending_counterparty', 'accepted', 'rejected', 'withdrawn', 'executed', 'expired')`,
+    ),
+    foreignKey({
+      name: 'contract_termination_events_termination_fk',
+      columns: [t.organizationId, t.terminationId],
+      foreignColumns: [contractTerminations.organizationId, contractTerminations.id],
     }).onDelete('restrict'),
   ],
 );

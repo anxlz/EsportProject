@@ -14,19 +14,29 @@ import {
 } from '@esports/shared';
 import type { z } from 'zod';
 import { RequireOrg, RequirePermission, type TenantContext, TenantCtx } from '../authz/context';
+import { AiRouter } from '../ai/ai.router';
 import { UuidPipe, ZodBody, ZodQuery } from '../common/zod';
 import { AssistantsService, listQuerySchema } from './assistants.service';
 
 @ApiTags('assistants')
 @Controller('assistants')
 export class AssistantsController {
-  constructor(private readonly assistants: AssistantsService) {}
+  constructor(
+    private readonly assistants: AssistantsService,
+    private readonly aiRouter: AiRouter,
+  ) {}
 
   /** Which assistants this user can use, and whether the AI provider is configured. */
   @Get()
   @RequireOrg()
   overview(@TenantCtx() ctx: TenantContext) {
     return this.assistants.overview(ctx);
+  }
+
+  @Get('health')
+  @RequireOrg()
+  localModelHealth() {
+    return this.aiRouter.localHealth();
   }
 
   @Get('conversations')

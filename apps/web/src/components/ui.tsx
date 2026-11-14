@@ -29,7 +29,7 @@ const variants: Record<Variant, string> = {
   primary: 'bg-turf text-turf-ink hover:bg-turf-hover border border-transparent',
   secondary: 'bg-panel text-ink border border-line-strong hover:bg-panel-2',
   ghost: 'bg-transparent text-ink border border-transparent hover:bg-panel-2',
-  danger: 'bg-brick text-white border border-transparent hover:opacity-90',
+  danger: 'bg-brick text-brick-ink border border-transparent hover:opacity-90',
 };
 
 export function Button({
@@ -227,7 +227,7 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <header data-motion-reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
         {lead && <p className="mt-1.5 text-muted">{lead}</p>}
@@ -372,7 +372,9 @@ export function Dialog({
             </h2>
             {lead && <p className="mt-1 text-sm text-muted">{lead}</p>}
           </div>
-          <div className="overflow-y-auto px-6 py-5">{children}</div>
+          <div data-lenis-prevent className="overflow-y-auto px-6 py-5">
+            {children}
+          </div>
           {footer && (
             <div className="flex flex-wrap justify-end gap-2 border-t border-line px-6 py-4">
               {footer}

@@ -1,7 +1,7 @@
 /**
  * Which AI provider answers which feature (Phase 6). The deployer chooses, in the environment:
- * AI_PROVIDER_DEFAULT (anthropic unless set) and AI_PROVIDER_OVERRIDES per feature, e.g.
- * "player_analyst=qwen,email=qwen". Features: the clause assistant and the five assistants.
+ * LLM_PROVIDER / legacy AI_PROVIDER_DEFAULT select the default and AI_PROVIDER_OVERRIDES routes
+ * individual features. Features: the clause assistant and the five assistants.
  *
  * There is deliberately no automatic fallback to the other provider: if a feature is routed to
  * a provider without a key, that feature says it isn't configured, so a deployer who chose
@@ -17,6 +17,7 @@ import {
   parseProviderOverrides,
 } from '../config/env';
 import { aiProviderFromEnv, type AiProvider, UnconfiguredProvider } from './ai.provider';
+import { LocalLlmProvider } from './local-llm.provider';
 import { QwenProvider } from './qwen.provider';
 
 export type AiProviders = Record<AiProviderName, AiProvider>;
@@ -26,6 +27,7 @@ export function aiProvidersFromEnv(env: Env): AiProviders {
   return {
     anthropic: aiProviderFromEnv(env),
     qwen: env.QWEN_API_KEY ? new QwenProvider(env) : new UnconfiguredProvider('qwen'),
+    local: new LocalLlmProvider(env),
   };
 }
 
@@ -41,7 +43,12 @@ export class AiRouter {
   }
 
   providerName(feature: AiFeature): AiProviderName {
-    return this.overrides.get(feature) ?? this.env.AI_PROVIDER_DEFAULT;
+    return (
+      this.overrides.get(feature) ??
+      this.env.LLM_PROVIDER ??
+      this.env.AI_PROVIDER_DEFAULT ??
+      (this.env.ANTHROPIC_API_KEY ? 'anthropic' : 'local')
+    );
   }
 
   for(feature: AiFeature): AiProvider {
@@ -59,9 +66,22 @@ export class AiRouter {
     };
   }
 
+  localHealth() {
+    const provider = this.providers.local;
+    return provider.health
+      ? provider.health()
+      : Promise.resolve({
+          ok: false,
+          model: provider.model ?? '',
+          latencyMs: 0,
+          reason: 'unsupported',
+        });
+  }
+
   /** The variable that holds the key for a feature's provider (for "not configured" messages). */
   keyVar(feature: AiFeature) {
-    return this.providerName(feature) === 'qwen' ? 'QWEN_API_KEY' : 'ANTHROPIC_API_KEY';
+    const name = this.providerName(feature);
+    return name === 'qwen' ? 'QWEN_API_KEY' : name === 'local' ? 'LLM_MODEL' : 'ANTHROPIC_API_KEY';
   }
 
   get features(): readonly AiFeature[] {

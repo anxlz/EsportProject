@@ -19,8 +19,58 @@ export const CONTRACT_STATUSES = [
   'awaiting_signatures',
   'signed',
   'cancelled',
+  'terminated',
 ] as const;
 export type ContractStatus = (typeof CONTRACT_STATUSES)[number];
+
+export const CONTRACT_TEXT_FONTS = [
+  { family: 'Cairo', weights: [300, 400, 500, 600, 700, 800] },
+  { family: 'Tajawal', weights: [300, 400, 500, 700, 800] },
+  { family: 'IBM Plex Sans Arabic', weights: [300, 400, 500, 600, 700] },
+  { family: 'Noto Kufi Arabic', weights: [300, 400, 500, 600, 700, 800] },
+  { family: 'Almarai', weights: [300, 400, 700, 800] },
+  { family: 'IBM Plex Sans', weights: [300, 400, 500, 600, 700] },
+] as const;
+export type ContractTextFontFamily = (typeof CONTRACT_TEXT_FONTS)[number]['family'];
+export const CONTRACT_TEXT_FONT_FAMILIES = [
+  'Cairo',
+  'Tajawal',
+  'IBM Plex Sans Arabic',
+  'Noto Kufi Arabic',
+  'Almarai',
+  'IBM Plex Sans',
+] as const satisfies readonly ContractTextFontFamily[];
+export interface ContractTextStyle {
+  fontFamily: ContractTextFontFamily;
+  fontWeight: number;
+  color: string;
+}
+export const DEFAULT_CONTRACT_TEXT_STYLE: ContractTextStyle = {
+  fontFamily: 'Cairo',
+  fontWeight: 400,
+  color: '#1c2321',
+};
+
+export const TERMINATION_REASON_CODES = [
+  'breach',
+  'mutual_agreement',
+  'non_performance',
+  'force_majeure',
+  'convenience',
+  'other',
+] as const;
+export type TerminationReasonCode = (typeof TERMINATION_REASON_CODES)[number];
+
+export const TERMINATION_STATUSES = [
+  'requested',
+  'pending_counterparty',
+  'accepted',
+  'rejected',
+  'withdrawn',
+  'executed',
+  'expired',
+] as const;
+export type TerminationStatus = (typeof TERMINATION_STATUSES)[number];
 
 /** Statuses in which the working copy may be edited (each save is a new version). */
 export const EDITABLE_STATUSES: readonly ContractStatus[] = ['draft', 'changes_requested'];

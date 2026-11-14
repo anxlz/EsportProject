@@ -5,6 +5,7 @@ import {
   type ContractDto,
   contractSaveSchema,
   type ContractSnapshot,
+  DEFAULT_CONTRACT_TEXT_STYLE,
 } from '@esports/shared';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -26,6 +27,7 @@ import { ClauseAssistantDialog } from '@/components/contracts/clause-assistant';
 import { ClauseList, DetailsForm, type Draft } from '@/components/contracts/contract-forms';
 import { ContractStatusBadge, DocumentFrame } from '@/components/contracts/contracts-nav';
 import { SigningPanel } from '@/components/contracts/signing-panel';
+import { TerminationPanel } from '@/components/contracts/termination-panel';
 import {
   Badge,
   Button,
@@ -60,6 +62,7 @@ const toDraft = (s: ContractSnapshot): Draft => ({
   rosterMemberId: s.rosterMemberId,
   details: s.details,
   clauses: s.clauses,
+  textStyle: s.textStyle ?? DEFAULT_CONTRACT_TEXT_STYLE,
 });
 
 function Banner({
@@ -387,6 +390,7 @@ function Editor({ c }: { c: ContractDto }) {
   const [note, setNote] = useState('');
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [dlError, setDlError] = useState<unknown>(null);
+  const [textStyleValid, setTextStyleValid] = useState(true);
   // A new saved version (or status) replaces local edits; background refetches of the same
   // version don't, so unsaved work is never overwritten.
   useEffect(() => {
@@ -494,7 +498,7 @@ function Editor({ c }: { c: ContractDto }) {
           {editable && (
             <Button
               variant={dirty ? 'primary' : 'secondary'}
-              disabled={!dirty || save.isPending}
+              disabled={!dirty || save.isPending || !textStyleValid}
               onClick={() => save.mutate(undefined)}
             >
               {save.isPending ? tc('saving') : t('save')}
@@ -571,6 +575,9 @@ function Editor({ c }: { c: ContractDto }) {
           <Banner tone="neutral">{t('readOnly')}</Banner>
         )}
       </div>
+      <div className="mb-5">
+        <TerminationPanel c={c} />
+      </div>
 
       <div
         role="tablist"
@@ -605,7 +612,13 @@ function Editor({ c }: { c: ContractDto }) {
       </div>
 
       {tab === 'details' && (
-        <DetailsForm draft={draft} setDraft={setDraft} disabled={!editable} invalid={invalid} />
+        <DetailsForm
+          draft={draft}
+          setDraft={setDraft}
+          disabled={!editable}
+          invalid={invalid}
+          onTextStyleValidityChange={setTextStyleValid}
+        />
       )}
       {tab === 'clauses' && (
         <ClauseList

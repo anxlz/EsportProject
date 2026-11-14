@@ -14,5 +14,13 @@ services:
   redis:
     image: redis:7
     ports: ['6379:6379']
+  # Optional local model server. Pull a model separately with `ollama pull llama3.2`,
+  # then set LLM_BASE_URL=http://localhost:11434/v1 and LLM_MODEL=llama3.2 in apps/api/.env.
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports: ['11434:11434']
+  #   volumes:
+  #     - ollama:/root/.ollama
 volumes:
   pgdata:
+  # ollama:

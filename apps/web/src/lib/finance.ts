@@ -12,7 +12,7 @@ import {
 } from '@esports/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
-import { api, ApiError } from './api';
+import { api, ApiError, withApiRequest } from './api';
 import { useRiyalSign } from './riyal';
 import { useCan } from './session';
 
@@ -86,31 +86,33 @@ export const orNull = (v: string) => (v.trim() === '' ? null : v.trim());
  * Content-Disposition header so it matches what the API audited.
  */
 export async function downloadPost(path: string, body: unknown): Promise<void> {
-  const res = await fetch(`/api${path}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-    credentials: 'same-origin',
+  return withApiRequest(async () => {
+    const res = await fetch(`/api${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'same-origin',
+    });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as {
+        error?: { code?: string; message?: string };
+      } | null;
+      throw new ApiError(
+        res.status,
+        (data?.error?.code as never) ?? 'internal_error',
+        data?.error?.message ?? res.statusText,
+      );
+    }
+    const blob = await res.blob();
+    const name =
+      /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'report';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
   });
-  if (!res.ok) {
-    const data = (await res.json().catch(() => null)) as {
-      error?: { code?: string; message?: string };
-    } | null;
-    throw new ApiError(
-      res.status,
-      (data?.error?.code as never) ?? 'internal_error',
-      data?.error?.message ?? res.statusText,
-    );
-  }
-  const blob = await res.blob();
-  const name =
-    /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'report';
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }

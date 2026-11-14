@@ -116,6 +116,7 @@ export interface AiProvider {
    * (Qwen3 hosts) sets false; the engine then skips web search and says so. Unset = true.
    */
   readonly supportsWebSearch?: boolean;
+  health?(): Promise<{ ok: boolean; model: string; latencyMs: number; reason?: string }>;
   generateJson(req: AiJsonRequest): Promise<AiJsonResult>;
   /** One model call that may request tools; the caller runs the loop. */
   converse(req: AiConverseRequest): Promise<AiConverseResult>;
@@ -338,7 +339,11 @@ export class AnthropicProvider implements AiProvider {
   }
 }
 
-const KEY_VAR = { anthropic: 'ANTHROPIC_API_KEY', qwen: 'QWEN_API_KEY' } as const;
+const KEY_VAR = {
+  anthropic: 'ANTHROPIC_API_KEY',
+  qwen: 'QWEN_API_KEY',
+  local: 'LLM_MODEL',
+} as const;
 
 /** Used when no API key is set: the assistant says it is not configured; nothing else changes. */
 export class UnconfiguredProvider implements AiProvider {

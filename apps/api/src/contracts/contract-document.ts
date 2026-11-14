@@ -19,10 +19,13 @@ import {
   formatDuration,
   formatIsoDate,
   formatMoney,
+  contractTextStyleCss,
+  contractTextStyleSchema,
+  DEFAULT_CONTRACT_TEXT_STYLE,
   type MergeContext,
   mergeValues,
 } from '@esports/shared';
-import { escapeHtml as esc, pdfFonts } from '../pdf/pdf.service';
+import { contractTextFontCss, escapeHtml as esc, pdfFonts } from '../pdf/pdf.service';
 
 export interface DocumentAssets {
   logo: { data: Buffer; contentType: string } | null;
@@ -170,6 +173,9 @@ function particularRows(input: RenderInput, loc: ContractLocale): [string, strin
 
 export function contractHtml(input: RenderInput): string {
   const { snapshot, settings: s } = input;
+  const textStyle = contractTextStyleSchema.parse(
+    snapshot.textStyle ?? DEFAULT_CONTRACT_TEXT_STYLE,
+  );
   const locales = documentLocales(snapshot.details.language);
   const bilingual = locales.length === 2;
   const mainLoc: ContractLocale = bilingual ? 'en' : locales[0]!;
@@ -302,11 +308,13 @@ export function contractHtml(input: RenderInput): string {
     : '';
 
   return `<!doctype html><html lang="${mainLoc}" dir="${dir}"${s.pageBorder ? ' class="bordered"' : ''}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:"><title>${esc(input.contractNumber)}</title><style>
-${pdfFonts()}
-@page{size:A4}
-*{box-sizing:border-box}
-html{font-family:'Plex',sans-serif;font-size:${s.fontSizePt}pt;line-height:${s.lineHeight};color:#16191d;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{margin:0}
+  ${contractTextStyleCss(textStyle)}
+  ${pdfFonts()}
+  ${contractTextFontCss(textStyle)}
+  @page{size:A4}
+  *{box-sizing:border-box}
+  html{font-family:var(--contract-font-family),'Plex',sans-serif;font-size:${s.fontSizePt}pt;line-height:${s.lineHeight};font-weight:var(--contract-font-weight);color:var(--contract-text-color);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:0}
 table.frame{width:100%;border-collapse:collapse}
 table.frame>thead>tr>td,table.frame>tfoot>tr>td{padding:0}
 .nw{white-space:nowrap}
@@ -316,19 +324,20 @@ table.frame>thead>tr>td,table.frame>tfoot>tr>td{padding:0}
 .letterhead{display:flex;flex-direction:column;gap:2pt;padding-bottom:8pt;margin-bottom:10pt;border-bottom:1px solid #c8ccd2;text-align:${s.logoPosition === 'center' ? 'center' : 'start'}}
 .letterhead.pos-end{text-align:end}
 .letterhead .logo{max-height:18mm;max-width:60mm;object-fit:contain;display:block;margin-inline-start:${s.logoPosition === 'start' ? '0' : 'auto'};margin-inline-end:${s.logoPosition === 'end' ? '0' : s.logoPosition === 'center' ? 'auto' : 'auto'}}
-.letterhead .org{font-weight:600;font-size:1.05em}
-.letterhead .htext{color:#4a505a;font-size:.85em}
+.letterhead .org{font-weight:var(--contract-font-weight);font-size:1.05em}
+.letterhead .htext{color:var(--contract-text-color);font-size:.85em}
 .bi-row{display:flex;justify-content:space-between;align-items:baseline;gap:14pt}
 .bi-row>[dir=rtl]{text-align:right}
-.foot{border-top:1px solid #c8ccd2;margin-top:10pt;padding-top:5pt;font-size:.78em;color:#4a505a;display:flex;flex-direction:column;gap:1pt}
-.title{font-size:1.45em;font-weight:600;margin:0 0 2pt}
-.number{color:#4a505a;margin-bottom:10pt}
-h2{font-size:1.08em;font-weight:600;margin:14pt 0 6pt;break-after:avoid;border-bottom:1px solid #e1e4e8;padding-bottom:2pt}
+.foot{border-top:1px solid #c8ccd2;margin-top:10pt;padding-top:5pt;font-size:.78em;color:var(--contract-text-color);display:flex;flex-direction:column;gap:1pt}
+.title{font-size:1.45em;font-weight:var(--contract-font-weight);margin:0 0 2pt}
+.number{color:var(--contract-text-color);margin-bottom:10pt}
+h2{font-size:1.08em;font-weight:var(--contract-font-weight);margin:14pt 0 6pt;break-after:avoid;border-bottom:1px solid #e1e4e8;padding-bottom:2pt}
 h2.bi{display:flex;justify-content:space-between;gap:12pt}
-h3{font-size:1em;font-weight:600;margin:0 0 2pt}
+h3{font-size:1em;font-weight:var(--contract-font-weight);margin:0 0 2pt}
 p{margin:0 0 6pt}
+strong,b{font-weight:var(--contract-font-weight)}
 .particulars{width:100%;border-collapse:collapse;font-size:.95em}
-.particulars th{text-align:start;font-weight:600;color:#3a3f47;width:30%;padding:3pt 6pt 3pt 0;vertical-align:top}
+.particulars th{text-align:start;font-weight:var(--contract-font-weight);color:var(--contract-text-color);width:30%;padding:3pt 6pt 3pt 0;vertical-align:top}
 .particulars.bi th{width:17%}
 .particulars td{padding:3pt 6pt;vertical-align:top;border-bottom:1px solid #eef0f2}
 .particulars.bi td{width:33%}
@@ -340,10 +349,10 @@ mark.missing{background:#fde7c4;color:#6b3d00;padding:0 2pt;border-radius:2pt}
 .stampwrap{display:flex;margin:4pt 0 6pt}
 .stampwrap.pos-start{justify-content:flex-start}.stampwrap.pos-center{justify-content:center}.stampwrap.pos-end{justify-content:flex-end}
 .stamp{display:block;height:auto}
-.fp{font-size:.72em;color:#4a505a;word-break:break-all}
-.muted{color:#5b6068}
+.fp{font-size:.72em;color:var(--contract-text-color);word-break:break-all}
+.muted{color:var(--contract-text-color)}
 .border{position:fixed;inset:0;border:${s.pageBorder ? '1px solid #9aa1aa' : '0'};pointer-events:none}
-.watermark{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6pt;transform:rotate(-30deg);color:rgba(180,40,40,.13);font-size:30pt;font-weight:600;pointer-events:none;white-space:nowrap}
+.watermark{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6pt;transform:rotate(-30deg);color:rgba(180,40,40,.13);font-size:30pt;font-weight:var(--contract-font-weight);pointer-events:none;white-space:nowrap}
 ${screenCss}
 </style></head><body>${screen ? '<div class="sheet">' : ''}
 ${s.pageBorder ? '<div class="border"></div>' : ''}${watermark}

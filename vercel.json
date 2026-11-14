@@ -8,7 +8,7 @@
       "devCommand": "bun --watch src/main.ts",
       "functions": {
         "src/main.ts": {
-          "includeFiles": "{node_modules/@fontsource/*/{LICENSE,files/*-normal.woff2},node_modules/tslib/modules/*}"
+          "includeFiles": "{node_modules/@fontsource/*/{LICENSE,files/*-normal.woff2},node_modules/tslib/modules/*,node_modules/ioredis/**/*,node_modules/@ioredis/commands/**/*,node_modules/cluster-key-slot/**/*,node_modules/debug/**/*,node_modules/denque/**/*,node_modules/redis-errors/**/*,node_modules/standard-as-callback/**/*,node_modules/@nestjs/platform-express/**/*,node_modules/@sparticuz/chromium/**/*,node_modules/puppeteer-core/**/*,assets/fonts/saudi-riyal/*.woff2}"
         }
       },
       "routes": [

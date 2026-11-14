@@ -49,7 +49,7 @@ import {
   TextArea,
   TextField,
 } from '@/components/ui';
-import { api, ApiError, apiPost } from '@/lib/api';
+import { api, ApiError, apiPost, withApiRequest } from '@/lib/api';
 import { downloadGet, pick, useContractLabels, useContractLocale } from '@/lib/contracts';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { useAction } from '@/lib/mutation';
@@ -563,23 +563,22 @@ function IdDocumentDialog({
     if (!image) return;
     let revoke: string | null = null;
     let live = true;
-    fetch(`/api${path}`, { credentials: 'same-origin', cache: 'no-store' })
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = (await res.json().catch(() => null)) as {
-            error?: { code?: string; message?: string };
-          } | null;
-          throw new ApiError(
-            res.status,
-            (body?.error?.code as never) ?? 'internal_error',
-            body?.error?.message ?? '',
-          );
-        }
-        const blob = await res.blob();
-        revoke = URL.createObjectURL(blob);
-        if (live) setUrl(revoke);
-      })
-      .catch((e: unknown) => live && setError(e));
+    withApiRequest(async () => {
+      const res = await fetch(`/api${path}`, { credentials: 'same-origin', cache: 'no-store' });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as {
+          error?: { code?: string; message?: string };
+        } | null;
+        throw new ApiError(
+          res.status,
+          (body?.error?.code as never) ?? 'internal_error',
+          body?.error?.message ?? '',
+        );
+      }
+      const blob = await res.blob();
+      revoke = URL.createObjectURL(blob);
+      if (live) setUrl(revoke);
+    }).catch((e: unknown) => live && setError(e));
     return () => {
       live = false;
       if (revoke) URL.revokeObjectURL(revoke);

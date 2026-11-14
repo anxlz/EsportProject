@@ -21,7 +21,7 @@ export const AI_FEATURES = [
   'player_analyst',
 ] as const;
 export type AiFeature = (typeof AI_FEATURES)[number];
-export type AiProviderName = 'anthropic' | 'qwen';
+export type AiProviderName = 'anthropic' | 'qwen' | 'local';
 
 /** "player_analyst=qwen, email=anthropic" → map; throws on anything unknown. */
 export function parseProviderOverrides(raw: string | undefined): Map<AiFeature, AiProviderName> {
@@ -33,7 +33,7 @@ export function parseProviderOverrides(raw: string | undefined): Map<AiFeature, 
     const [feature, provider] = part.split('=').map((x) => x?.trim());
     if (!feature || !(AI_FEATURES as readonly string[]).includes(feature))
       throw new Error(`unknown feature "${feature ?? ''}"`);
-    if (provider !== 'anthropic' && provider !== 'qwen')
+    if (provider !== 'anthropic' && provider !== 'qwen' && provider !== 'local')
       throw new Error(`unknown provider "${provider ?? ''}" for ${feature}`);
     out.set(feature as AiFeature, provider);
   }
@@ -49,7 +49,9 @@ const envSchema = z
     /** Set to false when connecting through Supabase's transaction-mode pooler (port 6543). */
     DATABASE_PREPARE: bool(true),
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
-    REDIS_URL: z.string().min(1),
+    REDIS_URL: z.url().refine((value) => ['redis:', 'rediss:'].includes(new URL(value).protocol), {
+      message: 'REDIS_URL must use redis:// or rediss:// (ioredis does not accept REST URLs).',
+    }),
 
     /** Public URL of the web app, used for links in emails and for CORS/Origin checks. */
     WEB_APP_URL: z.url(),
@@ -113,10 +115,18 @@ const envSchema = z
     QWEN_MODEL: z.string().min(1).default('Qwen/Qwen3-235B-A22B-Instruct-2507'),
     QWEN_API_URL: z.url().default('https://api.deepinfra.com/v1/openai'),
     QWEN_TIMEOUT_MS: z.coerce.number().int().min(5000).max(600000).default(120000),
-    /** Which provider answers by default: anthropic (default) or qwen. */
-    AI_PROVIDER_DEFAULT: z.enum(['anthropic', 'qwen']).default('anthropic'),
+    /** Local OpenAI-compatible model server. */
+    LLM_PROVIDER: z.enum(['local', 'anthropic']).optional(),
+    LLM_BASE_URL: z.url().default('http://localhost:11434/v1'),
+    LLM_MODEL: z.string().min(1).default('llama3.2'),
+    LLM_API_KEY: z.string().optional(),
+    LLM_TIMEOUT_MS: z.coerce.number().int().min(500).max(600000).default(120000),
+    LLM_MAX_TOKENS: z.coerce.number().int().min(1).max(32768).default(4096),
+    LLM_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.7),
+    /** Legacy default; explicit LLM_PROVIDER takes precedence. */
+    AI_PROVIDER_DEFAULT: z.enum(['anthropic', 'qwen']).optional(),
     /**
-     * Per-feature overrides, e.g. "player_analyst=qwen,email=qwen". Features: clause_assistant,
+     * Per-feature overrides, e.g. "player_analyst=qwen,email=local". Features: clause_assistant,
      * general, formal_message, email, offer_optimizer, player_analyst.
      */
     AI_PROVIDER_OVERRIDES: z.string().optional(),
@@ -212,7 +222,7 @@ const envSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['AI_PROVIDER_OVERRIDES'],
-        message: `AI_PROVIDER_OVERRIDES: ${(e as Error).message}. Use e.g. "player_analyst=qwen,email=anthropic".`,
+        message: `AI_PROVIDER_OVERRIDES: ${(e as Error).message}. Use e.g. "player_analyst=qwen,email=local".`,
       });
     }
     if (env.NODE_ENV === 'production' && env.WEBHOOK_ALLOW_PRIVATE_URLS) {
@@ -265,6 +275,7 @@ function vercelDefaults(src: Record<string, string>): Record<string, string> {
   return {
     ...(host ? { WEB_APP_URL: `https://${host}` } : {}),
     TRUST_PROXY_HOPS: '1',
+    DATABASE_POOL_MAX: '2',
     SCHEDULER_INTERVAL_SECONDS: '0',
     ...src,
   };

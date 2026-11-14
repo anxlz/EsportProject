@@ -55,8 +55,8 @@ export function LanguageSwitcher({
             'rounded px-2.5 py-1 text-sm transition-colors',
             tone === 'onTurf'
               ? locale === o.value
-                ? 'bg-white/15 text-white'
-                : 'text-white/70 hover:text-white'
+                ? 'bg-turf-ink/15 text-turf-ink'
+                : 'text-turf-ink/70 hover:text-turf-ink'
               : locale === o.value
                 ? 'bg-turf-soft font-medium text-turf'
                 : 'text-muted hover:text-ink',

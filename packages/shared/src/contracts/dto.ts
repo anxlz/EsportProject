@@ -4,6 +4,7 @@ import type {
   BackgroundKind,
   ClauseSource,
   ContractStatus,
+  ContractTextStyle,
   DocumentLanguage,
   IdDocumentType,
   LogoPosition,
@@ -13,6 +14,8 @@ import type {
   SignerStatus,
   SigningRoundStatus,
   StampPosition,
+  TerminationReasonCode,
+  TerminationStatus,
   VerificationMethod,
 } from './catalog';
 import type { ContractDetailsInput } from './schemas';
@@ -43,6 +46,7 @@ export interface ContractSnapshot {
   rosterMemberId: string | null;
   details: ContractDetailsInput;
   clauses: ContractClause[];
+  textStyle?: ContractTextStyle;
 }
 
 export interface ContractVersionDto {
@@ -120,6 +124,45 @@ export interface ContractDto extends ContractSummaryDto {
     /** Approve or reject the pending request. */
     decide: boolean;
     export: boolean;
+  };
+}
+
+export interface ContractTerminationEventDto {
+  id: string;
+  action: 'requested' | 'accepted' | 'rejected' | 'withdrawn' | 'executed' | 'expired';
+  fromStatus: TerminationStatus | null;
+  toStatus: TerminationStatus;
+  actor: { id: string; displayName: string } | null;
+  actorRole: string;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface ContractTerminationDto {
+  id: string;
+  contractId: string;
+  initiatedBy: { id: string; displayName: string };
+  initiatorRole: string;
+  reasonCode: TerminationReasonCode;
+  reasonDetails: string | null;
+  effectiveDate: string;
+  noticePeriodDays: number;
+  status: TerminationStatus;
+  counterpartyResponseAt: string | null;
+  counterpartyNote: string | null;
+  settlementNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContractTerminationViewDto {
+  current: ContractTerminationDto | null;
+  events: ContractTerminationEventDto[];
+  can: {
+    request: boolean;
+    respond: boolean;
+    withdraw: boolean;
+    execute: boolean;
   };
 }
 

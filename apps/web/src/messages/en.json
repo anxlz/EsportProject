@@ -38,7 +38,13 @@
     "you": "You",
     "skipToContent": "Skip to main content",
     "required": "This field is required.",
-    "invalidEmail": "Enter a valid email address."
+    "invalidEmail": "Enter a valid email address.",
+    "themeSystem": "System theme",
+    "themeLight": "Light theme",
+    "themeDark": "Dark theme",
+    "switchThemeToLight": "Switch to light theme",
+    "switchThemeToDark": "Switch to dark theme",
+    "switchThemeToSystem": "Switch to system theme"
   },
   "nav": {
     "overview": "Overview",
@@ -155,6 +161,7 @@
     "contract_incomplete": "Some contract details are still missing.",
     "contract_not_editable": "This contract can't be edited in its current state.",
     "contract_invalid_transition": "That step isn't possible for this contract right now. Reload the page.",
+    "contract_termination_not_allowed": "This contract can't be terminated in its current state.",
     "self_approval_not_allowed": "Someone else with approval rights must decide on your own request.",
     "no_changes_since_rejection": "Revise the contract before submitting it again.",
     "required_clause": "Required clauses can't be removed or left out.",
@@ -162,6 +169,7 @@
     "unsupported_file_type": "That file type isn't accepted.",
     "ai_not_configured": "The assistant isn't set up yet.",
     "ai_unavailable": "The assistant couldn't produce a proposal. Try again in a moment.",
+    "ai_local_unavailable": "The local AI model can't be reached. Check that the model server is running and try again.",
     "date_of_birth_required": "Add the recipient's date of birth first: it decides whether a parent or guardian must also sign.",
     "guardian_required": "The recipient is under 18: add the parent or guardian's name, relationship and an email or phone.",
     "signing_in_progress": "This contract is already out for signature.",
@@ -577,7 +585,13 @@
         "fully_signed": "Contract fully signed",
         "signing_cancelled": "Cancelled signing",
         "signer_id_uploaded": "Uploaded an identity document while signing",
-        "signer_id_viewed": "Viewed a signer's identity document"
+        "signer_id_viewed": "Viewed a signer's identity document",
+        "termination_requested": "Requested contract termination",
+        "termination_accepted": "Accepted contract termination",
+        "termination_rejected": "Rejected contract termination",
+        "termination_withdrawn": "Withdrew contract termination request",
+        "termination_expired": "Termination request expired",
+        "terminated": "Executed contract termination"
       },
       "contract_type": {
         "created": "Created a contract type",
@@ -642,7 +656,10 @@
         "approved": "{approvedBy} approved {number}.",
         "rejected": "{rejectedBy} requested changes to {number}: {reason}",
         "signature_received": "{signerName} signed {number}.",
-        "fully_signed": "{number} is fully signed. The signed document is ready."
+        "fully_signed": "{number} is fully signed. The signed document is ready.",
+        "termination_requested": "A termination request was opened for {contractNumber}.",
+        "termination_updated": "The termination request for {contractNumber} was updated.",
+        "terminated": "{contractNumber} has been terminated."
       },
       "meeting": {
         "invited": "{byName} invited you to {title} ({when}).",
@@ -1100,6 +1117,28 @@
       "signedBanner": "Fully signed on {date}. The signed PDF is the approved document followed by the signature record.",
       "downloadSigned": "Signed PDF"
     },
+    "textStyle": {
+      "title": "Text style",
+      "fontFamily": "Font family",
+      "fontWeight": "Font weight",
+      "color": "Text color",
+      "customColor": "Choose a custom color",
+      "customHex": "Custom hex color",
+      "invalidHex": "Enter a color in #RRGGBB format.",
+      "presetColor": "Use color {color}",
+      "latinFallback": "IBM Plex Sans (Latin fallback)",
+      "reset": "Reset to default",
+      "contrastWarning": "Low contrast ({ratio}:1). WCAG AA recommends at least 4.5:1; saving is still allowed.",
+      "previewSample": "معاينة نص العقد — Contract text preview",
+      "weights": {
+        "300": "Light 300",
+        "400": "Regular 400",
+        "500": "Medium 500",
+        "600": "SemiBold 600",
+        "700": "Bold 700",
+        "800": "ExtraBold 800"
+      }
+    },
     "details": {
       "general": "Contract",
       "title": "Title",
@@ -1332,6 +1371,43 @@
       "legalNote": "The default templates and this setup don't make a contract legally valid. Confirm contract terms with legal counsel. Before relying on these contracts for official player registration, confirm the requirements directly with the Saudi Esports Federation or legal counsel."
     },
     "searchPlaceholder": "Number, title or recipient",
+    "termination": {
+      "title": "Termination",
+      "lead": "Request, review and record the termination lifecycle. This does not change the stored approved or signed document.",
+      "request": "Request termination",
+      "requestLead": "The request is reviewed by an authorized contract approver. The recipient is notified after execution.",
+      "requested": "Termination request submitted",
+      "responded": "Termination response recorded",
+      "withdrawn": "Termination request withdrawn",
+      "executed": "Contract termination executed",
+      "empty": "No termination request exists for this contract.",
+      "effectiveDate": "Effective date",
+      "reason": "Reason",
+      "reasonDetails": "Reason details",
+      "initiatedBy": "Requested by",
+      "noticePeriod": "Notice period (days)",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "accept": "Accept",
+      "reject": "Reject",
+      "review": "Review request",
+      "responseTitle": "Review termination request",
+      "responseLead": "Accepting records the organization's approval. The termination takes effect on its effective date.",
+      "responseNote": "Response note",
+      "withdraw": "Withdraw request",
+      "withdrawLead": "This pending termination request will be withdrawn.",
+      "execute": "Execute termination",
+      "executeLead": "This closes any open signing round and marks the contract terminated. Its approved and signed PDFs remain unchanged.",
+      "settlementNotes": "Settlement notes",
+      "downloadNotice": "Download supplemental notice",
+      "events": {
+        "requested": "Termination requested",
+        "accepted": "Termination accepted",
+        "rejected": "Termination rejected",
+        "withdrawn": "Termination withdrawn",
+        "executed": "Termination executed",
+        "expired": "Termination request expired"
+      }
+    },
     "signing": {
       "lead": "Each signer gets their own link and confirms who they are with a 6-digit code before they can see the contract. They sign the approved document exactly as stamped.",
       "notApprovedYet": "Signatures can be collected once the contract is approved.",

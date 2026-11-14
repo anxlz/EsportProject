@@ -3,6 +3,7 @@
 import {
   type ContractClause,
   type ContractDetailsInput,
+  type ContractTextStyle,
   contractLength,
   CURRENCIES,
   DOCUMENT_LANGUAGES,
@@ -23,12 +24,14 @@ import { api } from '@/lib/api';
 import { useContractLabels, useContractLocale } from '@/lib/contracts';
 import { useFinanceLabels } from '@/lib/finance';
 import { useCan, useCovers } from '@/lib/session';
+import { ContractTextStyleToolbar } from './contract-text-style';
 
 export interface Draft {
   teamId: string | null;
   rosterMemberId: string | null;
   details: ContractDetailsInput;
   clauses: ContractClause[];
+  textStyle: ContractTextStyle;
 }
 
 const o = (v: string) => (v.trim() === '' ? null : v);
@@ -63,11 +66,13 @@ export function DetailsForm({
   setDraft,
   disabled,
   invalid,
+  onTextStyleValidityChange,
 }: {
   draft: Draft;
   setDraft: (f: (d: Draft) => Draft) => void;
   disabled: boolean;
   invalid: Set<string>;
+  onTextStyleValidityChange: (valid: boolean) => void;
 }) {
   const t = useTranslations('contracts.details');
   const tc = useTranslations('contracts');
@@ -117,6 +122,12 @@ export function DetailsForm({
 
   return (
     <div className="flex flex-col gap-5">
+      <ContractTextStyleToolbar
+        style={draft.textStyle}
+        disabled={disabled}
+        onValidityChange={onTextStyleValidityChange}
+        onChange={(textStyle) => setDraft((x) => ({ ...x, textStyle }))}
+      />
       <Group title={t('general')}>
         <TextField
           label={t('title')}

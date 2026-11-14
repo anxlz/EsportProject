@@ -151,12 +151,13 @@ Production checklist:
 6. Exchange rates: the API can reach `FX_PROVIDER_URL` (Frankfurter, approved for commercial use).
 7. The API image includes Chromium for PDF exports (the Dockerfile installs it); try one PDF
    download after deploying.
-8. Optional: `ANTHROPIC_API_KEY` for the clause assistant and the five AI assistants (they show
-   "not configured" without it), and/or `QWEN_API_KEY` with `AI_PROVIDER_DEFAULT` /
-   `AI_PROVIDER_OVERRIDES` to route some of them to Qwen3. Before relying on them, run one real
+8. Optional: configure `LLM_PROVIDER=local` and a reachable OpenAI-compatible `LLM_BASE_URL`
+   for a local model, or use `ANTHROPIC_API_KEY` (legacy default when set) and/or `QWEN_API_KEY`
+   with `AI_PROVIDER_DEFAULT` / `AI_PROVIDER_OVERRIDES`. See [Local LLM setup](./docs/LOCAL-LLM.md)
+   for localhost versus deployed networking. Before relying on any provider, run one real
    conversation with each assistant — this build has only been tested against stand-ins. Web
    search is off unless `ASSISTANT_WEB_SEARCH=on` (it is billed per search). Check cross-border
-   data-transfer rules before routing personal data to either provider.
+   data-transfer rules before routing personal data to a hosted provider.
 9. Have counsel review the default contract templates (and the signing statement) before using
    them for real contracts, and confirm the use of electronic signatures with the Saudi Esports
    Federation or counsel.
@@ -172,5 +173,14 @@ Production checklist:
     refuses to start in production without it. Keep it like a backup key. Decide the retention
     policy for those documents before collecting real ones (see DECISIONS.md).
 
-The browser only talks to the web origin; Next.js forwards `/api/*` to the API, which keeps the
-session cookie first-party. Don't expose the API's own URL to users.
+The browser only talks to the web origin; in Options A/B, Next.js forwards `/api/*` to the API,
+and in Option C the Vercel service route does so. This keeps the session cookie first-party.
+Don't expose the API's own URL to users.
+
+### Option C — web and API services on Vercel
+
+The root `vercel.json` configures the existing web/API services, shared-origin API rewrite, daily
+scheduler cron, and scheduler daemon. For Supabase/Redis environment setup, migration steps,
+health checks, and deployment logs, see [Vercel deployment](./docs/deploy-vercel.md). A reachable
+secured model endpoint is required if the API uses a local LLM; a developer laptop's `localhost`
+is not available to Vercel.

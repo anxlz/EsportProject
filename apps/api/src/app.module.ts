@@ -24,6 +24,7 @@ import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { NotificationService } from './notifications/notification.service';
 import { ContractsModule } from './contracts/contracts.module';
+import { ContractTerminationsModule } from './contracts/contract-terminations.module';
 import { AiModule } from './ai/ai.module';
 import { AssistantsModule } from './assistants/assistants.module';
 import { FilesService } from './files/files.service';
@@ -122,6 +123,7 @@ export class AppModule {
         AiModule,
         FinanceModule,
         ContractsModule,
+        ContractTerminationsModule,
         AssistantsModule,
         MeetingsModule,
         IntegrationsModule,

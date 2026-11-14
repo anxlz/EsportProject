@@ -11,6 +11,7 @@ import {
   contractClauseSchema,
   contractDetailsSchema,
   contractSaveSchema,
+  contractTextStyleSchema,
   rejectionSchema,
 } from './schemas';
 import { DEFAULT_CONTRACT_TYPES } from './templates';
@@ -188,6 +189,36 @@ describe('schemas', () => {
       contractSaveSchema.safeParse({ details: { ...details, endDate: null }, clauses: [ok] })
         .success,
     ).toBe(true);
+  });
+
+  test('contract text styles allow only shipped family weights and six-digit hex colors', () => {
+    expect(
+      contractTextStyleSchema.parse({
+        fontFamily: 'Cairo',
+        fontWeight: 800,
+        color: '#1C2321',
+      }),
+    ).toEqual({ fontFamily: 'Cairo', fontWeight: 800, color: '#1C2321' });
+    expect(
+      contractTextStyleSchema.safeParse({
+        fontFamily: 'Tajawal',
+        fontWeight: 600,
+        color: '#1c2321',
+      }).success,
+    ).toBe(false);
+    expect(
+      contractTextStyleSchema.safeParse({
+        fontFamily: 'Cairo',
+        fontWeight: 400,
+        color: 'red; background:url(https://example.invalid)',
+      }).success,
+    ).toBe(false);
+    const details = contractDetailsSchema.parse({ recipient: { kind: 'player' } });
+    expect(contractSaveSchema.parse({ details, clauses: [] }).textStyle).toEqual({
+      fontFamily: 'Cairo',
+      fontWeight: 400,
+      color: '#1c2321',
+    });
   });
 
   test('amounts are decimal strings and the default currency is SAR', () => {

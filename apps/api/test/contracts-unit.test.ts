@@ -1,10 +1,19 @@
 /** Unit tests for Phase 3 building blocks that don't need the app running. */
 import { describe, expect, test } from 'bun:test';
-import type { ContractClause } from '@esports/shared';
+import {
+  CONTRACT_TEXT_FONTS,
+  contractDetailsSchema,
+  contractTerminationRequestSchema,
+  type ContractClause,
+  type DocumentSettingsDto,
+} from '@esports/shared';
 import { AnthropicProvider, aiProviderFromEnv, UnconfiguredProvider } from '../src/ai/ai.provider';
 import { AppError } from '../src/common/errors';
 import { loadEnv } from '../src/config/env';
+import { addUtcDays } from '../src/contracts/contract-terminations.service';
+import { contractHtml } from '../src/contracts/contract-document';
 import { mergeClauses } from '../src/contracts/contracts.service';
+import { contractTextFontCss } from '../src/pdf/pdf.service';
 import { sniffContentType } from '../src/files/files.service';
 import { canonicalJson, sha256Hex } from '../src/versioning/versioning.service';
 
@@ -129,6 +138,85 @@ describe('clause rules', () => {
     ...over,
   });
 
+  test('contract text fonts embed every supported family and weight from local files', () => {
+    for (const font of CONTRACT_TEXT_FONTS) {
+      for (const fontWeight of font.weights) {
+        const css = contractTextFontCss({
+          fontFamily: font.family,
+          fontWeight,
+          color: '#1c2321',
+        });
+        expect(css).toContain(`font-family:'${font.family}';font-weight:${fontWeight}`);
+        expect(css).toContain('data:font/woff2;base64,');
+      }
+    }
+  });
+
+  test('contract HTML applies the selected style across Arabic and English text', () => {
+    const settings: DocumentSettingsDto = {
+      organizationName: 'Club',
+      legalNameEn: null,
+      legalNameAr: null,
+      commercialRegistration: null,
+      taxNumber: null,
+      addressEn: null,
+      addressAr: null,
+      email: null,
+      phone: null,
+      website: null,
+      headerTextEn: null,
+      headerTextAr: null,
+      footerTextEn: null,
+      footerTextAr: null,
+      logoFileId: null,
+      logoPosition: 'start',
+      backgroundKind: 'none',
+      backgroundFileId: null,
+      marginTopMm: 20,
+      marginBottomMm: 20,
+      marginStartMm: 18,
+      marginEndMm: 18,
+      pageBorder: false,
+      fontSizePt: 10.5,
+      lineHeight: 1.55,
+      defaultLanguage: 'bilingual',
+      stampFileId: null,
+      stampPosition: 'end',
+      stampWidthMm: 35,
+    };
+    const html = contractHtml({
+      snapshot: {
+        contractTypeId: crypto.randomUUID(),
+        typeNameEn: 'Player contract',
+        typeNameAr: 'عقد لاعب',
+        teamId: null,
+        teamName: null,
+        gameName: null,
+        rosterMemberId: null,
+        details: contractDetailsSchema.parse({
+          recipient: { kind: 'player', fullNameEn: 'Player', fullNameAr: 'لاعب' },
+        }),
+        clauses: [],
+        textStyle: {
+          fontFamily: 'Noto Kufi Arabic',
+          fontWeight: 800,
+          color: '#1C2321',
+        },
+      },
+      contractNumber: 'CT-2026-0001',
+      settings,
+      assets: { logo: null, stamp: null },
+      approval: null,
+    });
+    expect(html).toContain(
+      "--contract-font-family:'Noto Kufi Arabic';--contract-font-weight:800;--contract-text-color:#1C2321",
+    );
+    expect(html).toContain('font-family:var(--contract-font-family)');
+    expect(html).toContain('font-weight:var(--contract-font-weight)');
+    expect(html).toContain('lang="ar"');
+    expect(html).toContain('lang="en"');
+  });
+
   test('origin and required flag come from the stored version; new clauses are custom and optional', () => {
     const req = clause({ required: true, templateClauseId: crypto.randomUUID() });
     const opt = clause({});
@@ -156,6 +244,33 @@ describe('clause rules', () => {
     const req = clause({ required: true });
     expect(() => mergeClauses([req], [{ ...req, included: false }])).toThrow(/required/);
     expect(() => mergeClauses([req], [])).toThrow(/cannot be removed/);
+  });
+});
+
+describe('contract termination rules', () => {
+  test('required notice dates use UTC calendar days', () => {
+    expect(addUtcDays('2024-02-27', 2)).toBe('2024-02-29');
+    expect(addUtcDays('2026-01-01', -30)).toBe('2025-12-02');
+  });
+
+  test('breach and non-performance reasons require a written explanation', () => {
+    const request = {
+      effectiveDate: '2026-10-15',
+      noticePeriodDays: 0,
+    };
+    expect(
+      contractTerminationRequestSchema.safeParse({
+        ...request,
+        reasonCode: 'breach',
+        reasonDetails: '  ',
+      }).success,
+    ).toBe(false);
+    expect(
+      contractTerminationRequestSchema.safeParse({
+        ...request,
+        reasonCode: 'mutual_agreement',
+      }).success,
+    ).toBe(true);
   });
 });
 

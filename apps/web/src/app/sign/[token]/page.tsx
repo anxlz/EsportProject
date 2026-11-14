@@ -59,7 +59,7 @@ import {
   TextField,
   useErrorText,
 } from '@/components/ui';
-import { ApiError } from '@/lib/api';
+import { ApiError, withApiRequest } from '@/lib/api';
 import { downloadGet, fetchHtml, useContractLabels } from '@/lib/contracts';
 import { formatDate, formatDateTime } from '@/lib/format';
 
@@ -86,27 +86,34 @@ async function call<T>(
   path: string,
   opts: { method?: string; body?: unknown; session?: string | null } = {},
 ): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/public/signing/${encodeURIComponent(token)}${path}`, {
-      method: opts.method ?? 'GET',
-      headers: {
-        ...(opts.body !== undefined ? { 'content-type': 'application/json' } : {}),
-        ...(opts.session ? { [SESSION_HEADER]: opts.session } : {}),
-      },
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-      cache: 'no-store',
-      credentials: 'omit',
-    });
-  } catch {
-    throw new ApiError(0, 'network', 'Network error');
-  }
-  const data = (await res.json().catch(() => null)) as unknown;
-  if (!res.ok) {
-    const err = (data as ApiErrorBody | null)?.error;
-    throw new ApiError(res.status, err?.code ?? 'internal_error', err?.message ?? '', err?.details);
-  }
-  return data as T;
+  return withApiRequest(async () => {
+    let res: Response;
+    try {
+      res = await fetch(`/api/public/signing/${encodeURIComponent(token)}${path}`, {
+        method: opts.method ?? 'GET',
+        headers: {
+          ...(opts.body !== undefined ? { 'content-type': 'application/json' } : {}),
+          ...(opts.session ? { [SESSION_HEADER]: opts.session } : {}),
+        },
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        cache: 'no-store',
+        credentials: 'omit',
+      });
+    } catch {
+      throw new ApiError(0, 'network', 'Network error');
+    }
+    const data = (await res.json().catch(() => null)) as unknown;
+    if (!res.ok) {
+      const err = (data as ApiErrorBody | null)?.error;
+      throw new ApiError(
+        res.status,
+        err?.code ?? 'internal_error',
+        err?.message ?? '',
+        err?.details,
+      );
+    }
+    return data as T;
+  });
 }
 
 const isCode = (e: unknown, ...codes: string[]) => e instanceof ApiError && codes.includes(e.code);
@@ -628,27 +635,30 @@ function IdDocumentStep({
     setBusy(true);
     setError(null);
     try {
-      let res: Response;
-      try {
-        res = await fetch(
-          `/api/public/signing/${encodeURIComponent(token)}/id-document?type=${type}`,
-          {
-            method: 'POST',
-            headers: { 'content-type': file.type, [SESSION_HEADER]: session },
-            body: file,
-            cache: 'no-store',
-            credentials: 'omit',
-          },
-        );
-      } catch {
-        throw new ApiError(0, 'network', 'Network error');
-      }
-      const data = (await res.json().catch(() => null)) as unknown;
-      if (!res.ok) {
-        const err = (data as ApiErrorBody | null)?.error;
-        throw new ApiError(res.status, err?.code ?? 'internal_error', err?.message ?? '');
-      }
-      onUpdate(data as PublicSigningSession);
+      const data = await withApiRequest(async () => {
+        let res: Response;
+        try {
+          res = await fetch(
+            `/api/public/signing/${encodeURIComponent(token)}/id-document?type=${type}`,
+            {
+              method: 'POST',
+              headers: { 'content-type': file.type, [SESSION_HEADER]: session },
+              body: file,
+              cache: 'no-store',
+              credentials: 'omit',
+            },
+          );
+        } catch {
+          throw new ApiError(0, 'network', 'Network error');
+        }
+        const responseData = (await res.json().catch(() => null)) as unknown;
+        if (!res.ok) {
+          const err = (responseData as ApiErrorBody | null)?.error;
+          throw new ApiError(res.status, err?.code ?? 'internal_error', err?.message ?? '');
+        }
+        return responseData as PublicSigningSession;
+      });
+      onUpdate(data);
       setFile(null);
       setReplacing(false);
     } catch (e) {

@@ -258,9 +258,10 @@ describe('environment validation', () => {
     );
     expect([
       preview.TRUST_PROXY_HOPS,
+      preview.DATABASE_POOL_MAX,
       preview.SCHEDULER_INTERVAL_SECONDS,
       preview.onVercel,
-    ]).toEqual([1, 0, true]);
+    ]).toEqual([1, 2, 0, true]);
     const prod = loadEnv({
       ...vercel,
       VERCEL_ENV: 'production',
@@ -276,13 +277,15 @@ describe('environment validation', () => {
       ...vercel,
       WEB_APP_URL: 'https://app.example.org',
       TRUST_PROXY_HOPS: '2',
+      DATABASE_POOL_MAX: '3',
       SCHEDULER_INTERVAL_SECONDS: '60',
     });
     expect([
       explicit.WEB_APP_URL,
       explicit.TRUST_PROXY_HOPS,
+      explicit.DATABASE_POOL_MAX,
       explicit.SCHEDULER_INTERVAL_SECONDS,
-    ]).toEqual(['https://app.example.org', 2, 60]);
+    ]).toEqual(['https://app.example.org', 2, 3, 60]);
     expect(explicit.allowedOrigins).toContain('https://app.example.org');
     // Not on Vercel: nothing changes.
     const plain = loadEnv(base);
@@ -292,5 +295,14 @@ describe('environment validation', () => {
       false,
     ]);
     expect(plain.allowedOrigins).toEqual(['https://app.example.com']);
+  });
+
+  test('Redis requires a TCP redis:// or rediss:// URL', () => {
+    expect(() => loadEnv({ ...base, REDIS_URL: 'https://redis.example.com' })).toThrow(
+      /REDIS_URL must use redis:\/\/ or rediss:\/\//,
+    );
+    expect(
+      loadEnv({ ...base, REDIS_URL: 'rediss://default:secret@redis.example.com:6379' }).REDIS_URL,
+    ).toBe('rediss://default:secret@redis.example.com:6379');
   });
 });

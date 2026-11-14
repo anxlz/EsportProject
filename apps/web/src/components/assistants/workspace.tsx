@@ -662,7 +662,7 @@ function ConversationList({
           {archived ? t('noArchived') : t('noConversations')}
         </p>
       ) : (
-        <ul className="flex max-h-[60dvh] flex-col overflow-y-auto p-2">
+        <ul data-lenis-prevent className="flex max-h-[60dvh] flex-col overflow-y-auto p-2">
           {rows.map((c) => (
             <li key={c.id}>
               <button

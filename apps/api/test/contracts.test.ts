@@ -31,7 +31,14 @@ import type {
   AiProvider,
 } from '../src/ai/ai.provider';
 import { auditLogs, notifications } from '../src/db/schema';
-import { approvalRequests, contractTypes, entityVersions } from '../src/db/schema-contracts';
+import {
+  approvalRequests,
+  contractTerminationEvents,
+  contractTerminations,
+  contractTypes,
+  entityVersions,
+} from '../src/db/schema-contracts';
+import { ContractTerminationsService } from '../src/contracts/contract-terminations.service';
 import { expense, financeOrg, withRole } from './finance-fixtures';
 import { type Client, inviteAndAccept, registerOwner, startApp, type TestApp } from './harness';
 
@@ -728,6 +735,85 @@ describe('approval workflow (Phase 3 Definition of Done)', () => {
           .where(eq(approvalRequests.contractId, c.id)),
       ),
     ).rejects.toThrow();
+  });
+});
+
+describe('contract termination workflow', () => {
+  test('an approver accepts a request, the scheduler executes it without changing the approved PDF, and history is immutable', async () => {
+    const org = await contractOrg();
+    const c = await draft(org);
+    await org.manager.post(`/contracts/${c.id}/submit`, {});
+    await org.approver.post(`/contracts/${c.id}/approve`, {});
+    const approvedBefore = await org.manager.get(`/contracts/${c.id}/approved.pdf`);
+    const effectiveDate = new Date().toISOString().slice(0, 10);
+    const requested = await org.manager.post(`/contracts/${c.id}/termination`, {
+      reasonCode: 'mutual_agreement',
+      effectiveDate,
+      noticePeriodDays: 0,
+    });
+    expect(requested.status).toBe(200);
+    expect(requested.body.current.status).toBe('requested');
+    expect(
+      (await org.manager.post(`/contracts/${c.id}/termination/respond`, { decision: 'accepted' }))
+        .status,
+    ).toBe(403);
+    expect(
+      (
+        await org.approver.post(`/contracts/${c.id}/termination/respond`, {
+          decision: 'accepted',
+          note: 'Reviewed and accepted.',
+        })
+      ).body.current.status,
+    ).toBe('accepted');
+
+    await t.app.get(ContractTerminationsService).tick();
+    const terminated = await org.manager.get<ContractDto>(`/contracts/${c.id}`);
+    expect(terminated.body.status).toBe('terminated');
+    const approvedAfter = await org.manager.get(`/contracts/${c.id}/approved.pdf`);
+    expect(approvedAfter.headers.get('x-document-sha256')).toBe(
+      approvedBefore.headers.get('x-document-sha256'),
+    );
+    expect(approvedAfter.bytes).toEqual(approvedBefore.bytes);
+
+    const events = await t.db
+      .select()
+      .from(contractTerminationEvents)
+      .where(eq(contractTerminationEvents.terminationId, requested.body.current.id))
+      .orderBy(asc(contractTerminationEvents.createdAt));
+    expect(events.map((event) => event.action)).toEqual(['requested', 'accepted', 'executed']);
+    await expect(
+      Promise.resolve(
+        t.db
+          .update(contractTerminationEvents)
+          .set({ note: 'tampered' })
+          .where(eq(contractTerminationEvents.terminationId, requested.body.current.id)),
+      ),
+    ).rejects.toThrow();
+
+    const notice = await org.manager.get(`/contracts/${c.id}/termination/notice.pdf`);
+    expect(notice.status).toBe(200);
+    expect(notice.headers.get('content-type')).toContain('application/pdf');
+  });
+
+  test('the scheduler expires unanswered requests after 30 days', async () => {
+    const org = await contractOrg();
+    const c = await draft(org);
+    await org.manager.post(`/contracts/${c.id}/submit`, {});
+    await org.approver.post(`/contracts/${c.id}/approve`, {});
+    const requested = await org.manager.post(`/contracts/${c.id}/termination`, {
+      reasonCode: 'other',
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      noticePeriodDays: 0,
+    });
+    await t.db
+      .update(contractTerminations)
+      .set({ createdAt: new Date('2000-01-01T00:00:00.000Z') })
+      .where(eq(contractTerminations.id, requested.body.current.id));
+
+    await t.app.get(ContractTerminationsService).tick();
+    const view = await org.manager.get(`/contracts/${c.id}/termination`);
+    expect(view.body.current.status).toBe('expired');
+    expect(view.body.events.at(-1).action).toBe('expired');
   });
 });
 

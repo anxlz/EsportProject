@@ -79,6 +79,11 @@ export async function startApp(
     ...BASE_ENV,
     ...(chromium ? { CHROMIUM_EXECUTABLE_PATH: chromium } : {}),
     ...opts.env,
+    ...(opts.ai &&
+    opts.env?.LLM_PROVIDER === undefined &&
+    opts.env?.AI_PROVIDER_DEFAULT === undefined
+      ? { AI_PROVIDER_DEFAULT: 'anthropic' }
+      : {}),
   });
   let builder = Test.createTestingModule({ imports: [AppModule.forRoot(env)] });
   if (opts.discord) builder = builder.overrideProvider(DISCORD_CLIENT).useValue(opts.discord);
@@ -88,6 +93,7 @@ export async function startApp(
     builder = builder.overrideProvider(AI_PROVIDERS).useValue({
       anthropic: opts.ai ?? new UnconfiguredProvider('anthropic'),
       qwen: opts.qwen ?? new UnconfiguredProvider('qwen'),
+      local: new UnconfiguredProvider('local'),
     });
   if (opts.now) builder = builder.overrideProvider(NOW).useValue(opts.now);
   const moduleRef = await builder.compile();

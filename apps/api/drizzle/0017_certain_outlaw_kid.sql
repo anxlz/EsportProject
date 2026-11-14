@@ -1,0 +1,1 @@
+ALTER TABLE "app"."contracts" ADD COLUMN "text_style" jsonb DEFAULT '{"fontFamily":"Cairo","fontWeight":400,"color":"#1c2321"}'::jsonb NOT NULL;

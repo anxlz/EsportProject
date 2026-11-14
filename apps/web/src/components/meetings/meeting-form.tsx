@@ -432,7 +432,10 @@ export function MeetingFormDialog({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <ul className="grid max-h-48 gap-1 overflow-y-auto rounded-md border border-line p-2 sm:grid-cols-2">
+          <ul
+            data-lenis-prevent
+            className="grid max-h-48 gap-1 overflow-y-auto rounded-md border border-line p-2 sm:grid-cols-2"
+          >
             {filtered.map((u) => (
               <li key={u.userId}>
                 <Checkbox
