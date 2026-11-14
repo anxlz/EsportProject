@@ -7,6 +7,8 @@ import type { Env } from './config/env.js';
 
 /** Applies HTTP-level configuration. Shared by main.ts and the test harness. */
 export function configureApp(app: INestApplication, env: Env): void {
+  // Vercel services pass the original /api path through to Nest.
+  if (env.onVercel) app.setGlobalPrefix('api');
   const http = app.getHttpAdapter().getInstance() as Express;
   // Required so req.ip is the real client IP behind Vercel's rewrite / the host's proxy.
   // Must match the actual number of proxies, or rate limits key on the proxy's IP.

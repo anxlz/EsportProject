@@ -10,7 +10,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
  * - With the root Vercel multi-service config, `/api/*` is routed directly to the API service.
  *   `API_URL` is only needed when deploying the web service by itself or using a remote API.
  * - Everywhere else (local `bun run dev:web`, the API on Railway/Fly.io/Docker) Next.js proxies
- *   `/api/*` to API_URL, stripping the `/api` prefix — the same path the API sees on Vercel.
+ *   `/api/*` to API_URL and strips the prefix; the Vercel API handles `/api` itself.
  */
 const onVercel = process.env.VERCEL === '1';
 const apiUrl =
