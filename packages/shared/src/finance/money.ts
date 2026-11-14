@@ -7,11 +7,10 @@
  * minor units, applied once when an amount is converted into the base currency. Sums of rounded
  * amounts are exact; nothing is re-rounded afterwards.
  */
-import * as DecimalModule from 'decimal.js';
+import { Decimal } from 'decimal.js';
 import { currencyInfo } from './catalog';
 
-const Decimal = DecimalModule.default;
-type DecimalValue = DecimalModule.Decimal.Value;
+type DecimalValue = Decimal.Value;
 
 export const Dec = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
 export type Dec = InstanceType<typeof Dec>;

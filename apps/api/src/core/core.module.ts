@@ -6,7 +6,7 @@ import {
   type DynamicModule,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { type Env, ENV } from '../config/env';
 import { createDb, DB, DB_HANDLE, type DbHandle } from '../db/client';
 
