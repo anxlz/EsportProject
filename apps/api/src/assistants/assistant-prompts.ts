@@ -248,7 +248,13 @@ const recipient = z.object({ name: s(160), email: s(254) }).transform((r) => ({
 export const ANSWER_PARSERS = {
   general: z
     .object({ reply: s(12000), claims, gaps: strings(12), followUps: strings(3, 300) })
-    .transform((v): GeneralAnswer => ({ kind: 'general', ...v })),
+    .transform((v): GeneralAnswer => ({
+      kind: 'general',
+      reply: v.reply ?? '',
+      claims: v.claims ?? [],
+      gaps: v.gaps ?? [],
+      followUps: v.followUps ?? [],
+    })),
   formal_message: z
     .object({ message: s(12000) })
     .transform((v): FormalMessageAnswer => ({ kind: 'formal_message', message: v.message })),
@@ -260,7 +266,14 @@ export const ANSWER_PARSERS = {
       body: s(20000),
       notes: strings(6, 400),
     })
-    .transform((v): EmailAnswer => ({ kind: 'email', ...v })),
+    .transform((v): EmailAnswer => ({
+      kind: 'email',
+      to: v.to ?? [],
+      cc: v.cc ?? [],
+      subject: v.subject ?? '',
+      body: v.body ?? '',
+      notes: v.notes ?? [],
+    })),
   offer_optimizer: z.object({
     summary: s(3000),
     differences: list(
@@ -305,7 +318,24 @@ export const ANSWER_PARSERS = {
       claims,
       gaps: strings(12),
     })
-    .transform((v): AnalystAnswer => ({ kind: 'player_analyst', ...v })),
+    .transform((v): AnalystAnswer => ({
+      kind: 'player_analyst',
+      summary: v.summary ?? '',
+      performance: v.performance ?? '',
+      cost: v.cost ?? '',
+      risk: v.risk ?? '',
+      potentialReturn: v.potentialReturn ?? '',
+      scenarios: (v.scenarios ?? []).map((scenario) => ({
+        name: scenario.name ?? 'base',
+        narrative: scenario.narrative ?? '',
+        assumptions: scenario.assumptions ?? [],
+        estimatedCost: scenario.estimatedCost ?? '',
+        potentialReturn: scenario.potentialReturn ?? '',
+        keyRisks: scenario.keyRisks ?? [],
+      })),
+      claims: v.claims ?? [],
+      gaps: v.gaps ?? [],
+    })),
 } as const;
 
 /** The main text of an answer, for the language check. */
