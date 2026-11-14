@@ -138,7 +138,7 @@ export function eventToRecord(ev: GoogleEvent, fallbackTz: string): RemoteRecord
   let exdates: string[] = [];
   if (ev.recurrence?.length) {
     const r = fromRRule(ev.recurrence, startLocal, tz);
-    if (!r.ok) return { ...base, unsupported: `recurrence:${r.reason}` };
+    if (r.ok === false) return { ...base, unsupported: `recurrence:${r.reason}` };
     recurrence = r.rule;
     exdates = [...r.exdates].sort();
   }

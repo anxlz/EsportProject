@@ -40,7 +40,7 @@ import { JobsService } from './jobs.service';
 import { GoogleCalendarProvider } from './providers/google-calendar';
 import { NotionProvider } from './providers/notion';
 import type { LinkRow, MeetingView, RemoteProvider, RemoteRecord } from './providers/types';
-import { ALL_KEYS, same, type Snapshot, threeWayMerge } from './sync-engine';
+import { ALL_KEYS, parseSnapshot, same, type Snapshot, threeWayMerge } from './sync-engine';
 
 const short = (v: unknown) => {
   const s = typeof v === 'string' ? v : JSON.stringify(v);
@@ -238,7 +238,7 @@ export class RemoteSyncService {
       return;
     }
 
-    const base = link.syncedSnapshot as Snapshot | null;
+    const base = parseSnapshot(link.syncedSnapshot);
     if (base && same(base, local)) return; // nothing the provider shows has changed
 
     if (c.direction === 'two_way') {
@@ -524,7 +524,7 @@ export class RemoteSyncService {
   ): Promise<void> {
     const p = this.provider(c);
     const local = this.localSnapshot(c, l, owner);
-    const base = link.syncedSnapshot as Snapshot | null;
+    const base = parseSnapshot(link.syncedSnapshot);
     if (!rec.snapshot) {
       // The provider's version can't be read as a meeting (e.g. a repeat rule the platform
       // can't express): the platform's version is written back.
@@ -551,7 +551,7 @@ export class RemoteSyncService {
     const changedFields = Object.keys(merge.applyLocally);
     if (changedFields.length) {
       const result = await this.applyLocally(c, owner, l, merge.applyLocally);
-      if (result.ok) {
+      if (result.ok === true) {
         current = (await this.meetings.load(c.organizationId, l.row.id))!;
         await this.connections.log(
           c,

@@ -5,7 +5,12 @@ import { parseNote, renderNote, safeFileName } from '../src/integrations/obsidia
 import { eventToRecord, googleEventId } from '../src/integrations/providers/google-calendar';
 import { pageToRecord, parseNotionId, richText } from '../src/integrations/providers/notion';
 import { SecretBox } from '../src/integrations/secret-box';
-import { type Snapshot, stable, threeWayMerge } from '../src/integrations/sync-engine';
+import {
+  parseSnapshot,
+  type Snapshot,
+  stable,
+  threeWayMerge,
+} from '../src/integrations/sync-engine';
 import {
   assertPublicUrl,
   signWebhook,
@@ -25,6 +30,12 @@ const base: Snapshot = {
 const withT = (s: Partial<Snapshot>): Snapshot => ({ ...structuredClone(base), ...s });
 
 describe('three-way merge (the documented conflict rules)', () => {
+  test('persisted snapshots are validated before use as a merge baseline', () => {
+    expect(parseSnapshot(base)).toEqual(base);
+    expect(parseSnapshot(null)).toBeNull();
+    expect(() => parseSnapshot({ title: 'incomplete' })).toThrow();
+  });
+
   test('provider-only change is applied locally; platform-only change is pushed', () => {
     const r = threeWayMerge(base, base, withT({ title: 'Renamed in Google' }));
     expect(r).toMatchObject({

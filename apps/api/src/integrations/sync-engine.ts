@@ -20,7 +20,14 @@
  * merge can never combine one side's start with the other side's end. On a personal calendar
  * the owner's own response is merged the same way (whichever side changed it; both → platform).
  */
-import type { RecurrenceRule, RsvpResponse } from '@esports/shared';
+import {
+  MEETING_STATUSES,
+  RSVP_RESPONSES,
+  recurrenceRuleSchema,
+  type RecurrenceRule,
+  type RsvpResponse,
+} from '@esports/shared';
+import { z } from 'zod';
 
 export interface Snapshot {
   title: string;
@@ -33,6 +40,41 @@ export interface Snapshot {
   status: 'scheduled' | 'cancelled';
   /** Personal calendars: the connection owner's own response. */
   response?: RsvpResponse | null;
+}
+
+const snapshotSchema: z.ZodType<Snapshot> = z
+  .object({
+    title: z.string(),
+    description: z.string().nullable(),
+    notes: z.string().nullable(),
+    time: z.object({
+      startLocal: z.string(),
+      endLocal: z.string(),
+      timeZone: z.string(),
+    }),
+    recurrence: recurrenceRuleSchema.nullable(),
+    exdates: z.array(z.string()),
+    status: z.enum(MEETING_STATUSES),
+    response: z.enum(RSVP_RESPONSES).nullable().optional(),
+  })
+  .transform((snapshot): Snapshot => ({
+    title: snapshot.title!,
+    description: snapshot.description!,
+    notes: snapshot.notes!,
+    time: {
+      startLocal: snapshot.time!.startLocal!,
+      endLocal: snapshot.time!.endLocal!,
+      timeZone: snapshot.time!.timeZone!,
+    },
+    recurrence: snapshot.recurrence ?? null,
+    exdates: snapshot.exdates!,
+    status: snapshot.status!,
+    ...(snapshot.response === undefined ? {} : { response: snapshot.response }),
+  }));
+
+/** Validate JSON read from the database before using it as a merge baseline. */
+export function parseSnapshot(value: unknown): Snapshot | null {
+  return value === null ? null : snapshotSchema.parse(value);
 }
 
 export type SnapshotKey = keyof Snapshot;

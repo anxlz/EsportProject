@@ -38,7 +38,7 @@ import { type LoadedMeeting, MeetingsService } from '../meetings/meetings.servic
 import { type ConnectionRow, ConnectionsService } from './connections.service';
 import { notePath, parseNote, renderNote } from './obsidian-note';
 import { RemoteSyncService } from './remote-sync.service';
-import { type Snapshot, threeWayMerge } from './sync-engine';
+import { parseSnapshot, type Snapshot, threeWayMerge } from './sync-engine';
 
 const TOKEN_PREFIX = 'obs_';
 const HORIZON_MS = 90 * 86_400_000;
@@ -314,9 +314,7 @@ export class ObsidianService {
       const local = this.sync.localSnapshot(c, l, owner);
       // The base is the note as last served, but only if this note was written from it.
       const base =
-        link && link.localVersion === n.baseVersion
-          ? (link.syncedSnapshot as Snapshot | null)
-          : null;
+        link && link.localVersion === n.baseVersion ? parseSnapshot(link.syncedSnapshot) : null;
       const remote: Snapshot = {
         ...(base ?? local),
         title: parsed.title ?? (base ?? local).title,
