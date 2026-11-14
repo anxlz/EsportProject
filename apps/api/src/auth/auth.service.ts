@@ -289,7 +289,11 @@ export class AuthService {
       });
     });
     const url = `${this.env.WEB_APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
-    await this.mail.sendPasswordReset(user.email, { url, minutes: RESET_TOKEN_MINUTES });
+    await this.mail.sendPasswordReset(
+      user.email,
+      { url, minutes: RESET_TOKEN_MINUTES },
+      user.locale ?? 'en',
+    );
   }
 
   async resetPassword(token: string, newPassword: string, meta: ClientMeta): Promise<void> {
@@ -326,6 +330,11 @@ export class AuthService {
       userId: row.userId,
       metadata: { sessionsRevoked: revoked },
     });
+    const [user] = await this.db
+      .select({ email: users.email, locale: users.locale })
+      .from(users)
+      .where(eq(users.id, row.userId));
+    if (user) await this.mail.sendPasswordChanged(user.email, user.locale ?? 'en');
   }
 
   async changePassword(ctx: AuthContext, current: string, next: string): Promise<void> {
@@ -353,6 +362,7 @@ export class AuthService {
         otherSessionsRevoked: revoked,
       },
     );
+    await this.mail.sendPasswordChanged(user.email, user.locale ?? 'en');
   }
 
   async revokeOtherSessions(ctx: AuthContext): Promise<number> {

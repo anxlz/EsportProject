@@ -182,6 +182,9 @@ describe('password recovery', () => {
     expect((await anon.post('/auth/password/reset', { token, password: newPassword })).status).toBe(
       204,
     );
+    const changedPasswordEmail = await latestEmail(t, 'owner@example.com');
+    expect(changedPasswordEmail?.template).toBe('password_changed');
+    expect(changedPasswordEmail?.html).toContain('<html lang="en" dir="ltr">');
     // Existing sessions were revoked.
     expect((await client.get('/auth/me')).status).toBe(401);
     // Old password no longer works, new one does.
@@ -262,6 +265,7 @@ describe('change password', () => {
       newPassword: 'new password 1234',
     });
     expect(ok.status).toBe(204);
+    expect((await latestEmail(t, 'owner@example.com'))?.template).toBe('password_changed');
     expect((await other.get('/auth/me')).status).toBe(401);
     expect((await client.get('/auth/me')).status).toBe(200);
   });
