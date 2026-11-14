@@ -177,6 +177,10 @@ The browser only talks to the web origin; in Options A/B, Next.js forwards `/api
 and in Option C the Vercel service route does so. This keeps the session cookie first-party.
 Don't expose the API's own URL to users.
 
+For deploying the API on Vercel while running inference on a no-token-fee local Ollama model, see
+[Vercel API + local LLM guide](./docs/VERCEL-API-FREE-LOCAL-LLM.md). The machine hosting Ollama
+must remain online and reachable; infrastructure and network costs may still apply.
+
 ### Option C — web and API services on Vercel
 
 The root `vercel.json` configures the existing web/API services, shared-origin API rewrite, daily
