@@ -15,7 +15,7 @@ export function scopeCondition(
   cols: { teamId: AnyPgColumn; departmentId: AnyPgColumn },
 ): SQL | undefined {
   if (!scope) return sql`false`;
-  if (scope.all) return undefined;
+  if (scope.all === true) return undefined;
   const parts: SQL[] = [];
   if (scope.teamIds.size) parts.push(inArray(cols.teamId, [...scope.teamIds]));
   if (scope.departmentIds.size) parts.push(inArray(cols.departmentId, [...scope.departmentIds]));

@@ -43,7 +43,7 @@ export class Access {
   coversTeam(perm: PermissionKey, team: TeamRef): boolean {
     const s = this.grants.get(perm);
     if (!s) return false;
-    if (s.all) return true;
+    if (s.all === true) return true;
     return (
       s.teamIds.has(team.id) ||
       (team.departmentId !== null && s.departmentIds.has(team.departmentId))
@@ -57,7 +57,7 @@ export class Access {
   coversDepartment(perm: PermissionKey, departmentId: string | null): boolean {
     const s = this.grants.get(perm);
     if (!s) return false;
-    if (s.all) return true;
+    if (s.all === true) return true;
     return departmentId !== null && s.departmentIds.has(departmentId);
   }
 
@@ -65,9 +65,10 @@ export class Access {
   toJSON(): { key: PermissionKey; scope: ScopeGrant }[] {
     return [...this.grants.entries()].map(([key, s]) => ({
       key,
-      scope: s.all
-        ? { all: true }
-        : { all: false, departmentIds: [...s.departmentIds], teamIds: [...s.teamIds] },
+      scope:
+        s.all === true
+          ? { all: true }
+          : { all: false, departmentIds: [...s.departmentIds], teamIds: [...s.teamIds] },
     }));
   }
 
@@ -82,7 +83,7 @@ export class Access {
       if (!(key in PERMISSIONS)) continue;
       grants.set(
         key,
-        scope.all
+        scope.all === true
           ? { all: true }
           : {
               all: false,
@@ -129,9 +130,9 @@ export function buildGrants(rows: AssignmentRow[]): {
         continue;
       }
       const existing = grants.get(key);
-      if (existing?.all) continue;
+      if (existing?.all === true) continue;
       const scope: Scope =
-        existing && !existing.all
+        existing && existing.all === false
           ? existing
           : { all: false, departmentIds: new Set<string>(), teamIds: new Set<string>() };
       if (row.scopeType === 'department' && row.departmentId)
