@@ -65,7 +65,7 @@ import { AppError, Errors } from '../common/errors.js';
 import { type Env, ENV } from '../config/env.js';
 import { REDIS } from '../core/core.module.js';
 import { DB, type Database, type DbOrTx } from '../db/client.js';
-import { users } from '../db/schema.js';
+import { organizations, users } from '../db/schema.js';
 import {
   approvalRequests,
   contracts,
@@ -943,12 +943,24 @@ export class SigningService {
         limit: MAX_EMAIL_CODES,
       });
     const settings = await this.settings.get(r.link.organizationId);
-    const ok = await this.mail.sendSigningCode(r.link.destination, {
-      organizationName: settings.organizationName,
-      contractNumber: r.contract.number,
-      code,
-      minutes: EMAIL_CODE_MINUTES,
-    });
+    const [recipient] = await this.db
+      .select({ locale: users.locale })
+      .from(users)
+      .where(eq(users.email, r.link.destination));
+    const [organization] = await this.db
+      .select({ defaultLocale: organizations.defaultLocale })
+      .from(organizations)
+      .where(eq(organizations.id, r.link.organizationId));
+    const ok = await this.mail.sendSigningCode(
+      r.link.destination,
+      {
+        organizationName: settings.organizationName,
+        contractNumber: r.contract.number,
+        code,
+        minutes: EMAIL_CODE_MINUTES,
+      },
+      recipient?.locale ?? organization?.defaultLocale ?? 'en',
+    );
     await this.audit.log({
       organizationId: r.link.organizationId,
       actorUserId: null,

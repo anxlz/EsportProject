@@ -404,12 +404,13 @@ export const notifications = appSchema.table(
 
 /**
  * Development/test-only mail sink (MAIL_TRANSPORT=outbox). Refused at startup in production,
- * because it stores message bodies — including password-reset links — in plain text.
+ * because it stores rendered message bodies — including password-reset links.
  */
 export const devOutbox = appSchema.table('dev_outbox', {
   id: uuid('id').primaryKey().defaultRandom(),
   to: text('to').notNull(),
   subject: text('subject').notNull(),
+  html: text('html').notNull().default(''),
   text: text('text').notNull(),
   template: text('template').notNull(),
   createdAt: createdAt(),

@@ -1,0 +1,1 @@
+ALTER TABLE "app"."dev_outbox" ADD COLUMN "html" text DEFAULT '' NOT NULL;

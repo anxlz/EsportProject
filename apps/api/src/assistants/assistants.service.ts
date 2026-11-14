@@ -447,6 +447,7 @@ export class AssistantsService {
       subject: input.subject,
       text: input.body,
       template: 'assistant_email',
+      locale: ctx.user.locale ?? 'en',
     });
     if (!ok) throw new AppError('email_send_failed', 502, 'The email could not be sent.');
     const detail = { to, cc, subject: input.subject };

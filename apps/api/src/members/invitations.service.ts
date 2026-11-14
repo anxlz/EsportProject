@@ -130,16 +130,20 @@ export class InvitationsService {
     });
 
     const [org] = await this.db
-      .select({ name: organizations.name })
+      .select({ name: organizations.name, defaultLocale: organizations.defaultLocale })
       .from(organizations)
       .where(eq(organizations.id, ctx.organizationId));
     const inviteUrl = `${this.env.WEB_APP_URL}/invite/${token}`;
-    const emailSent = await this.mail.sendInvitation(input.email, {
-      organizationName: org?.name ?? '',
-      inviterName: ctx.user.displayName,
-      url: inviteUrl,
-      expiresAt: row.expiresAt,
-    });
+    const emailSent = await this.mail.sendInvitation(
+      input.email,
+      {
+        organizationName: org?.name ?? '',
+        inviterName: ctx.user.displayName,
+        url: inviteUrl,
+        expiresAt: row.expiresAt,
+      },
+      ctx.user.locale ?? org?.defaultLocale ?? 'en',
+    );
     return {
       invitation: this.toDto(row, { id: ctx.user.id, displayName: ctx.user.displayName }),
       inviteUrl,

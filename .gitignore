@@ -12,6 +12,7 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+/tmp/mail-preview/
 
 # Local Redis snapshots
 dump.rdb

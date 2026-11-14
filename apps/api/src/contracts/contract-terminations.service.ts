@@ -687,15 +687,25 @@ export class ContractTerminationsService {
     const recipients = [...new Set(userIds)];
     if (!recipients.length) return;
     const emails = await this.db
-      .select({ email: users.email })
+      .select({ email: users.email, locale: users.locale })
       .from(users)
       .where(inArray(users.id, recipients));
-    if (emails.length)
-      await this.mail.sendContractTermination(emails.map((row) => row.email).join(', '), {
-        contractNumber,
-        status,
-        note: note ?? null,
-      });
+    const byLocale = new Map<'ar' | 'en', string[]>();
+    for (const row of emails) {
+      const locale = row.locale ?? 'en';
+      byLocale.set(locale, [...(byLocale.get(locale) ?? []), row.email]);
+    }
+    for (const [locale, addresses] of byLocale) {
+      await this.mail.sendContractTermination(
+        addresses.join(', '),
+        {
+          contractNumber,
+          status,
+          note: note ?? null,
+        },
+        locale,
+      );
+    }
   }
 
   private async sendUserEmail(
@@ -705,10 +715,15 @@ export class ContractTerminationsService {
     note: string | null,
   ) {
     const [user] = await this.db
-      .select({ email: users.email })
+      .select({ email: users.email, locale: users.locale })
       .from(users)
       .where(eq(users.id, userId));
-    if (user) await this.mail.sendContractTermination(user.email, { contractNumber, status, note });
+    if (user)
+      await this.mail.sendContractTermination(
+        user.email,
+        { contractNumber, status, note },
+        user.locale ?? 'en',
+      );
   }
 
   private async sendExternalNotice(
@@ -737,13 +752,27 @@ export class ContractTerminationsService {
     const email = snapshot?.details.recipient.email;
     if (!email) return;
     const [org] = await this.db
-      .select({ name: organizations.name })
+      .select({ name: organizations.name, defaultLocale: organizations.defaultLocale })
       .from(organizations)
       .where(eq(organizations.id, organizationId));
-    await this.mail.sendContractTermination(email, {
-      contractNumber: contractNumber ?? contract.number,
-      status: 'executed',
-      note: `The termination takes effect ${effectiveDate ?? this.clock.today()}. Please contact ${org?.name ?? 'the organization'} with any questions.`,
-    });
+    const locale =
+      snapshot?.details.language === 'ar'
+        ? 'ar'
+        : snapshot?.details.language === 'en'
+          ? 'en'
+          : (org?.defaultLocale ?? 'en');
+    const effectiveDateValue = effectiveDate ?? this.clock.today();
+    await this.mail.sendContractTermination(
+      email,
+      {
+        contractNumber: contractNumber ?? contract.number,
+        status: 'executed',
+        note:
+          locale === 'ar'
+            ? `يسري إنهاء العقد في ${effectiveDateValue}. للاستفسار، تواصل مع ${org?.name ?? 'المنظمة'}.`
+            : `The termination takes effect ${effectiveDateValue}. Please contact ${org?.name ?? 'the organization'} with any questions.`,
+      },
+      locale,
+    );
   }
 }
