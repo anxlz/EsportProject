@@ -1,4 +1,11 @@
-import { Global, Inject, Injectable, Module, type OnApplicationShutdown } from '@nestjs/common';
+import {
+  Global,
+  Inject,
+  Injectable,
+  Module,
+  type DynamicModule,
+  type OnApplicationShutdown,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 import { type Env, ENV } from '../config/env';
 import { createDb, DB, DB_HANDLE, type DbHandle } from '../db/client';
@@ -22,7 +29,7 @@ class Shutdown implements OnApplicationShutdown {
 @Global()
 @Module({})
 export class CoreModule {
-  static forRoot(env: Env) {
+  static forRoot(env: Env): DynamicModule {
     return {
       module: CoreModule,
       providers: [
