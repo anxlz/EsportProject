@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.4.x",
+  "installCommand": "bun install --frozen-lockfile && bun run --cwd packages/shared build",
   "services": {
     "api": {
       "root": "apps/api",
@@ -8,7 +9,7 @@
       "devCommand": "bun --watch src/main.ts",
       "functions": {
         "src/main.ts": {
-          "includeFiles": "{node_modules/{@fontsource/*/{LICENSE,files/*-normal.woff2},{ioredis,@ioredis/commands,cluster-key-slot,debug,denque,redis-errors,standard-as-callback,@nestjs/platform-express,@sparticuz/chromium,puppeteer-core}/**},assets/fonts/saudi-riyal/*.woff2}"
+          "includeFiles": "{node_modules/{@fontsource/*/{LICENSE,files/*-normal.woff2},{@esports/shared,ioredis,@ioredis/commands,cluster-key-slot,debug,denque,redis-errors,standard-as-callback,tslib,@nestjs/platform-express,@sparticuz/chromium,puppeteer-core}/**},assets/fonts/saudi-riyal/*.woff2}"
         }
       },
       "routes": [
