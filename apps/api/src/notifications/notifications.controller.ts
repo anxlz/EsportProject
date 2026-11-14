@@ -18,7 +18,10 @@ export class NotificationsController {
     @TenantCtx() ctx: TenantContext,
     @ZodQuery(notificationsQuerySchema) q: z.infer<typeof notificationsQuerySchema>,
   ) {
-    return this.notifications.list(ctx.organizationId, ctx.user.id, q);
+    return this.notifications.list(ctx.organizationId, ctx.user.id, {
+      ...q,
+      unreadOnly: q.unreadOnly ?? false,
+    });
   }
 
   @Get('unread-count')
