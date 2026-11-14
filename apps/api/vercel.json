@@ -1,9 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd ../.. && bun install --frozen-lockfile && bun run --cwd packages/shared build",
-  "functions": {
-    "src/main.ts": {
-      "includeFiles": "{node_modules/argon2/**/*,node_modules/node-gyp-build/**/*}"
-    }
-  }
+  "installCommand": "cd ../.. && bun install --frozen-lockfile && bun run --cwd packages/shared build"
 }
