@@ -9,7 +9,7 @@
       "devCommand": "bun --watch src/main.ts",
       "functions": {
         "src/main.ts": {
-          "includeFiles": "{node_modules/@{esports/shared,fontsource/*,nestjs/platform-express,sparticuz/chromium,ioredis/commands}/**,node_modules/{ioredis,cluster-key-slot,debug,denque,redis-errors,standard-as-callback,tslib,puppeteer-core}/**,assets/fonts/saudi-riyal/*.woff2}"
+          "includeFiles": "{node_modules/@{fontsource/*,nestjs/platform-express,sparticuz/chromium,ioredis/commands}/**,node_modules/{ioredis,cluster-key-slot,debug,denque,redis-errors,standard-as-callback,tslib,puppeteer-core}/**,assets/fonts/saudi-riyal/*.woff2}"
         }
       },
       "routes": [
